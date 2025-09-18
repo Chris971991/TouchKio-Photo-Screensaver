@@ -108,29 +108,8 @@ else
     echo "WAYLAND_DISPLAY is set to \"$WAYLAND_DISPLAY\"."
 fi
 
-# Download and copy enhanced TouchKio files
-echo -e "\nDownloading and copying enhanced TouchKio slideshow files..."
-
-TOUCHKIO_LIB="/usr/lib/touchkio/resources/app"
-TEMP_DIR=$(mktemp -d)
-
-# Download enhanced files from GitHub archive (avoids CDN caching)
-cd "$TEMP_DIR"
-wget -q "https://github.com/Chris971991/TouchKio-Photo-Screensaver/archive/refs/heads/master.zip" -O repo.zip || { echo "Failed to download enhanced files."; exit 1; }
-unzip -q repo.zip || { echo "Failed to extract files."; exit 1; }
-mv TouchKio-Photo-Screensaver-master TouchKio-Photo-Screensaver
-
-if [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html" ] && [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js" ]; then
-    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html"/* "$TOUCHKIO_LIB/html/" || { echo "Failed to copy HTML files."; exit 1; }
-    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js"/* "$TOUCHKIO_LIB/js/" || { echo "Failed to copy JS files."; exit 1; }
-    echo "Enhanced slideshow files copied successfully."
-else
-    echo "Enhanced slideshow files not found in download"
-    exit 1
-fi
-
-# Cleanup
-rm -rf "$TEMP_DIR"
+# Note: Enhanced files will be installed after TouchKio setup
+echo -e "\nPreparing for TouchKio setup..."
 
 # Create photos directory with sample images
 echo ""
@@ -151,19 +130,47 @@ wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
 echo "Added 5 sample images for immediate slideshow functionality"
 echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
 
-# Run TouchKio first time setup if needed
+# Run TouchKio first time setup
 echo ""
 echo "Starting TouchKio initial setup..."
-echo "Configure your TouchKio settings (MQTT, web URL, etc.)"
-
-# Start TouchKio in setup mode - it will prompt for configuration
-systemctl --user start touchkio.service
-
+echo "TouchKio will prompt you for configuration (MQTT, web URL, etc.)"
 echo ""
-echo "Waiting for TouchKio to complete initial setup..."
-echo "Please configure TouchKio through the interface, then return here."
+
+# Run TouchKio in interactive setup mode
+export DISPLAY=":0"
+export WAYLAND_DISPLAY="wayland-0"
+
+echo "Running TouchKio setup..."
+/usr/bin/touchkio --setup || {
+    echo "TouchKio setup completed or exited."
+    echo "If you see configuration prompts above, TouchKio is now configured."
+    echo "If not, you may need to configure it manually later."
+}
+
+# Download and install enhanced TouchKio files
 echo ""
-read -p "Press Enter after you've completed TouchKio setup..."
+echo "Installing enhanced TouchKio slideshow files..."
+
+TOUCHKIO_LIB="/usr/lib/touchkio/resources/app"
+TEMP_DIR=$(mktemp -d)
+
+# Download enhanced files from GitHub archive (avoids CDN caching)
+cd "$TEMP_DIR"
+wget -q "https://github.com/Chris971991/TouchKio-Photo-Screensaver/archive/refs/heads/master.zip" -O repo.zip || { echo "Failed to download enhanced files."; exit 1; }
+unzip -q repo.zip || { echo "Failed to extract files."; exit 1; }
+mv TouchKio-Photo-Screensaver-master TouchKio-Photo-Screensaver
+
+if [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html" ] && [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js" ]; then
+    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html"/* "$TOUCHKIO_LIB/html/" || { echo "Failed to copy HTML files."; exit 1; }
+    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js"/* "$TOUCHKIO_LIB/js/" || { echo "Failed to copy JS files."; exit 1; }
+    echo "Enhanced slideshow files installed successfully."
+else
+    echo "Enhanced slideshow files not found in download"
+    exit 1
+fi
+
+# Cleanup
+rm -rf "$TEMP_DIR"
 
 # Now enhance the existing config with slideshow settings
 echo ""
