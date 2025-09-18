@@ -64,9 +64,8 @@ global.SLIDESHOW = global.SLIDESHOW || {
 };
 
 const init = async () => {
-  if (!ARGS.slideshow_enabled || ARGS.slideshow_enabled !== "true") {
-    return true;
-  }
+  // Always initialize slideshow when slideshow.html is loaded
+  // Slideshow can be controlled via MQTT regardless of command line args
 
   const homedir = require("os").homedir();
   const defaultPhotosDir = path.join(homedir, "Pictures");
