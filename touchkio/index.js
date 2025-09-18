@@ -253,7 +253,7 @@ const promptArgs = async (proc) => {
     {
       key: "slideshow_photos_dir",
       question: "\nEnter slideshow photos directory",
-      fallback: "~/Pictures",
+      fallback: "~/TouchKio-Photo-Screensaver/photos",
     },
     {
       key: "slideshow_google_album",

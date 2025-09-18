@@ -6,7 +6,7 @@ A native photo slideshow extension for TouchKio that transforms your touch kiosk
 
 ### Core Functionality
 - **Automatic activation** after configurable idle time (default: 3 minutes)
-- **Dual photo sources**: Local photos from ~/Pictures and Google Photos shared albums
+- **Dual photo sources**: Local photos from ~/TouchKio-Photo-Screensaver/photos and Google Photos shared albums
 - **Smart fallback**: Uses local photos when internet is unavailable
 - **Smooth transitions** with 2-second fade effects
 - **User interaction detection** - hides immediately on any touch, click, or movement
@@ -51,7 +51,7 @@ touchkio --slideshow-enabled=true \
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `--slideshow-enabled` | `false` | Enable/disable slideshow feature |
-| `--slideshow-photos-dir` | `~/Pictures` | Directory containing local photos |
+| `--slideshow-photos-dir` | `~/TouchKio-Photo-Screensaver/photos` | Directory containing local photos |
 | `--slideshow-google-album` | - | Google Photos shared album ID (optional) |
 | `--slideshow-interval` | `5` | Seconds between photo changes |
 | `--slideshow-idle-timeout` | `180` | Seconds of inactivity before slideshow starts |
@@ -63,7 +63,7 @@ When running TouchKio for the first time or with `--setup`, you'll be prompted f
 
 ```
 Enable photo slideshow? (y/N): y
-Enter slideshow photos directory (~/Pictures): /home/user/Photos
+Enter slideshow photos directory (~/TouchKio-Photo-Screensaver/photos): /home/user/Photos
 Enter Google Photos album ID (optional):
 Enter slideshow interval (seconds) (5): 10
 Enter idle timeout (seconds) (180): 300
@@ -74,7 +74,7 @@ Show clock overlay? (true): true
 
 ### Local Photos
 
-1. Place photos in your configured directory (default: `~/Pictures`)
+1. Place photos in your configured directory (default: `~/TouchKio-Photo-Screensaver/photos`)
 2. Supported formats: JPG, JPEG, PNG, GIF, BMP, WEBP
 3. Photos will be automatically discovered and shuffled
 

@@ -68,7 +68,7 @@ const init = async () => {
   // Slideshow can be controlled via MQTT regardless of command line args
 
   const homedir = require("os").homedir();
-  const defaultPhotosDir = path.join(homedir, "Pictures");
+  const defaultPhotosDir = path.join(homedir, "TouchKio-Photo-Screensaver", "photos");
 
   SLIDESHOW.config = {
     enabled: ARGS.slideshow_enabled === "true",

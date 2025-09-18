@@ -1758,8 +1758,9 @@ const updateSlideshow = async () => {
   publishState("slideshow", status.active ? "ON" : "OFF");
 
   // Photo source settings
-  publishState("slideshow_photos_dir", ARGS.slideshow_photos_dir || "");
-  publishState("slideshow_google_albums", ARGS.slideshow_google_albums || "");
+  const expandedPhotosDir = ARGS.slideshow_photos_dir ? ARGS.slideshow_photos_dir.replace("~", require("os").homedir()) : "";
+  publishState("slideshow_photos_dir", expandedPhotosDir);
+  publishState("slideshow_google_albums", ARGS.slideshow_google_albums || ARGS.slideshow_google_album || "");
 
   // Timing settings
   publishState("slideshow_interval", Math.round(status.config.interval / 1000));
