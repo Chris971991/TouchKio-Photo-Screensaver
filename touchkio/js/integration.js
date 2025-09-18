@@ -969,9 +969,8 @@ const updateLastActive = async () => {
  * Initializes all slideshow controls and handles the execute logic.
  */
 const initSlideshow = () => {
-  if (!ARGS.slideshow_enabled || ARGS.slideshow_enabled !== "true") {
-    return;
-  }
+  // Always initialize slideshow MQTT controls when MQTT is enabled
+  // Users can enable/disable slideshow through Home Assistant
 
   // Master slideshow controls
   initSlideshowEnabled();
