@@ -228,14 +228,32 @@ else
     exit 1
 fi
 
-# Restart TouchKio with new config
-echo "Restarting TouchKio with slideshow configuration..."
-systemctl --user restart touchkio.service
+# Start TouchKio with new slideshow config
+echo "Starting TouchKio with slideshow configuration..."
 
-echo ""
-echo "TouchKio slideshow started!"
-echo "1. Access TouchKio to enable MQTT integration"
-echo "2. Configure slideshow settings via Home Assistant MQTT entities"
-echo "3. Set your Google Photos albums, timing, overlays, etc. from HA"
+# Make sure any crashed TouchKio processes are cleaned up
+pkill -f touchkio 2>/dev/null || true
+sleep 2
+
+# Start TouchKio service
+systemctl --user enable touchkio.service
+systemctl --user start touchkio.service
+
+# Wait a moment and check if it started successfully
+sleep 5
+
+if systemctl --user is-active --quiet touchkio.service; then
+    echo ""
+    echo "✓ TouchKio slideshow started successfully!"
+    echo "1. TouchKio should now display the slideshow with sample images"
+    echo "2. MQTT slideshow controls should appear in Home Assistant"
+    echo "3. Configure slideshow settings via Home Assistant MQTT entities"
+    echo "4. Set your Google Photos albums, timing, overlays, etc. from HA"
+else
+    echo ""
+    echo "⚠ TouchKio service failed to start properly"
+    echo "Try manually starting: systemctl --user start touchkio.service"
+    echo "Check logs: journalctl --user -u touchkio.service"
+fi
 
 exit 0
