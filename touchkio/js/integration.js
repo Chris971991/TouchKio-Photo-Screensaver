@@ -1719,20 +1719,25 @@ const updateSlideshowSetting = (key, value) => {
   // Update the ARGS object
   ARGS[key] = value;
 
-  // Persist to Arguments.json file
+  // Persist to Arguments.json file safely (preserve TouchKio's encryption)
   const fs = require("fs");
   const path = require("path");
   const argsFilePath = path.join(APP.config, "Arguments.json");
 
   try {
-    let argsToSave = { ...ARGS };
-
-    // Convert boolean values to strings for consistency with existing code
-    if (typeof value === "boolean") {
-      argsToSave[key] = value.toString();
+    // Read the current file to preserve encryption
+    let currentConfig = {};
+    if (fs.existsSync(argsFilePath)) {
+      const fileContent = fs.readFileSync(argsFilePath, "utf8");
+      currentConfig = JSON.parse(fileContent);
     }
 
-    fs.writeFileSync(argsFilePath, JSON.stringify(argsToSave, null, 2));
+    // Update only the specific key, preserving all other data (including encryption)
+    const valueToStore = typeof value === "boolean" ? value.toString() : value;
+    currentConfig[key] = valueToStore;
+
+    // Write back with preserved structure
+    fs.writeFileSync(argsFilePath, JSON.stringify(currentConfig, null, 2));
     console.log(`Updated ${key} in Arguments.json:`, value);
   } catch (error) {
     console.error("Failed to update Arguments.json:", error.message);
