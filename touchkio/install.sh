@@ -149,19 +149,37 @@ wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
 echo "Added 5 sample images for immediate slideshow functionality"
 echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
 
-# Start TouchKio with slideshow enabled by default
+# Configure TouchKio with slideshow enabled by default
 echo ""
-echo "Starting TouchKio with slideshow features enabled..."
+echo "Configuring TouchKio with slideshow features enabled..."
 echo "All slideshow settings can be controlled via Home Assistant MQTT."
 
-/usr/bin/touchkio --web-url "file://$TOUCHKIO_LIB/html/slideshow.html" \
-    --slideshow-enabled true \
-    --slideshow-photos-dir "$HOME/TouchKio-Photo-Screensaver/photos" \
-    --slideshow-interval 6000 \
-    --slideshow-clock-enabled true \
-    --slideshow-date-enabled true \
-    --slideshow-source-indicator-enabled true \
-    --slideshow-photo-counter-enabled true &
+# Create TouchKio config directory
+mkdir -p "$HOME/.config/touchkio"
+
+# Create Arguments.json with slideshow configuration
+CONFIG_FILE="$HOME/.config/touchkio/Arguments.json"
+cat > "$CONFIG_FILE" << 'EOF'
+{
+  "web_url": [
+    "file:///usr/lib/touchkio/resources/app/html/slideshow.html"
+  ],
+  "slideshow_enabled": true,
+  "slideshow_photos_dir": "/home/pi/TouchKio-Photo-Screensaver/photos",
+  "slideshow_interval": 6000,
+  "slideshow_clock_enabled": true,
+  "slideshow_date_enabled": true,
+  "slideshow_source_indicator_enabled": true,
+  "slideshow_photo_counter_enabled": true,
+  "slideshow_idle_timeout": 10
+}
+EOF
+
+echo "TouchKio configuration updated at $CONFIG_FILE"
+
+# Start TouchKio service
+echo "Starting TouchKio service..."
+systemctl --user start touchkio.service
 
 echo ""
 echo "TouchKio slideshow started!"
