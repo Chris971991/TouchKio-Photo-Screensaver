@@ -1099,7 +1099,7 @@ const initSlideshowPhotosDir = () => {
     device: INTEGRATION.device,
   };
 
-  publishConfig("textarea", config)
+  publishConfig("text", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
         const photosDir = message.toString();
@@ -1128,7 +1128,7 @@ const initSlideshowGoogleAlbums = () => {
     device: INTEGRATION.device,
   };
 
-  publishConfig("textarea", config)
+  publishConfig("text", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
         const googleAlbums = message.toString();
@@ -1758,7 +1758,10 @@ const updateSlideshow = async () => {
   publishState("slideshow", status.active ? "ON" : "OFF");
 
   // Photo source settings
-  const expandedPhotosDir = ARGS.slideshow_photos_dir ? ARGS.slideshow_photos_dir.replace("~", require("os").homedir()) : "";
+  const homedir = require("os").homedir();
+  const defaultPhotosDir = require("path").join(homedir, "TouchKio-Photo-Screensaver", "photos");
+  const photosDir = ARGS.slideshow_photos_dir || defaultPhotosDir;
+  const expandedPhotosDir = photosDir.replace(/^~/, homedir);
   publishState("slideshow_photos_dir", expandedPhotosDir);
   publishState("slideshow_google_albums", ARGS.slideshow_google_albums || ARGS.slideshow_google_album || "");
 
