@@ -126,16 +126,22 @@ echo ""
 mkdir -p "$HOME/TouchKio-Photo-Screensaver/photos"
 echo "Created photos directory at $HOME/TouchKio-Photo-Screensaver/photos"
 
-# Start the setup mode
+# Start TouchKio with slideshow enabled by default
 echo ""
-read -p "Start touchkio setup? (Y/n) " setup
+echo "Starting TouchKio with slideshow features enabled..."
+echo "All slideshow settings can be controlled via Home Assistant MQTT."
 
-if [[ ${setup:-y} == [Yy]* ]]; then
-    echo "/usr/bin/touchkio --setup"
-    /usr/bin/touchkio --setup
-else
-    echo "/usr/bin/touchkio"
-    /usr/bin/touchkio
-fi
+/usr/bin/touchkio --web-url "file://$TOUCHKIO_LIB/html/slideshow.html" \
+    --slideshow_enabled true \
+    --slideshow_photos_dir "$HOME/TouchKio-Photo-Screensaver/photos" \
+    --slideshow_interval 6000 \
+    --slideshow_clock_enabled true \
+    --slideshow_date_enabled true \
+    --slideshow_source_indicator_enabled true \
+    --slideshow_photo_counter_enabled true &
+
+echo ""
+echo "TouchKio slideshow started! Configure everything from Home Assistant."
+echo "Enable MQTT integration in TouchKio setup to get 23+ control entities."
 
 exit 0
