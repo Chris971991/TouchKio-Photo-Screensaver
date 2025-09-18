@@ -114,9 +114,11 @@ echo -e "\nDownloading and copying enhanced TouchKio slideshow files..."
 TOUCHKIO_LIB="/usr/lib/touchkio/resources/app"
 TEMP_DIR=$(mktemp -d)
 
-# Download enhanced files from GitHub
+# Download enhanced files from GitHub archive (avoids CDN caching)
 cd "$TEMP_DIR"
-git clone https://github.com/Chris971991/TouchKio-Photo-Screensaver.git || { echo "Failed to download enhanced files."; exit 1; }
+wget -q "https://github.com/Chris971991/TouchKio-Photo-Screensaver/archive/refs/heads/master.zip" -O repo.zip || { echo "Failed to download enhanced files."; exit 1; }
+unzip -q repo.zip || { echo "Failed to extract files."; exit 1; }
+mv TouchKio-Photo-Screensaver-master TouchKio-Photo-Screensaver
 
 if [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html" ] && [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js" ]; then
     sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html"/* "$TOUCHKIO_LIB/html/" || { echo "Failed to copy HTML files."; exit 1; }
