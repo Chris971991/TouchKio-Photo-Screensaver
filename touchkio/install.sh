@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Enhanced TouchKio installer v2.0
 
 # Read arguments
 ARG_UPDATE=false
