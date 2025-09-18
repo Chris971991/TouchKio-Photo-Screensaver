@@ -140,10 +140,10 @@ if [[ ${enable_mqtt:-y} == [Yy]* ]]; then
     echo ""
     echo "Starting TouchKio with MQTT enabled - configure everything from Home Assistant..."
     /usr/bin/touchkio --web-url "file://$TOUCHKIO_LIB/html/slideshow.html" \
-        --integration-mqtt-enabled \
-        --integration-mqtt-connection-string "$mqtt_url" \
-        --integration-mqtt-username "$mqtt_user" \
-        --integration-mqtt-password "$mqtt_pass" &
+        --integration_mqtt_enabled \
+        --integration_mqtt_connection_string "$mqtt_url" \
+        --integration_mqtt_username "$mqtt_user" \
+        --integration_mqtt_password "$mqtt_pass" &
 
     echo ""
     echo "TouchKio started! All slideshow settings can now be controlled from Home Assistant."
