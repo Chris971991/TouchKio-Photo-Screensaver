@@ -107,19 +107,27 @@ else
     echo "WAYLAND_DISPLAY is set to \"$WAYLAND_DISPLAY\"."
 fi
 
-# Copy enhanced TouchKio files
-echo -e "\nCopying enhanced TouchKio slideshow files..."
+# Download and copy enhanced TouchKio files
+echo -e "\nDownloading and copying enhanced TouchKio slideshow files..."
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOUCHKIO_LIB="/usr/lib/touchkio/resources/app"
+TEMP_DIR=$(mktemp -d)
 
-if [ -d "$SCRIPT_DIR/html" ] && [ -d "$SCRIPT_DIR/js" ]; then
-    sudo cp -r "$SCRIPT_DIR/html"/* "$TOUCHKIO_LIB/html/" || { echo "Failed to copy HTML files."; exit 1; }
-    sudo cp -r "$SCRIPT_DIR/js"/* "$TOUCHKIO_LIB/js/" || { echo "Failed to copy JS files."; exit 1; }
+# Download enhanced files from GitHub
+cd "$TEMP_DIR"
+git clone https://github.com/Chris971991/TouchKio-Photo-Screensaver.git || { echo "Failed to download enhanced files."; exit 1; }
+
+if [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html" ] && [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js" ]; then
+    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html"/* "$TOUCHKIO_LIB/html/" || { echo "Failed to copy HTML files."; exit 1; }
+    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js"/* "$TOUCHKIO_LIB/js/" || { echo "Failed to copy JS files."; exit 1; }
     echo "Enhanced slideshow files copied successfully."
 else
-    echo "Enhanced slideshow files not found in $SCRIPT_DIR"
+    echo "Enhanced slideshow files not found in download"
+    exit 1
 fi
+
+# Cleanup
+rm -rf "$TEMP_DIR"
 
 # Create photos directory
 echo ""
