@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(mkdir:*)",
+      "Bash(yarn --version)",
+      "Bash(npm --version)",
+      "Bash(npm install)",
+      "Bash(node:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(del \"C:\\Users\\Chris\\TouchKio-Photo-Screensaver\\touchkio\\js\\slideshow.js.backup\")",
+      "Bash(ping:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(mv /c/Users/Chris/TouchKio-Photo-Screensaver/test_scraper.py /c/Users/Chris/TouchKio-Photo-Screensaver/scripts/enhanced_google_photos_scraper.py)",
+      "Bash(mv /c/Users/Chris/TouchKio-Photo-Screensaver/convert_for_slideshow.py /c/Users/Chris/TouchKio-Photo-Screensaver/scripts/)",
+      "Bash(mv /c/Users/Chris/TouchKio-Photo-Screensaver/extract_all_photos.sh /c/Users/Chris/TouchKio-Photo-Screensaver/scripts/)",
+      "Bash(rm:*)",
+      "Bash(grep:*)",
+      "Read(//c//**)",
+      "Read(//c/Users/Chris/AppData/Roaming/**)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
