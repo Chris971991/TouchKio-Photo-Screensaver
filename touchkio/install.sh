@@ -149,37 +149,72 @@ wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
 echo "Added 5 sample images for immediate slideshow functionality"
 echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
 
-# Configure TouchKio with slideshow enabled by default
+# Run TouchKio first time setup if needed
 echo ""
-echo "Configuring TouchKio with slideshow features enabled..."
-echo "All slideshow settings can be controlled via Home Assistant MQTT."
+echo "Starting TouchKio initial setup..."
+echo "Configure your TouchKio settings (MQTT, web URL, etc.)"
 
-# Create TouchKio config directory
-mkdir -p "$HOME/.config/touchkio"
-
-# Create Arguments.json with slideshow configuration
-CONFIG_FILE="$HOME/.config/touchkio/Arguments.json"
-cat > "$CONFIG_FILE" << 'EOF'
-{
-  "web_url": [
-    "file:///usr/lib/touchkio/resources/app/html/slideshow.html"
-  ],
-  "slideshow_enabled": true,
-  "slideshow_photos_dir": "/home/pi/TouchKio-Photo-Screensaver/photos",
-  "slideshow_interval": 6000,
-  "slideshow_clock_enabled": true,
-  "slideshow_date_enabled": true,
-  "slideshow_source_indicator_enabled": true,
-  "slideshow_photo_counter_enabled": true,
-  "slideshow_idle_timeout": 10
-}
-EOF
-
-echo "TouchKio configuration updated at $CONFIG_FILE"
-
-# Start TouchKio service
-echo "Starting TouchKio service..."
+# Start TouchKio in setup mode - it will prompt for configuration
 systemctl --user start touchkio.service
+
+echo ""
+echo "Waiting for TouchKio to complete initial setup..."
+echo "Please configure TouchKio through the interface, then return here."
+echo ""
+read -p "Press Enter after you've completed TouchKio setup..."
+
+# Now enhance the existing config with slideshow settings
+echo ""
+echo "Enhancing TouchKio configuration with slideshow features..."
+
+CONFIG_FILE="$HOME/.config/touchkio/Arguments.json"
+if [ -f "$CONFIG_FILE" ]; then
+    # Backup existing config
+    cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
+
+    # Add slideshow settings to existing config using jq or python
+    if command -v python3 &> /dev/null; then
+        python3 -c "
+import json
+import sys
+
+# Read existing config
+with open('$CONFIG_FILE', 'r') as f:
+    config = json.load(f)
+
+# Add slideshow settings
+config.update({
+    'slideshow_enabled': True,
+    'slideshow_photos_dir': '/home/pi/TouchKio-Photo-Screensaver/photos',
+    'slideshow_interval': 6000,
+    'slideshow_clock_enabled': True,
+    'slideshow_date_enabled': True,
+    'slideshow_source_indicator_enabled': True,
+    'slideshow_photo_counter_enabled': True,
+    'slideshow_idle_timeout': 10
+})
+
+# Update web_url to use slideshow.html
+if 'web_url' in config:
+    config['web_url'] = ['file:///usr/lib/touchkio/resources/app/html/slideshow.html']
+
+# Write updated config
+with open('$CONFIG_FILE', 'w') as f:
+    json.dump(config, f, indent=2)
+"
+        echo "TouchKio configuration enhanced with slideshow settings"
+    else
+        echo "Python3 not available, slideshow config not applied"
+        echo "Please manually add slideshow settings to $CONFIG_FILE"
+    fi
+else
+    echo "TouchKio config not found. Please run TouchKio setup first."
+    exit 1
+fi
+
+# Restart TouchKio with new config
+echo "Restarting TouchKio with slideshow configuration..."
+systemctl --user restart touchkio.service
 
 echo ""
 echo "TouchKio slideshow started!"
