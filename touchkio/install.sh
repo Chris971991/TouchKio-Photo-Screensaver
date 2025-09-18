@@ -67,11 +67,13 @@ npm run build || { echo "Failed to build TouchKio."; exit 1; }
 DEB_PATH=$(find out/make -name "*.deb" | head -n1)
 [ -z "$DEB_PATH" ] && { echo "Built .deb file not found."; exit 1; }
 
-echo "Found built package: $DEB_PATH"
+# Convert to absolute path
+DEB_FULL_PATH="$(pwd)/$DEB_PATH"
+echo "Found built package: $DEB_FULL_PATH"
 
 # Install the built .deb package
 echo -e "\nInstalling enhanced TouchKio..."
-sudo apt install -y "$DEB_PATH" || { echo "Installation of built .deb file failed."; exit 1; }
+sudo apt install -y "$DEB_FULL_PATH" || { echo "Installation of built .deb file failed."; exit 1; }
 
 # Create the systemd user service
 echo -e "\nCreating systemd user service..."
