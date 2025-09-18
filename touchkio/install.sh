@@ -194,10 +194,9 @@ echo "Running TouchKio setup..."
 # Enable lingering for user to allow user services to run without being logged in
 sudo loginctl enable-linger "$USER"
 
-# Reload systemd and start the service
+# Reload systemd and enable service (but don't start yet)
 systemctl --user daemon-reload
 systemctl --user enable touchkio.service
-systemctl --user start touchkio.service
 
 echo ""
 echo "TouchKio setup completed!"
@@ -213,7 +212,8 @@ fi
 
 echo "Configuration created successfully at $CONFIG_FILE"
 
-# Start the service after successful setup
+# Configuration enhancement completed, now start the service
+echo "Starting TouchKio service..."
 systemctl --user start touchkio.service
 echo "Service status:"
 systemctl --user status touchkio.service --no-pager

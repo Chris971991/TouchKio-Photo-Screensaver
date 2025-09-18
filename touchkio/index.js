@@ -121,6 +121,12 @@ const initArgs = async () => {
       args = await promptArgs(process);
     } while (!Object.keys(args).length);
     writeArgs(argsFilePath, args);
+
+    // Exit after setup if --setup was explicitly passed
+    if ("setup" in args) {
+      console.log("Setup completed successfully!");
+      return app.quit();
+    }
   } else if (!argsProvided && argsFileExists) {
     args = readArgs(argsFilePath);
   }
