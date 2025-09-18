@@ -154,14 +154,14 @@ echo ""
 echo "Starting TouchKio with slideshow features enabled..."
 echo "All slideshow settings can be controlled via Home Assistant MQTT."
 
-/usr/bin/touchkio --web_url "file://$TOUCHKIO_LIB/html/slideshow.html" \
-    --slideshow_enabled true \
-    --slideshow_photos_dir "$HOME/TouchKio-Photo-Screensaver/photos" \
-    --slideshow_interval 6000 \
-    --slideshow_clock_enabled true \
-    --slideshow_date_enabled true \
-    --slideshow_source_indicator_enabled true \
-    --slideshow_photo_counter_enabled true &
+/usr/bin/touchkio --web-url "file://$TOUCHKIO_LIB/html/slideshow.html" \
+    --slideshow-enabled true \
+    --slideshow-photos-dir "$HOME/TouchKio-Photo-Screensaver/photos" \
+    --slideshow-interval 6000 \
+    --slideshow-clock-enabled true \
+    --slideshow-date-enabled true \
+    --slideshow-source-indicator-enabled true \
+    --slideshow-photo-counter-enabled true &
 
 echo ""
 echo "TouchKio slideshow started!"
