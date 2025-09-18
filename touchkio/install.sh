@@ -134,18 +134,25 @@ echo "Replace with your own photos or configure Google Photos albums via Home As
 echo ""
 echo "Starting TouchKio initial setup..."
 echo "TouchKio will prompt you for configuration (MQTT, web URL, etc.)"
+echo "Please answer the questions, then the installer will continue automatically."
 echo ""
 
-# Run TouchKio in interactive setup mode
+# Run TouchKio in interactive setup mode with proper TTY handling
 export DISPLAY=":0"
 export WAYLAND_DISPLAY="wayland-0"
 
 echo "Running TouchKio setup..."
-/usr/bin/touchkio --setup || {
+if /usr/bin/touchkio --setup < /dev/tty; then
+    echo ""
+    echo "TouchKio setup completed successfully!"
+else
+    echo ""
     echo "TouchKio setup completed or exited."
-    echo "If you see configuration prompts above, TouchKio is now configured."
-    echo "If not, you may need to configure it manually later."
-}
+fi
+
+echo ""
+echo "Continuing with slideshow enhancement installation..."
+sleep 2
 
 # Download and install enhanced TouchKio files
 echo ""
