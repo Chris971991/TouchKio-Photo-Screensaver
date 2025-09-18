@@ -220,27 +220,23 @@ systemctl --user status touchkio.service --no-pager
 
 # Post-setup configuration enhancement
 echo ""
-echo "Adding slideshow configuration to TouchKio..."
+echo "Enhancing slideshow configuration..."
 
 if [ -f "$CONFIG_FILE" ]; then
-    # Check if slideshow settings already exist
-    if ! grep -q "slideshow_enabled" "$CONFIG_FILE"; then
-        echo "Adding slideshow settings to configuration..."
+    # Check if slideshow UI settings need to be added
+    if ! grep -q "slideshow_clock_enabled\\|slideshow_date_enabled" "$CONFIG_FILE"; then
+        echo "Adding slideshow UI settings to configuration..."
         # Backup existing config
         cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
 
-        # Add slideshow settings using jq to preserve TouchKio's encryption
+        # Add slideshow settings using jq, preserving user-configured values
         if command -v jq &> /dev/null; then
-            # Use jq to safely add slideshow settings without breaking encryption
-            jq --arg photos_dir "$HOME/TouchKio-Photo-Screensaver/photos" '. + {
-                "slideshow_enabled": true,
-                "slideshow_photos_dir": $photos_dir,
-                "slideshow_interval": 6000,
-                "slideshow_clock_enabled": true,
+            # Read user's configured values and only add missing slideshow UI settings
+            jq '. + {
+                "slideshow_clock_enabled": (if .slideshow_show_clock then (.slideshow_show_clock | test("true|ON"; "i")) else true end),
                 "slideshow_date_enabled": true,
-                "slideshow_source_indicator_enabled": true,
-                "slideshow_photo_counter_enabled": true,
-                "slideshow_idle_timeout": 10
+                "slideshow_source_indicator_enabled": (if .slideshow_show_source then (.slideshow_show_source | test("true|ON"; "i")) else true end),
+                "slideshow_photo_counter_enabled": (if .slideshow_show_counter then (.slideshow_show_counter | test("true|ON"; "i")) else true end)
             }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
         elif command -v python3 &> /dev/null; then
             # Fallback to python but preserve existing password encryption
@@ -257,20 +253,16 @@ try:
     # Parse JSON
     config = json.loads(content)
 
-    # Add slideshow settings only (don't touch existing settings)
-    slideshow_settings = {
-        'slideshow_enabled': True,
-        'slideshow_photos_dir': f'{os.path.expanduser("~")}/TouchKio-Photo-Screensaver/photos',
-        'slideshow_interval': 6000,
-        'slideshow_clock_enabled': True,
+    # Add only missing slideshow UI settings (preserve user's configured values)
+    slideshow_ui_settings = {
+        'slideshow_clock_enabled': config.get('slideshow_show_clock', 'true').lower() in ['true', 'on', '1'],
         'slideshow_date_enabled': True,
-        'slideshow_source_indicator_enabled': True,
-        'slideshow_photo_counter_enabled': True,
-        'slideshow_idle_timeout': 10
+        'slideshow_source_indicator_enabled': config.get('slideshow_show_source', 'true').lower() in ['true', 'on', '1'],
+        'slideshow_photo_counter_enabled': config.get('slideshow_show_counter', 'true').lower() in ['true', 'on', '1']
     }
 
-    # Only add settings that don't exist
-    for key, value in slideshow_settings.items():
+    # Only add UI settings that don't exist (preserve ALL user setup choices)
+    for key, value in slideshow_ui_settings.items():
         if key not in config:
             config[key] = value
 
