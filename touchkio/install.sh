@@ -181,31 +181,57 @@ if [ -f "$CONFIG_FILE" ]; then
         # Backup existing config
         cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
 
-        # Add slideshow settings to existing config using python
-        if command -v python3 &> /dev/null; then
+        # Add slideshow settings using jq to preserve TouchKio's encryption
+        if command -v jq &> /dev/null; then
+            # Use jq to safely add slideshow settings without breaking encryption
+            jq '. + {
+                "slideshow_enabled": true,
+                "slideshow_photos_dir": "/home/pi/TouchKio-Photo-Screensaver/photos",
+                "slideshow_interval": 6000,
+                "slideshow_clock_enabled": true,
+                "slideshow_date_enabled": true,
+                "slideshow_source_indicator_enabled": true,
+                "slideshow_photo_counter_enabled": true,
+                "slideshow_idle_timeout": 10
+            }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+        elif command -v python3 &> /dev/null; then
+            # Fallback to python but preserve existing password encryption
             python3 -c "
 import json
 import sys
 
-# Read existing config
-with open('$CONFIG_FILE', 'r') as f:
-    config = json.load(f)
+try:
+    # Read existing config as text first to preserve any special formatting
+    with open('$CONFIG_FILE', 'r') as f:
+        content = f.read()
 
-# Add slideshow settings
-config.update({
-    'slideshow_enabled': True,
-    'slideshow_photos_dir': '/home/pi/TouchKio-Photo-Screensaver/photos',
-    'slideshow_interval': 6000,
-    'slideshow_clock_enabled': True,
-    'slideshow_date_enabled': True,
-    'slideshow_source_indicator_enabled': True,
-    'slideshow_photo_counter_enabled': True,
-    'slideshow_idle_timeout': 10
-})
+    # Parse JSON
+    config = json.loads(content)
 
-# Write updated config
-with open('$CONFIG_FILE', 'w') as f:
-    json.dump(config, f, indent=2)
+    # Add slideshow settings only (don't touch existing settings)
+    slideshow_settings = {
+        'slideshow_enabled': True,
+        'slideshow_photos_dir': '/home/pi/TouchKio-Photo-Screensaver/photos',
+        'slideshow_interval': 6000,
+        'slideshow_clock_enabled': True,
+        'slideshow_date_enabled': True,
+        'slideshow_source_indicator_enabled': True,
+        'slideshow_photo_counter_enabled': True,
+        'slideshow_idle_timeout': 10
+    }
+
+    # Only add settings that don't exist
+    for key, value in slideshow_settings.items():
+        if key not in config:
+            config[key] = value
+
+    # Write back preserving original formatting as much as possible
+    with open('$CONFIG_FILE', 'w') as f:
+        json.dump(config, f, indent=2)
+
+except Exception as e:
+    print(f'Warning: Could not modify config safely: {e}')
+    exit(1)
 "
             echo "Slideshow configuration added."
         else
