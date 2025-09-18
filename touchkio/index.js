@@ -100,6 +100,7 @@ const initApp = async () => {
 const initArgs = async () => {
   let args = parseArgs(process);
   let argsProvided = !!Object.keys(args).length;
+  let wasSetupMode = "setup" in args;  // Remember if --setup was passed
 
   let argsFilePath = path.join(APP.config, "Arguments.json");
   let argsFileExists = fs.existsSync(argsFilePath);
@@ -123,7 +124,7 @@ const initArgs = async () => {
     writeArgs(argsFilePath, args);
 
     // Exit after setup if --setup was explicitly passed
-    if ("setup" in args) {
+    if (wasSetupMode) {
       console.log("Setup completed successfully!");
       return app.quit();
     }
