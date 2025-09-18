@@ -126,40 +126,16 @@ echo ""
 mkdir -p "$HOME/TouchKio-Photo-Screensaver/photos"
 echo "Created photos directory at $HOME/TouchKio-Photo-Screensaver/photos"
 
-# Ask about MQTT integration
+# Start the setup mode
 echo ""
-read -p "Enable MQTT integration for Home Assistant control? (Y/n) " enable_mqtt
+read -p "Start touchkio setup? (Y/n) " setup
 
-if [[ ${enable_mqtt:-y} == [Yy]* ]]; then
-    echo ""
-    read -p "Enter MQTT broker URL (e.g., mqtt://192.168.50.45:1883): " mqtt_url
-    read -p "Enter MQTT username: " mqtt_user
-    read -s -p "Enter MQTT password: " mqtt_pass
-    echo ""
-
-    echo ""
-    echo "Starting TouchKio with MQTT enabled - configure everything from Home Assistant..."
-    /usr/bin/touchkio --web-url "file://$TOUCHKIO_LIB/html/slideshow.html" \
-        --integration_mqtt_enabled \
-        --integration_mqtt_connection_string "$mqtt_url" \
-        --integration_mqtt_username "$mqtt_user" \
-        --integration_mqtt_password "$mqtt_pass" &
-
-    echo ""
-    echo "TouchKio started! All slideshow settings can now be controlled from Home Assistant."
-    echo "Check your HA MQTT integrations for 23+ new TouchKio entities."
+if [[ ${setup:-y} == [Yy]* ]]; then
+    echo "/usr/bin/touchkio --setup"
+    /usr/bin/touchkio --setup
 else
-    # Start the setup mode
-    echo ""
-    read -p "Start touchkio setup? (Y/n) " setup
-
-    if [[ ${setup:-y} == [Yy]* ]]; then
-        echo "/usr/bin/touchkio --setup"
-        /usr/bin/touchkio --setup
-    else
-        echo "/usr/bin/touchkio"
-        /usr/bin/touchkio
-    fi
+    echo "/usr/bin/touchkio"
+    /usr/bin/touchkio
 fi
 
 exit 0
