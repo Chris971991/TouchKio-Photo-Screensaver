@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TouchKio Slideshow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            cursor: none;
+            user-select: none;
+        }
+
+        .slideshow-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(20px) brightness(0.3);
+            transform: scale(1.1);
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .photo {
+            position: absolute;
+            opacity: 0;
+            transform: scale(1);
+            filter: blur(0px);
+            transition: all 2s ease-in-out;
+            z-index: 1;
+        }
+
+        .photo.fit-contain {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .photo.fit-cover {
+            height: 100vh;
+            max-width: 100%;
+            object-fit: contain;
+        }
+        .photo.fit-fill {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        .photo.visible {
+            opacity: 1;
+        }
+
+        .photo-background.visible {
+            opacity: 1;
+        }
+
+        .photo.loading {
+            opacity: 0.3;
+        }
+
+        /* Fade transition */
+        .transition-fade .photo {
+            transition: opacity 2s ease-in-out;
+        }
+
+        /* Slide transition */
+        .transition-slide .photo {
+            transform: translateX(100%);
+            transition: transform 2s ease-in-out, opacity 2s ease-in-out;
+        }
+
+        .transition-slide .photo.visible {
+            transform: translateX(0);
+        }
+
+        /* Zoom transition */
+        .transition-zoom .photo {
+            transform: scale(0.8);
+            transition: transform 2s ease-in-out, opacity 2s ease-in-out;
+        }
+
+        .transition-zoom .photo.visible {
+            transform: scale(1);
+        }
+
+        /* Blur transition */
+        .transition-blur .photo {
+            filter: blur(10px);
+            transition: filter 2s ease-in-out, opacity 2s ease-in-out;
+        }
+
+        .transition-blur .photo.visible {
+            filter: blur(0px);
+        }
+
+        /* Rotate transition */
+        .transition-rotate .photo {
+            transform: rotate(-10deg) scale(0.9);
+            transition: transform 2s ease-in-out, opacity 2s ease-in-out;
+        }
+
+        .transition-rotate .photo.visible {
+            transform: rotate(0deg) scale(1);
+        }
+
+        .overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0px;
+            line-height: 0.9;
+            z-index: 10;
+        }
+
+        .overlay.pos-center {
+            align-items: center;
+        }
+
+        .overlay.pos-top-left,
+        .overlay.pos-bottom-left {
+            align-items: flex-start;
+        }
+
+        .overlay.background-dark {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay.background-light {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay.background-none {
+            background: none;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Position classes */
+        .pos-top-left { top: 20px; left: 20px; right: auto; bottom: auto; }
+        .pos-top-right { top: 20px; right: 20px; left: auto; bottom: auto; }
+        .pos-bottom-left { bottom: 20px; left: 20px; right: auto; top: auto; }
+        .pos-bottom-right { bottom: 20px; right: 20px; left: auto; top: auto; }
+        .pos-center {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            right: auto;
+            bottom: auto;
+        }
+
+        /* Size classes for clock */
+        .clock.size-tiny { font-size: 1rem !important; }
+        .clock.size-small { font-size: 1.5rem !important; }
+        .clock.size-medium { font-size: 2rem !important; }
+        .clock.size-large { font-size: 2.5rem !important; }
+        .clock.size-xlarge { font-size: 4rem !important; }
+        .clock.size-xxlarge { font-size: 6rem !important; }
+        .clock.size-massive { font-size: 8rem !important; }
+        .clock.size-giant { font-size: 12rem !important; }
+
+        .date.size-tiny { font-size: 0.6rem !important; }
+        .date.size-small { font-size: 0.8rem !important; }
+        .date.size-medium { font-size: 1rem !important; }
+        .date.size-large { font-size: 1.2rem !important; }
+        .date.size-xlarge { font-size: 1.6rem !important; }
+        .date.size-xxlarge { font-size: 2.2rem !important; }
+        .date.size-massive { font-size: 3rem !important; }
+        .date.size-giant { font-size: 4rem !important; }
+
+        /* Size classes for indicators */
+        .size-small {
+            padding: 8px 12px;
+            font-size: 0.7rem;
+        }
+        .size-medium {
+            padding: 10px 15px;
+            font-size: 0.8rem;
+        }
+        .size-large {
+            padding: 12px 18px;
+            font-size: 0.9rem;
+        }
+
+        .clock {
+            font-weight: 300;
+            letter-spacing: 2px;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .date {
+            opacity: 0.8;
+            line-height: 1;
+            margin: 0;
+            margin-top: -0.1em;
+        }
+
+        .source-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .source-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .source-icon.google {
+            background: #4285f4;
+        }
+
+        .source-icon.local {
+            background: #34a853;
+        }
+
+        .photo-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(220, 53, 69, 0.9);
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            text-align: center;
+            display: none;
+        }
+
+        .no-photos {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        .no-photos h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .no-photos p {
+            font-size: 1.2rem;
+        }
+
+        .preload-container {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .clock {
+                font-size: 2rem;
+            }
+
+            .overlay {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px 15px;
+            }
+
+            .source-indicator,
+            .photo-counter {
+                bottom: 10px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slideshow-container">
+        <div class="photo-container">
+            <img id="bg1" class="photo-background" alt="Background 1">
+            <img id="bg2" class="photo-background" alt="Background 2">
+            <img id="photo1" class="photo" alt="Slideshow Photo 1">
+            <img id="photo2" class="photo" alt="Slideshow Photo 2">
+            <div class="preload-container">
+                <img id="preloadPhoto" alt="Preload Photo">
+            </div>
+        </div>
+
+        <div class="source-indicator">
+            <div class="source-icon" id="sourceIcon"></div>
+            <span id="sourceText">Local Photos</span>
+        </div>
+
+        <div class="photo-counter">
+            <span id="photoCounter">0 / 0</span>
+        </div>
+
+        <div class="overlay" id="clockOverlay">
+            <div class="clock" id="clock">00:00</div>
+            <div class="date" id="date">Loading...</div>
+        </div>
+
+        <div class="loading-indicator" id="loadingIndicator">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            Failed to load photo
+        </div>
+
+        <div class="no-photos" id="noPhotos" style="display: none;">
+            <h2>No Photos Available</h2>
+            <p>Add photos to your Pictures folder or configure Google Photos</p>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let config = {};
+        let photos = [];
+        let currentIndex = 0;
+        let clockInterval = null;
+        let currentPhotoElement = 1; // Track which photo element is currently visible
+
+        const elements = {
+            bg1: document.getElementById('bg1'),
+            bg2: document.getElementById('bg2'),
+            photo1: document.getElementById('photo1'),
+            photo2: document.getElementById('photo2'),
+            preloadPhoto: document.getElementById('preloadPhoto'),
+            sourceIcon: document.getElementById('sourceIcon'),
+            sourceText: document.getElementById('sourceText'),
+            photoCounter: document.getElementById('photoCounter'),
+            clockOverlay: document.getElementById('clockOverlay'),
+            clock: document.getElementById('clock'),
+            date: document.getElementById('date'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            errorMessage: document.getElementById('errorMessage'),
+            noPhotos: document.getElementById('noPhotos')
+        };
+
+        function initializeClock() {
+            if (clockInterval) {
+                clearInterval(clockInterval);
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                const dateString = now.toLocaleDateString([], {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                elements.clock.textContent = timeString;
+                elements.date.textContent = dateString;
+            }
+
+            updateClock();
+            clockInterval = setInterval(updateClock, 1000);
+        }
+
+        function updateSourceIndicator(photo) {
+            if (photo.type === 'google') {
+                elements.sourceIcon.className = 'source-icon google';
+                elements.sourceText.textContent = 'Google Photos';
+            } else {
+                elements.sourceIcon.className = 'source-icon local';
+                elements.sourceText.textContent = 'Local Photos';
+            }
+        }
+
+        function updatePhotoCounter(current, total) {
+            elements.photoCounter.textContent = `${current + 1} / ${total}`;
+        }
+
+        function showLoading() {
+            elements.loadingIndicator.style.display = 'block';
+            elements.errorMessage.style.display = 'none';
+        }
+
+        function hideLoading() {
+            elements.loadingIndicator.style.display = 'none';
+        }
+
+        function showError(message = 'Failed to load photo') {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.style.display = 'block';
+            elements.loadingIndicator.style.display = 'none';
+        }
+
+        function hideError() {
+            elements.errorMessage.style.display = 'none';
+        }
+
+        function getPhotoUrl(photo, index) {
+            if (photo.type === 'google') {
+                return `http://localhost:${config.port || 8081}/google-photo/${encodeURIComponent(photo.url)}`;
+            } else {
+                return `http://localhost:${config.port || 8081}/photo/${index !== undefined ? index : photos.indexOf(photo)}`;
+            }
+        }
+
+        function preloadNextPhoto(index) {
+            if (photos.length === 0) return;
+
+            const nextIndex = (index + 1) % photos.length;
+            const nextPhoto = photos[nextIndex];
+
+            if (nextPhoto) {
+                elements.preloadPhoto.src = getPhotoUrl(nextPhoto, nextIndex);
+            }
+        }
+
+        function showPhoto(photoData) {
+            if (!photoData || !photoData.photo) {
+                showError('No photo data received');
+                return;
+            }
+
+            const { index, photo } = photoData;
+            currentIndex = index;
+
+            if (photos.length === 0) {
+                elements.noPhotos.style.display = 'block';
+                return;
+            } else {
+                elements.noPhotos.style.display = 'none';
+            }
+
+            hideError();
+
+            updateSourceIndicator(photo);
+            updatePhotoCounter(index, photos.length);
+
+            const photoUrl = getPhotoUrl(photo, index);
+
+            // Determine which photo element to use next
+            const nextPhotoElement = currentPhotoElement === 1 ? 2 : 1;
+            const currentPhoto = elements[`photo${currentPhotoElement}`];
+            const nextPhoto = elements[`photo${nextPhotoElement}`];
+            const currentBg = elements[`bg${currentPhotoElement}`];
+            const nextBg = elements[`bg${nextPhotoElement}`];
+
+            const newPhoto = new Image();
+
+            newPhoto.onload = () => {
+                // Set the source on both the foreground and background elements
+                nextPhoto.src = photoUrl;
+                nextBg.src = photoUrl;
+
+                // Start transition: fade in new photo and background
+                setTimeout(() => {
+                    nextPhoto.classList.add('visible');
+                    nextBg.classList.add('visible');
+                    currentPhoto.classList.remove('visible');
+                    currentBg.classList.remove('visible');
+                }, 50); // Small delay to ensure src is set
+
+                // Update which element is current after transition completes
+                setTimeout(() => {
+                    currentPhotoElement = nextPhotoElement;
+                }, 2000); // Match transition duration
+
+                preloadNextPhoto(index);
+            };
+
+            newPhoto.onerror = () => {
+                console.error('Failed to load photo:', photoUrl);
+                showError(`Failed to load: ${photo.title || 'Unknown photo'}`);
+
+                setTimeout(() => {
+                    hideError();
+                }, 3000);
+            };
+
+            newPhoto.src = photoUrl;
+        }
+
+        ipcRenderer.on('slideshow-config', (event, data) => {
+            console.log('Received slideshow config:', data);
+
+            if (data.config) {
+                config = data.config;
+
+                // Clock configuration
+                elements.clockOverlay.style.display = config.showClock ? 'flex' : 'none';
+                if (config.showClock) {
+                    const clockClasses = [
+                        'overlay',
+                        `background-${config.clockBackground || 'dark'}`,
+                        `pos-${config.clockPosition || 'bottom-right'}`
+                    ];
+                    elements.clockOverlay.className = clockClasses.join(' ');
+                    elements.clockOverlay.style.opacity = config.clockOpacity || 0.7;
+
+                    elements.clock.className = `clock size-${config.clockSize || 'large'}`;
+                    elements.date.className = `date size-${config.clockSize || 'large'}`;
+                    elements.clock.style.color = config.clockColor || '#ffffff';
+                    elements.date.style.color = config.clockColor || '#ffffff';
+
+                    initializeClock();
+                }
+
+                // Source indicator configuration
+                const sourceIndicator = document.querySelector('.source-indicator');
+                sourceIndicator.style.display = config.showSourceIndicator ? 'flex' : 'none';
+                if (config.showSourceIndicator) {
+                    const sourceClasses = [
+                        'source-indicator',
+                        `pos-${config.sourcePosition || 'top-left'}`,
+                        `size-${config.sourceSize || 'medium'}`
+                    ];
+                    sourceIndicator.className = sourceClasses.join(' ');
+                    sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
+                }
+
+                // Photo counter configuration
+                const photoCounter = document.querySelector('.photo-counter');
+                photoCounter.style.display = config.showPhotoCounter ? 'flex' : 'none';
+                if (config.showPhotoCounter) {
+                    const counterClasses = [
+                        'photo-counter',
+                        `pos-${config.counterPosition || 'bottom-left'}`,
+                        `size-${config.counterSize || 'medium'}`
+                    ];
+                    photoCounter.className = counterClasses.join(' ');
+                    photoCounter.style.opacity = config.counterOpacity || 0.8;
+                }
+
+                // Photo fit configuration
+                const photos = document.querySelectorAll('.photo');
+                photos.forEach(photo => {
+                    photo.className = `photo fit-${config.photoFit || 'contain'}`;
+                });
+
+                // Apply transition type
+                const container = document.querySelector('.slideshow-container');
+                container.className = `slideshow-container transition-${config.transitionType || 'fade'}`;
+            }
+
+            if (data.photos) {
+                photos = data.photos;
+                updatePhotoCounter(currentIndex, photos.length);
+
+                if (photos.length === 0) {
+                    elements.noPhotos.style.display = 'block';
+                }
+            }
+        });
+
+        ipcRenderer.on('show-photo', (event, photoData) => {
+            showPhoto(photoData);
+        });
+
+        // Delay before enabling activity detection to prevent false triggers
+        let activityDetectionEnabled = false;
+        setTimeout(() => {
+            activityDetectionEnabled = true;
+            console.log('Activity detection enabled');
+        }, 1000); // Wait 1 second before enabling
+
+        // Aggressive event capture for VNC and remote clicks
+        const triggerUserActivity = () => {
+            if (activityDetectionEnabled) {
+                console.log('User activity detected in slideshow');
+                ipcRenderer.send('slideshow-user-activity');
+            }
+        };
+
+        // Capture clicks on all elements
+        document.addEventListener('click', triggerUserActivity, true);
+        document.addEventListener('mousedown', triggerUserActivity, true);
+        document.addEventListener('mouseup', triggerUserActivity, true);
+
+        document.addEventListener('keydown', triggerUserActivity);
+
+        // Throttled mousemove to prevent too many events
+        let mouseMoveTimeout;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            // Only trigger on significant mouse movement
+            const deltaX = Math.abs(e.clientX - lastMouseX);
+            const deltaY = Math.abs(e.clientY - lastMouseY);
+
+            if (deltaX > 10 || deltaY > 10) {
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                if (!mouseMoveTimeout) {
+                    mouseMoveTimeout = setTimeout(() => {
+                        triggerUserActivity();
+                        mouseMoveTimeout = null;
+                    }, 100);
+                }
+            }
+        });
+
+        document.addEventListener('touchstart', triggerUserActivity);
+
+        // Also detect clicks on the slideshow container specifically
+        document.querySelector('.slideshow-container').addEventListener('click', triggerUserActivity, true);
+
+        window.addEventListener('beforeunload', () => {
+            if (clockInterval) {
+                clearInterval(clockInterval);
+            }
+        });
+
+        console.log('Slideshow HTML loaded and ready');
+    </script>
+</body>
+</html>

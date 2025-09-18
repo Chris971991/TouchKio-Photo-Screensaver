@@ -1,0 +1,31 @@
+{
+    "name": "touchkio",
+    "title": "TouchKio",
+    "description": "Home Assistant Touch Kiosk",
+    "homepage": "https://github.com/leukipp/touchkio",
+    "author": "leukipp",
+    "version": "1.3.1",
+    "license": "MIT",
+    "main": "index.js",
+    "scripts": {
+        "start": "electron . --web-url=https://demo.home-assistant.io,https://demo.immichkiosk.app --app-debug=false --trace-warnings",
+        "build": "electron-forge make"
+    },
+    "prettier": {
+        "printWidth": 120
+    },
+    "devDependencies": {
+        "@electron-forge/cli": "^7.8.3",
+        "@electron-forge/maker-deb": "^7.8.3",
+        "@electron-forge/maker-zip": "^7.8.3",
+        "@electron-forge/publisher-github": "^7.8.3",
+        "electron": "^38.0.0",
+        "jszip": "^3.10.1",
+        "prettier": "^3.6.2"
+    },
+    "dependencies": {
+        "axios": "^1.11.0",
+        "electron-log": "^5.4.3",
+        "mqtt": "^5.14.1"
+    }
+}
