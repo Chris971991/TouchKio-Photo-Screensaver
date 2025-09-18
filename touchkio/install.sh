@@ -178,6 +178,12 @@ echo "For web URL, you can use: file:///usr/lib/touchkio/resources/app/html/slid
 echo "Or use your Home Assistant URL and switch to slideshow later via MQTT."
 echo ""
 
+# Stop any existing TouchKio processes before setup
+echo "Stopping any existing TouchKio processes..."
+pkill -f touchkio || true
+systemctl --user stop touchkio.service || true
+sleep 2
+
 # Run TouchKio in interactive setup mode with proper TTY handling
 export DISPLAY=":0"
 export WAYLAND_DISPLAY="wayland-0"
@@ -194,15 +200,28 @@ systemctl --user enable touchkio.service
 systemctl --user start touchkio.service
 
 echo ""
-echo "TouchKio setup completed and service started!"
+echo "TouchKio setup completed!"
+
+# Verify configuration was created
+CONFIG_FILE="$HOME/.config/touchkio/Arguments.json"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: TouchKio configuration not found at $CONFIG_FILE"
+    echo "Setup may have failed. Please run setup manually:"
+    echo "  /usr/bin/touchkio --setup"
+    exit 1
+fi
+
+echo "Configuration created successfully at $CONFIG_FILE"
+
+# Start the service after successful setup
+systemctl --user start touchkio.service
 echo "Service status:"
 systemctl --user status touchkio.service --no-pager
 
 # Post-setup configuration enhancement
 echo ""
-echo "Checking if slideshow configuration needs enhancement..."
+echo "Adding slideshow configuration to TouchKio..."
 
-CONFIG_FILE="$HOME/.config/touchkio/Arguments.json"
 if [ -f "$CONFIG_FILE" ]; then
     # Check if slideshow settings already exist
     if ! grep -q "slideshow_enabled" "$CONFIG_FILE"; then
