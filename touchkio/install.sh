@@ -150,7 +150,9 @@ echo "All slideshow settings can be controlled via Home Assistant MQTT."
     --slideshow-photo-counter-enabled &
 
 echo ""
-echo "TouchKio slideshow started! Configure everything from Home Assistant."
-echo "Enable MQTT integration in TouchKio setup to get 23+ control entities."
+echo "TouchKio slideshow started!"
+echo "1. Access TouchKio to enable MQTT integration"
+echo "2. Configure slideshow settings via Home Assistant MQTT entities"
+echo "3. Set your Google Photos albums, timing, overlays, etc. from HA"
 
 exit 0
