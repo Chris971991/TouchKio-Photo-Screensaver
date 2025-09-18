@@ -295,6 +295,21 @@ echo "3. Check Home Assistant for new MQTT slideshow entities"
 echo "4. Configure slideshow settings, Google Photos albums, timing, etc. via HA"
 echo "5. Sample images are ready in: ~/TouchKio-Photo-Screensaver/photos"
 echo ""
-echo "Enjoy your enhanced TouchKio experience!"
+
+# Offer to show live logs
+echo "📊 View live TouchKio logs? (Y/n): "
+read -r show_logs
+if [[ ${show_logs:-y} =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "Showing live TouchKio logs (press Ctrl+C to exit):"
+    echo "----------------------------------------"
+    journalctl --user -u touchkio.service -f
+else
+    echo ""
+    echo "To view TouchKio logs later, run:"
+    echo "  journalctl --user -u touchkio.service -f"
+    echo ""
+    echo "Enjoy your enhanced TouchKio experience!"
+fi
 
 exit 0
