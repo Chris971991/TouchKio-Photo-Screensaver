@@ -1095,10 +1095,11 @@ const initSlideshowPhotosDir = () => {
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
     icon: "mdi:folder-image",
+    mode: "text",
     device: INTEGRATION.device,
   };
 
-  publishConfig("text", config)
+  publishConfig("textarea", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
         const photosDir = message.toString();
@@ -1123,10 +1124,11 @@ const initSlideshowGoogleAlbums = () => {
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
     icon: "mdi:google-photos",
+    mode: "text",
     device: INTEGRATION.device,
   };
 
-  publishConfig("text", config)
+  publishConfig("textarea", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
         const googleAlbums = message.toString();
