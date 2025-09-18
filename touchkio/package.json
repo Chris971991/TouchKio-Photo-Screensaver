@@ -1,9 +1,9 @@
 {
     "name": "touchkio",
-    "title": "TouchKio",
-    "description": "Home Assistant Touch Kiosk",
-    "homepage": "https://github.com/leukipp/touchkio",
-    "author": "leukipp",
+    "title": "TouchKio Enhanced",
+    "description": "Home Assistant Touch Kiosk with Photo Slideshow",
+    "homepage": "https://github.com/Chris971991/TouchKio-Photo-Screensaver",
+    "author": "Chris971991",
     "version": "1.3.1",
     "license": "MIT",
     "main": "index.js",

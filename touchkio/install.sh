@@ -28,24 +28,50 @@ esac
 [ "$BITS" -eq 64 ] || { echo "Architecture $ARCH running $BITS-bit operating system is not supported."; exit 1; }
 echo "Architecture $ARCH running $BITS-bit operating system is supported."
 
-# Download the latest .deb package
-echo -e "\nDownloading the latest release..."
-
-TMP_DIR=$(mktemp -d)
-DEB_URL=$(wget -qO- https://api.github.com/repos/leukipp/touchkio/releases/latest | \
-grep -o "\"browser_download_url\": \"[^\"]*_${ARCH}\.deb\"" | \
-sed 's/"browser_download_url": "//;s/"//g')
-DEB_PATH="${TMP_DIR}/$(basename "$DEB_URL")"
-chmod 755 "$TMP_DIR"
-
-[ -z "$DEB_URL" ] && { echo "Download url for .deb file not found."; exit 1; }
-wget --show-progress -q -O "$DEB_PATH" "$DEB_URL" || { echo "Failed to download the .deb file."; exit 1; }
-
-# Install the latest .deb package
-echo -e "\nInstalling the latest release..."
+# Install dependencies for building from source
+echo -e "\nInstalling build dependencies..."
 
 command -v apt &> /dev/null || { echo "Package manager apt was not found."; exit 1; }
-sudo apt install -y "$DEB_PATH" || { echo "Installation of .deb file failed."; exit 1; }
+
+# Install Node.js 18+ (required for Electron 38)
+if ! command -v node &> /dev/null || [[ "$(node -v | cut -d'.' -f1 | sed 's/v//')" -lt 18 ]]; then
+    echo "Installing Node.js 18..."
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+fi
+
+# Install additional build dependencies
+sudo apt-get update
+sudo apt-get install -y git build-essential libnss3-dev libatk-bridge2.0-dev libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxss1 libasound2
+
+# Download and build enhanced TouchKio from source
+echo -e "\nDownloading enhanced TouchKio source..."
+
+TMP_DIR=$(mktemp -d)
+chmod 755 "$TMP_DIR"
+cd "$TMP_DIR"
+
+# Clone the enhanced repository
+git clone https://github.com/Chris971991/TouchKio-Photo-Screensaver.git || { echo "Failed to clone repository."; exit 1; }
+cd TouchKio-Photo-Screensaver/touchkio
+
+# Install npm dependencies
+echo -e "\nInstalling TouchKio dependencies..."
+npm install || { echo "Failed to install dependencies."; exit 1; }
+
+# Build the .deb package
+echo -e "\nBuilding TouchKio package..."
+npm run build || { echo "Failed to build TouchKio."; exit 1; }
+
+# Find the generated .deb file
+DEB_PATH=$(find out/make -name "*.deb" | head -n1)
+[ -z "$DEB_PATH" ] && { echo "Built .deb file not found."; exit 1; }
+
+echo "Found built package: $DEB_PATH"
+
+# Install the built .deb package
+echo -e "\nInstalling enhanced TouchKio..."
+sudo apt install -y "$DEB_PATH" || { echo "Installation of built .deb file failed."; exit 1; }
 
 # Create the systemd user service
 echo -e "\nCreating systemd user service..."
@@ -56,13 +82,20 @@ mkdir -p "$(dirname "$SERVICE_FILE")" || { echo "Failed to create directory for 
 
 SERVICE_CONTENT="[Unit]
 Description=TouchKio
-After=graphical.target
+After=graphical-session.target
 Wants=network-online.target
 
 [Service]
+Type=simple
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/%u/.Xauthority"
+Environment="XDG_RUNTIME_DIR=/run/user/%U"
+ExecStartPre=/bin/bash -c 'until pgrep -x Xorg || pgrep -x Xwayland; do sleep 2; done'
 ExecStart=/usr/bin/touchkio
-Restart=on-failure
-RestartSec=5s
+Restart=always
+RestartSec=10s
+StartLimitInterval=60s
+StartLimitBurst=3
 
 [Install]
 WantedBy=default.target"
@@ -108,29 +141,12 @@ else
     echo "WAYLAND_DISPLAY is set to \"$WAYLAND_DISPLAY\"."
 fi
 
-# Install enhanced slideshow files BEFORE TouchKio setup
-echo -e "\nInstalling enhanced TouchKio slideshow files..."
+# Enhanced TouchKio is already built with slideshow features!
+echo -e "\nEnhanced TouchKio with slideshow features has been installed successfully."
+echo "All slideshow files are already included in the built package."
 
-TOUCHKIO_LIB="/usr/lib/touchkio/resources/app"
-TEMP_DIR=$(mktemp -d)
-
-# Download enhanced files from GitHub archive (avoids CDN caching)
-cd "$TEMP_DIR"
-wget -q "https://github.com/Chris971991/TouchKio-Photo-Screensaver/archive/refs/heads/master.zip" -O repo.zip || { echo "Failed to download enhanced files."; exit 1; }
-unzip -q repo.zip || { echo "Failed to extract files."; exit 1; }
-mv TouchKio-Photo-Screensaver-master TouchKio-Photo-Screensaver
-
-if [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html" ] && [ -d "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js" ]; then
-    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/html"/* "$TOUCHKIO_LIB/html/" || { echo "Failed to copy HTML files."; exit 1; }
-    sudo cp -r "$TEMP_DIR/TouchKio-Photo-Screensaver/touchkio/js"/* "$TOUCHKIO_LIB/js/" || { echo "Failed to copy JS files."; exit 1; }
-    echo "Enhanced slideshow files installed successfully."
-else
-    echo "Enhanced slideshow files not found in download"
-    exit 1
-fi
-
-# Cleanup
-rm -rf "$TEMP_DIR"
+# Cleanup build directory
+rm -rf "$TMP_DIR"
 
 # Create photos directory with sample images
 echo ""
@@ -166,8 +182,18 @@ export WAYLAND_DISPLAY="wayland-0"
 echo "Running TouchKio setup..."
 /usr/bin/touchkio --setup < /dev/tty
 
+# Enable lingering for user to allow user services to run without being logged in
+sudo loginctl enable-linger "$USER"
+
+# Reload systemd and start the service
+systemctl --user daemon-reload
+systemctl --user enable touchkio.service
+systemctl --user start touchkio.service
+
 echo ""
-echo "TouchKio setup completed and should now be running!"
+echo "TouchKio setup completed and service started!"
+echo "Service status:"
+systemctl --user status touchkio.service --no-pager
 
 # Post-setup configuration enhancement
 echo ""
@@ -184,9 +210,9 @@ if [ -f "$CONFIG_FILE" ]; then
         # Add slideshow settings using jq to preserve TouchKio's encryption
         if command -v jq &> /dev/null; then
             # Use jq to safely add slideshow settings without breaking encryption
-            jq '. + {
+            jq --arg photos_dir "$HOME/TouchKio-Photo-Screensaver/photos" '. + {
                 "slideshow_enabled": true,
-                "slideshow_photos_dir": "/home/pi/TouchKio-Photo-Screensaver/photos",
+                "slideshow_photos_dir": $photos_dir,
                 "slideshow_interval": 6000,
                 "slideshow_clock_enabled": true,
                 "slideshow_date_enabled": true,
@@ -199,6 +225,7 @@ if [ -f "$CONFIG_FILE" ]; then
             python3 -c "
 import json
 import sys
+import os
 
 try:
     # Read existing config as text first to preserve any special formatting
@@ -211,7 +238,7 @@ try:
     # Add slideshow settings only (don't touch existing settings)
     slideshow_settings = {
         'slideshow_enabled': True,
-        'slideshow_photos_dir': '/home/pi/TouchKio-Photo-Screensaver/photos',
+        'slideshow_photos_dir': f'{os.path.expanduser("~")}/TouchKio-Photo-Screensaver/photos',
         'slideshow_interval': 6000,
         'slideshow_clock_enabled': True,
         'slideshow_date_enabled': True,

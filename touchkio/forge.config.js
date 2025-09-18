@@ -43,8 +43,8 @@ module.exports = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "leukipp",
-          name: "touchkio",
+          owner: "Chris971991",
+          name: "TouchKio-Photo-Screensaver",
         },
         draft: true,
       },
