@@ -108,55 +108,8 @@ else
     echo "WAYLAND_DISPLAY is set to \"$WAYLAND_DISPLAY\"."
 fi
 
-# Note: Enhanced files will be installed after TouchKio setup
-echo -e "\nPreparing for TouchKio setup..."
-
-# Create photos directory with sample images
-echo ""
-mkdir -p "$HOME/TouchKio-Photo-Screensaver/photos"
-echo "Created photos directory at $HOME/TouchKio-Photo-Screensaver/photos"
-
-# Download sample images
-echo "Adding sample slideshow images..."
-cd "$HOME/TouchKio-Photo-Screensaver/photos"
-
-# Download some generic sample images (landscape/nature photos)
-wget -q "https://picsum.photos/1920/1080?random=1" -O sample1.jpg
-wget -q "https://picsum.photos/1920/1080?random=2" -O sample2.jpg
-wget -q "https://picsum.photos/1920/1080?random=3" -O sample3.jpg
-wget -q "https://picsum.photos/1920/1080?random=4" -O sample4.jpg
-wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
-
-echo "Added 5 sample images for immediate slideshow functionality"
-echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
-
-# Run TouchKio first time setup
-echo ""
-echo "Starting TouchKio initial setup..."
-echo "TouchKio will prompt you for configuration (MQTT, web URL, etc.)"
-echo "Please answer the questions, then the installer will continue automatically."
-echo ""
-
-# Run TouchKio in interactive setup mode with proper TTY handling
-export DISPLAY=":0"
-export WAYLAND_DISPLAY="wayland-0"
-
-echo "Running TouchKio setup..."
-if /usr/bin/touchkio --setup < /dev/tty; then
-    echo ""
-    echo "TouchKio setup completed successfully!"
-else
-    echo ""
-    echo "TouchKio setup completed or exited."
-fi
-
-echo ""
-echo "Continuing with slideshow enhancement installation..."
-sleep 2
-
-# Download and install enhanced TouchKio files
-echo ""
-echo "Installing enhanced TouchKio slideshow files..."
+# Install enhanced slideshow files BEFORE TouchKio setup
+echo -e "\nInstalling enhanced TouchKio slideshow files..."
 
 TOUCHKIO_LIB="/usr/lib/touchkio/resources/app"
 TEMP_DIR=$(mktemp -d)
@@ -179,18 +132,58 @@ fi
 # Cleanup
 rm -rf "$TEMP_DIR"
 
-# Now enhance the existing config with slideshow settings
+# Create photos directory with sample images
 echo ""
-echo "Enhancing TouchKio configuration with slideshow features..."
+mkdir -p "$HOME/TouchKio-Photo-Screensaver/photos"
+echo "Created photos directory at $HOME/TouchKio-Photo-Screensaver/photos"
+
+# Download sample images
+echo "Adding sample slideshow images..."
+cd "$HOME/TouchKio-Photo-Screensaver/photos"
+
+# Download some generic sample images (landscape/nature photos)
+wget -q "https://picsum.photos/1920/1080?random=1" -O sample1.jpg
+wget -q "https://picsum.photos/1920/1080?random=2" -O sample2.jpg
+wget -q "https://picsum.photos/1920/1080?random=3" -O sample3.jpg
+wget -q "https://picsum.photos/1920/1080?random=4" -O sample4.jpg
+wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
+
+echo "Added 5 sample images for immediate slideshow functionality"
+echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
+
+# Run TouchKio setup with slideshow files already installed
+echo ""
+echo "Starting TouchKio setup with slideshow features..."
+echo "TouchKio will prompt you for configuration (MQTT, web URL, etc.)"
+echo "For web URL, you can use: file:///usr/lib/touchkio/resources/app/html/slideshow.html"
+echo "Or use your Home Assistant URL and switch to slideshow later via MQTT."
+echo ""
+
+# Run TouchKio in interactive setup mode with proper TTY handling
+export DISPLAY=":0"
+export WAYLAND_DISPLAY="wayland-0"
+
+echo "Running TouchKio setup..."
+/usr/bin/touchkio --setup < /dev/tty
+
+echo ""
+echo "TouchKio setup completed and should now be running!"
+
+# Post-setup configuration enhancement
+echo ""
+echo "Checking if slideshow configuration needs enhancement..."
 
 CONFIG_FILE="$HOME/.config/touchkio/Arguments.json"
 if [ -f "$CONFIG_FILE" ]; then
-    # Backup existing config
-    cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
+    # Check if slideshow settings already exist
+    if ! grep -q "slideshow_enabled" "$CONFIG_FILE"; then
+        echo "Adding slideshow settings to configuration..."
+        # Backup existing config
+        cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
 
-    # Add slideshow settings to existing config using jq or python
-    if command -v python3 &> /dev/null; then
-        python3 -c "
+        # Add slideshow settings to existing config using python
+        if command -v python3 &> /dev/null; then
+            python3 -c "
 import json
 import sys
 
@@ -210,50 +203,31 @@ config.update({
     'slideshow_idle_timeout': 10
 })
 
-# Update web_url to use slideshow.html
-if 'web_url' in config:
-    config['web_url'] = ['file:///usr/lib/touchkio/resources/app/html/slideshow.html']
-
 # Write updated config
 with open('$CONFIG_FILE', 'w') as f:
     json.dump(config, f, indent=2)
 "
-        echo "TouchKio configuration enhanced with slideshow settings"
+            echo "Slideshow configuration added."
+        else
+            echo "Python3 not available, slideshow config not applied"
+        fi
     else
-        echo "Python3 not available, slideshow config not applied"
-        echo "Please manually add slideshow settings to $CONFIG_FILE"
+        echo "Slideshow settings already present in configuration."
     fi
 else
-    echo "TouchKio config not found. Please run TouchKio setup first."
-    exit 1
+    echo "TouchKio config not found - setup may not have completed properly."
 fi
 
-# Start TouchKio with new slideshow config
-echo "Starting TouchKio with slideshow configuration..."
-
-# Make sure any crashed TouchKio processes are cleaned up
-pkill -f touchkio 2>/dev/null || true
-sleep 2
-
-# Start TouchKio service
-systemctl --user enable touchkio.service
-systemctl --user start touchkio.service
-
-# Wait a moment and check if it started successfully
-sleep 5
-
-if systemctl --user is-active --quiet touchkio.service; then
-    echo ""
-    echo "✓ TouchKio slideshow started successfully!"
-    echo "1. TouchKio should now display the slideshow with sample images"
-    echo "2. MQTT slideshow controls should appear in Home Assistant"
-    echo "3. Configure slideshow settings via Home Assistant MQTT entities"
-    echo "4. Set your Google Photos albums, timing, overlays, etc. from HA"
-else
-    echo ""
-    echo "⚠ TouchKio service failed to start properly"
-    echo "Try manually starting: systemctl --user start touchkio.service"
-    echo "Check logs: journalctl --user -u touchkio.service"
-fi
+echo ""
+echo "✓ TouchKio enhanced slideshow installer completed!"
+echo ""
+echo "TouchKio should now be running with slideshow capabilities:"
+echo "1. If you set web URL to slideshow.html, you'll see the slideshow immediately"
+echo "2. If you used Home Assistant URL, MQTT slideshow controls are available"
+echo "3. Check Home Assistant for new MQTT slideshow entities"
+echo "4. Configure slideshow settings, Google Photos albums, timing, etc. via HA"
+echo "5. Sample images are ready in: ~/TouchKio-Photo-Screensaver/photos"
+echo ""
+echo "Enjoy your enhanced TouchKio experience!"
 
 exit 0
