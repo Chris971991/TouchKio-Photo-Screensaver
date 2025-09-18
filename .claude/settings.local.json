@@ -21,7 +21,8 @@
       "Read(//c/Users/Chris/AppData/Roaming/**)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Read(//c/Users/Chris/**)"
     ],
     "deny": [],
     "ask": []
