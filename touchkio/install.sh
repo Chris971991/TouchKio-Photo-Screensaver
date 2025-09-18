@@ -130,10 +130,24 @@ fi
 # Cleanup
 rm -rf "$TEMP_DIR"
 
-# Create photos directory
+# Create photos directory with sample images
 echo ""
 mkdir -p "$HOME/TouchKio-Photo-Screensaver/photos"
 echo "Created photos directory at $HOME/TouchKio-Photo-Screensaver/photos"
+
+# Download sample images
+echo "Adding sample slideshow images..."
+cd "$HOME/TouchKio-Photo-Screensaver/photos"
+
+# Download some generic sample images (landscape/nature photos)
+wget -q "https://picsum.photos/1920/1080?random=1" -O sample1.jpg
+wget -q "https://picsum.photos/1920/1080?random=2" -O sample2.jpg
+wget -q "https://picsum.photos/1920/1080?random=3" -O sample3.jpg
+wget -q "https://picsum.photos/1920/1080?random=4" -O sample4.jpg
+wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
+
+echo "Added 5 sample images for immediate slideshow functionality"
+echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
 
 # Start TouchKio with slideshow enabled by default
 echo ""
