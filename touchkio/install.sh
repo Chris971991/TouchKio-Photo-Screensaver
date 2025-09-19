@@ -304,7 +304,7 @@ echo "----------------------------------------"
 # Wait a moment for service to fully start
 sleep 2
 
-# Show live logs automatically
-journalctl --user -u touchkio.service -f --no-hostname --output=short
+# Show live logs automatically (user services log to system journal)
+sudo journalctl -f --no-hostname --output=short | grep "touchkio\["
 
 exit 0
