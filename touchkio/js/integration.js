@@ -1200,7 +1200,7 @@ const initSlideshowInterval = () => {
     value_template: "{{ value | int }}",
     mode: "box",
     min: 1,
-    max: 60,
+    max: 14400, // Allow up to 4 hours (4 * 60 * 60 seconds)
     unit_of_measurement: "s",
     icon: "mdi:timer",
     device: INTEGRATION.device,
