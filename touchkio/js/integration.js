@@ -1267,8 +1267,9 @@ const initSlideshowRandomOrder = () => {
   publishConfig("switch", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
-        const randomOrder = message.toString() === "ON";
-        console.log("Set Slideshow Random Order:", randomOrder);
+        const messageStr = message.toString();
+        const randomOrder = messageStr === "ON";
+        console.log(`Set Slideshow Random Order: received="${messageStr}" parsed=${randomOrder}`);
         updateSlideshowSetting("slideshow_random_order", randomOrder);
         slideshow.updateConfig({ randomOrder });
       }
@@ -1978,7 +1979,12 @@ const updateSlideshow = async () => {
   publishState("slideshow_show_clock", status.config.showClock ? "ON" : "OFF");
   publishState("slideshow_clock_position", status.config.clockPosition || ARGS.slideshow_clock_position || "top-right");
   publishState("slideshow_clock_size", status.config.clockSize || ARGS.slideshow_clock_size || "medium");
-  publishState("slideshow_clock_background", status.config.clockBackground || ARGS.slideshow_clock_background || "dark");
+
+  // Debug clock background value resolution
+  const clockBg = status.config.clockBackground || ARGS.slideshow_clock_background || "dark";
+  console.log(`Clock background state: runtime="${status.config.clockBackground}" args="${ARGS.slideshow_clock_background}" final="${clockBg}"`);
+  publishState("slideshow_clock_background", clockBg);
+
   publishState("slideshow_clock_opacity", status.config.clockOpacity || ARGS.slideshow_clock_opacity || 0.8);
   publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
 

@@ -166,8 +166,23 @@ const initHttpServer = async () => {
     SLIDESHOW.server = http.createServer(async (req, res) => {
       try {
         if (req.url === "/photos") {
+          // Combine Google Photos and local photos for counter
+          const combinedPhotos = [
+            ...SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+              id: `google_${index}`,
+              url: `/google-photo/${encodeURIComponent(url)}`,
+              type: "google",
+              title: `Google Photo ${index + 1}`
+            })),
+            ...SLIDESHOW.photos.map((photo, index) => ({
+              ...photo,
+              id: `local_${index}`,
+              url: `/photo/${index}`
+            }))
+          ];
+
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ photos: SLIDESHOW.photos }));
+          res.end(JSON.stringify({ photos: combinedPhotos }));
         } else if (req.url.startsWith("/photo/")) {
           const index = parseInt(req.url.split("/")[2]);
           if (index >= 0 && index < SLIDESHOW.photos.length) {
@@ -824,19 +839,42 @@ const reloadPhotos = async () => {
   console.log("Reloading photos...");
   await loadPhotos();
 
-  if (SLIDESHOW.active && SLIDESHOW.photos.length > 0) {
+  // Check if we have any photos (Google Photos or local)
+  const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
+
+  if (SLIDESHOW.active && hasPhotos) {
     SLIDESHOW.currentIndex = 0;
+
+    // Combine Google Photos and local photos for the counter
+    const combinedPhotos = [
+      ...SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+        id: `google_${index}`,
+        url: `/google-photo/${encodeURIComponent(url)}`,
+        type: "google",
+        title: `Google Photo ${index + 1}`
+      })),
+      ...SLIDESHOW.photos.map((photo, index) => ({
+        ...photo,
+        id: `local_${index}`,
+        url: `/photo/${index}`
+      }))
+    ];
+
     SLIDESHOW.view.webContents.send("slideshow-config", {
       config: SLIDESHOW.config,
-      photos: SLIDESHOW.photos,
+      photos: combinedPhotos,
     });
+
+    console.log(`Sent updated config with ${combinedPhotos.length} total photos (${SLIDESHOW.googlePhotoUrls.length} Google + ${SLIDESHOW.photos.length} local)`);
   }
 };
 
 const getStatus = () => ({
   initialized: SLIDESHOW.initialized,
   active: SLIDESHOW.active,
-  photoCount: SLIDESHOW.photos.length,
+  photoCount: SLIDESHOW.googlePhotoUrls.length + SLIDESHOW.photos.length,
+  googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,
+  localPhotoCount: SLIDESHOW.photos.length,
   currentIndex: SLIDESHOW.currentIndex,
   config: SLIDESHOW.config,
   lastActivity: SLIDESHOW.lastActivity,
