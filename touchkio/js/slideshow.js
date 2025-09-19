@@ -166,23 +166,27 @@ const initHttpServer = async () => {
     SLIDESHOW.server = http.createServer(async (req, res) => {
       try {
         if (req.url === "/photos") {
-          // Combine Google Photos and local photos for counter
-          const combinedPhotos = [
-            ...SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+          // Smart photo counting: use Google Photos if available, otherwise local photos
+          let photosToCount;
+          if (SLIDESHOW.googlePhotoUrls.length > 0) {
+            // Google Photos are available - count those
+            photosToCount = SLIDESHOW.googlePhotoUrls.map((url, index) => ({
               id: `google_${index}`,
               url: `/google-photo/${encodeURIComponent(url)}`,
               type: "google",
               title: `Google Photo ${index + 1}`
-            })),
-            ...SLIDESHOW.photos.map((photo, index) => ({
+            }));
+          } else {
+            // No Google Photos - count local photos
+            photosToCount = SLIDESHOW.photos.map((photo, index) => ({
               ...photo,
               id: `local_${index}`,
               url: `/photo/${index}`
-            }))
-          ];
+            }));
+          }
 
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ photos: combinedPhotos }));
+          res.end(JSON.stringify({ photos: photosToCount }));
         } else if (req.url.startsWith("/photo/")) {
           const index = parseInt(req.url.split("/")[2]);
           if (index >= 0 && index < SLIDESHOW.photos.length) {
@@ -728,26 +732,33 @@ const showSlideshow = async () => {
     height: windowBounds.height,
   });
 
-  // Send config with combined Google Photos and local photos for counter
-  const combinedPhotos = [
-    ...SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+  // Smart photo counting: use Google Photos if available, otherwise local photos
+  let photosToCount;
+  if (SLIDESHOW.googlePhotoUrls.length > 0) {
+    // Google Photos are available - count those
+    photosToCount = SLIDESHOW.googlePhotoUrls.map((url, index) => ({
       id: `google_${index}`,
       url: `/google-photo/${encodeURIComponent(url)}`,
       type: "google",
       title: `Google Photo ${index + 1}`
-    })),
-    ...SLIDESHOW.photos.map((photo, index) => ({
+    }));
+  } else {
+    // No Google Photos - count local photos
+    photosToCount = SLIDESHOW.photos.map((photo, index) => ({
       ...photo,
       id: `local_${index}`,
       url: `/photo/${index}`
-    }))
-  ];
+    }));
+  }
 
   SLIDESHOW.view.webContents.send("slideshow-config", {
     config: SLIDESHOW.config,
-    photos: combinedPhotos,
+    photos: photosToCount,
     googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,
   });
+
+  const sourceType = SLIDESHOW.googlePhotoUrls.length > 0 ? "Google Photos" : "local photos";
+  console.log(`Started slideshow with ${photosToCount.length} ${sourceType} for counter`);
 
   // Get and show first photo
   let firstPhoto = null;
@@ -859,34 +870,40 @@ const reloadPhotos = async () => {
   if (SLIDESHOW.active && hasPhotos) {
     SLIDESHOW.currentIndex = 0;
 
-    // Combine Google Photos and local photos for the counter
-    const combinedPhotos = [
-      ...SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+    // Smart photo counting: use Google Photos if available, otherwise local photos
+    let photosToCount;
+    if (SLIDESHOW.googlePhotoUrls.length > 0) {
+      // Google Photos are available - count those
+      photosToCount = SLIDESHOW.googlePhotoUrls.map((url, index) => ({
         id: `google_${index}`,
         url: `/google-photo/${encodeURIComponent(url)}`,
         type: "google",
         title: `Google Photo ${index + 1}`
-      })),
-      ...SLIDESHOW.photos.map((photo, index) => ({
+      }));
+    } else {
+      // No Google Photos - count local photos
+      photosToCount = SLIDESHOW.photos.map((photo, index) => ({
         ...photo,
         id: `local_${index}`,
         url: `/photo/${index}`
-      }))
-    ];
+      }));
+    }
 
     SLIDESHOW.view.webContents.send("slideshow-config", {
       config: SLIDESHOW.config,
-      photos: combinedPhotos,
+      photos: photosToCount,
     });
 
-    console.log(`Sent updated config with ${combinedPhotos.length} total photos (${SLIDESHOW.googlePhotoUrls.length} Google + ${SLIDESHOW.photos.length} local)`);
+    const sourceType = SLIDESHOW.googlePhotoUrls.length > 0 ? "Google Photos" : "local photos";
+    console.log(`Sent updated config with ${photosToCount.length} ${sourceType} for counter`);
   }
 };
 
 const getStatus = () => ({
   initialized: SLIDESHOW.initialized,
   active: SLIDESHOW.active,
-  photoCount: SLIDESHOW.googlePhotoUrls.length + SLIDESHOW.photos.length,
+  photoCount: SLIDESHOW.googlePhotoUrls.length > 0 ? SLIDESHOW.googlePhotoUrls.length : SLIDESHOW.photos.length,
+  activePhotoSource: SLIDESHOW.googlePhotoUrls.length > 0 ? "google" : "local",
   googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,
   localPhotoCount: SLIDESHOW.photos.length,
   currentIndex: SLIDESHOW.currentIndex,
