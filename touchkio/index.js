@@ -287,6 +287,11 @@ const promptArgs = async (proc) => {
       fallback: "2000",
     },
     {
+      key: "slideshow_orientation_mode",
+      question: "Orientation mode (landscape/portrait)",
+      fallback: "landscape",
+    },
+    {
       key: "check",
       question: "\nEverything looks good?",
       fallback: "Y/n",
@@ -312,7 +317,7 @@ const promptArgs = async (proc) => {
         if (["y", "yes"].includes(value)) {
           args.slideshow_enabled = "true";
         } else {
-          ignore = ignore.concat(["slideshow_photos_dir", "slideshow_google_album", "slideshow_interval", "slideshow_idle_timeout", "slideshow_show_clock", "slideshow_transition_type", "slideshow_transition_duration"]);
+          ignore = ignore.concat(["slideshow_photos_dir", "slideshow_google_album", "slideshow_interval", "slideshow_idle_timeout", "slideshow_show_clock", "slideshow_transition_type", "slideshow_transition_duration", "slideshow_orientation_mode"]);
         }
       } else if (key === "check") {
         const json = JSON.stringify(args, null, 2);

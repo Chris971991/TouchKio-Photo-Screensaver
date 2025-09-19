@@ -18,15 +18,23 @@
             overflow: hidden;
             cursor: none;
             user-select: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
         .slideshow-container {
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100vw;
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 9999;
         }
 
         .photo-container {
@@ -61,19 +69,39 @@
         }
 
         .photo.fit-contain {
-            max-width: 100%;
-            max-height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto;
+            height: auto;
             object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         .photo.fit-cover {
-            height: 100vh;
-            max-width: 100%;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .photo.fit-fill {
             width: 100%;
             height: 100%;
             object-fit: fill;
+        }
+
+        /* Universal orientation handling - optimal for all image/device combinations */
+        .photo.fit-landscape,
+        .photo.fit-portrait {
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
 
         .photo.visible {
@@ -615,10 +643,20 @@
                     photoCounter.style.opacity = config.counterOpacity || 0.8;
                 }
 
-                // Photo fit configuration
+                // Photo fit configuration based on orientation mode
                 const photos = document.querySelectorAll('.photo');
                 photos.forEach(photo => {
-                    photo.className = `photo fit-${config.photoFit || 'contain'}`;
+                    // Apply orientation-specific sizing when in portrait/landscape mode
+                    if (config.orientationMode === 'portrait') {
+                        // Portrait mode: width-based sizing for vertical screens
+                        photo.className = 'photo fit-portrait';
+                    } else if (config.orientationMode === 'landscape') {
+                        // Landscape mode: height-based sizing for horizontal screens
+                        photo.className = 'photo fit-landscape';
+                    } else {
+                        // Default to user's photo fit setting if no orientation mode
+                        photo.className = `photo fit-${config.photoFit || 'contain'}`;
+                    }
                 });
 
                 // Apply transition type

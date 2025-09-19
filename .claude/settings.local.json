@@ -27,7 +27,12 @@
       "Bash(git rm:*)",
       "Bash(git pull:*)",
       "Bash(git checkout:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(cat:*)",
+      "Read(//c/**)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

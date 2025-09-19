@@ -987,6 +987,7 @@ const initSlideshow = () => {
   // Photo settings
   initSlideshowRandomOrder();
   initSlideshowPhotoFit();
+  initSlideshowOrientationMode();
 
   // Transition settings
   initSlideshowTransitionType();
@@ -1068,6 +1069,7 @@ const initSlideshowActive = () => {
       if (topic === config.command_topic) {
         const state = message.toString();
         console.log("Set Slideshow Active:", state);
+        updateSlideshowSetting("slideshow_active", state === "ON");
         if (state === "ON") {
           slideshow.showSlideshow();
         } else {
@@ -1244,7 +1246,6 @@ const initSlideshowRandomOrder = () => {
         console.log("Set Slideshow Random Order:", randomOrder);
         updateSlideshowSetting("slideshow_random_order", randomOrder);
         slideshow.updateConfig({ randomOrder });
-        slideshow.reloadPhotos();
       }
     })
     .subscribe(config.command_topic);
@@ -1273,6 +1274,34 @@ const initSlideshowPhotoFit = () => {
         console.log("Set Slideshow Photo Fit:", photoFit);
         updateSlideshowSetting("slideshow_photo_fit", photoFit);
         slideshow.updateConfig({ photoFit });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow orientation mode control.
+ */
+const initSlideshowOrientationMode = () => {
+  const root = `${INTEGRATION.root}/slideshow_orientation_mode`;
+  const config = {
+    name: "Slideshow Orientation Mode",
+    unique_id: `${INTEGRATION.node}_slideshow_orientation_mode`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["landscape", "portrait"],
+    icon: "mdi:screen-rotation",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const orientationMode = message.toString();
+        console.log("Set Slideshow Orientation Mode:", orientationMode);
+        updateSlideshowSetting("slideshow_orientation_mode", orientationMode);
+        slideshow.updateConfig({ orientationMode });
       }
     })
     .subscribe(config.command_topic);
@@ -1733,34 +1762,150 @@ const initSlideshowCounterOpacity = () => {
 };
 
 /**
- * Updates a slideshow setting in ARGS and persists to file.
+ * Updates a slideshow setting in ARGS and persists to Arguments.json safely.
+ * Uses the same approach as install.sh to preserve TouchKio's encryption system.
  */
 const updateSlideshowSetting = (key, value) => {
-  // Update the ARGS object
+  // Update the ARGS object in memory
   ARGS[key] = value;
+  console.log(`Updated runtime ${key}:`, value);
 
-  // Persist to Arguments.json file safely (preserve TouchKio's encryption)
+  // Update slideshow runtime config first
+  updateSlideshowRuntimeConfig(key, value);
+
+  // Persist to Arguments.json using safe JSON modification (like install.sh)
   const fs = require("fs");
   const path = require("path");
   const argsFilePath = path.join(APP.config, "Arguments.json");
 
   try {
-    // Read the current file to preserve encryption
-    let currentConfig = {};
-    if (fs.existsSync(argsFilePath)) {
-      const fileContent = fs.readFileSync(argsFilePath, "utf8");
-      currentConfig = JSON.parse(fileContent);
+    // Only persist if Arguments.json exists (follows TouchKio startup pattern)
+    if (!fs.existsSync(argsFilePath)) {
+      console.log(`Arguments.json not found at ${argsFilePath}, skipping persistence`);
+      return;
     }
+
+    // Backup the config file first (following install.sh pattern)
+    const backupPath = `${argsFilePath}.backup`;
+    fs.copyFileSync(argsFilePath, backupPath);
+
+    // Read current config as text first to preserve formatting
+    const configContent = fs.readFileSync(argsFilePath, "utf8");
+    const currentConfig = JSON.parse(configContent);
 
     // Update only the specific key, preserving all other data (including encryption)
     const valueToStore = typeof value === "boolean" ? value.toString() : value;
     currentConfig[key] = valueToStore;
 
-    // Write back with preserved structure
+    // Write back with preserved structure (2-space indent like TouchKio)
     fs.writeFileSync(argsFilePath, JSON.stringify(currentConfig, null, 2));
-    console.log(`Updated ${key} in Arguments.json:`, value);
+    console.log(`Persisted ${key} to Arguments.json:`, value);
+
   } catch (error) {
-    console.error("Failed to update Arguments.json:", error.message);
+    console.error(`Failed to persist ${key} to Arguments.json:`, error.message);
+
+    // Restore backup if write failed
+    const backupPath = `${argsFilePath}.backup`;
+    if (fs.existsSync(backupPath)) {
+      try {
+        fs.copyFileSync(backupPath, argsFilePath);
+        console.log("Restored Arguments.json from backup after error");
+      } catch (restoreError) {
+        console.error("Failed to restore backup:", restoreError.message);
+      }
+    }
+  }
+};
+
+/**
+ * Updates the slideshow runtime config to keep it in sync with Arguments.json
+ */
+const updateSlideshowRuntimeConfig = (key, value) => {
+  try {
+    switch (key) {
+      case "slideshow_interval":
+        slideshow.updateConfig({ interval: parseInt(value) * 1000 });
+        break;
+      case "slideshow_idle_timeout":
+        slideshow.updateConfig({ idleTimeout: parseFloat(value) * 60000 });
+        break;
+      case "slideshow_random_order":
+        const randomOrder = value === "true" || value === true;
+        slideshow.updateConfig({ randomOrder });
+        break;
+      case "slideshow_photo_fit":
+        slideshow.updateConfig({ photoFit: value });
+        break;
+      case "slideshow_transition_type":
+        slideshow.updateConfig({ transitionType: value });
+        break;
+      case "slideshow_transition_duration":
+        slideshow.updateConfig({ transitionDuration: parseInt(value) });
+        break;
+      case "slideshow_show_clock":
+        const showClock = value === "true" || value === true;
+        slideshow.updateConfig({ showClock });
+        break;
+      case "slideshow_show_source":
+        const showSource = value === "true" || value === true;
+        slideshow.updateConfig({ showSourceIndicator: showSource });
+        break;
+      case "slideshow_show_counter":
+        const showCounter = value === "true" || value === true;
+        slideshow.updateConfig({ showPhotoCounter: showCounter });
+        break;
+      case "slideshow_orientation_mode":
+        slideshow.updateConfig({ orientationMode: value });
+        break;
+      case "slideshow_photos_dir":
+        slideshow.updateConfig({ photosDir: value.replace(/^~/, require("os").homedir()) });
+        break;
+      // Google album settings trigger reload
+      case "slideshow_google_album_1":
+      case "slideshow_google_album_2":
+      case "slideshow_google_album_3":
+        slideshow.reloadPhotos();
+        break;
+      // Clock styling settings
+      case "slideshow_clock_position":
+        slideshow.updateConfig({ clockPosition: value });
+        break;
+      case "slideshow_clock_size":
+        slideshow.updateConfig({ clockSize: value });
+        break;
+      case "slideshow_clock_background":
+        slideshow.updateConfig({ clockBackground: value });
+        break;
+      case "slideshow_clock_opacity":
+        slideshow.updateConfig({ clockOpacity: parseFloat(value) });
+        break;
+      case "slideshow_clock_color":
+        slideshow.updateConfig({ clockColor: value });
+        break;
+      // Source indicator styling
+      case "slideshow_source_position":
+        slideshow.updateConfig({ sourcePosition: value });
+        break;
+      case "slideshow_source_size":
+        slideshow.updateConfig({ sourceSize: value });
+        break;
+      case "slideshow_source_opacity":
+        slideshow.updateConfig({ sourceOpacity: parseFloat(value) });
+        break;
+      // Counter styling
+      case "slideshow_counter_position":
+        slideshow.updateConfig({ counterPosition: value });
+        break;
+      case "slideshow_counter_size":
+        slideshow.updateConfig({ counterSize: value });
+        break;
+      case "slideshow_counter_opacity":
+        slideshow.updateConfig({ counterOpacity: parseFloat(value) });
+        break;
+    }
+    console.log(`Synced ${key} to slideshow runtime config:`, value);
+  } catch (error) {
+    console.error(`Failed to sync ${key} to slideshow runtime config:`, error.message);
   }
 };
 
@@ -1774,8 +1919,9 @@ const updateSlideshow = async () => {
 
   const status = slideshow.getStatus();
 
-  // Basic slideshow state
+  // Basic slideshow state - use actual runtime state
   publishState("slideshow", status.active ? "ON" : "OFF");
+  publishState("slideshow_active", status.active ? "ON" : "OFF");
 
   // Photo source settings
   const homedir = require("os").homedir();
@@ -1788,37 +1934,38 @@ const updateSlideshow = async () => {
     publishState(`slideshow_google_album_${i}`, ARGS[`slideshow_google_album_${i}`] || "");
   }
 
-  // Timing settings - read from ARGS (persisted values)
-  publishState("slideshow_interval", ARGS.slideshow_interval || Math.round(status.config.interval / 1000));
-  publishState("slideshow_idle_timeout", ARGS.slideshow_idle_timeout || Math.round(status.config.idleTimeout / 60000));
+  // Timing settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_interval", Math.round(status.config.interval / 1000) || ARGS.slideshow_interval || 5);
+  publishState("slideshow_idle_timeout", Math.round(status.config.idleTimeout / 60000) || ARGS.slideshow_idle_timeout || 3);
 
-  // Photo settings - read from ARGS (persisted values)
-  publishState("slideshow_random_order", ARGS.slideshow_random_order === "true" ? "ON" : "OFF");
-  publishState("slideshow_photo_fit", ARGS.slideshow_photo_fit || status.config.photoFit);
+  // Photo settings - use ARGS as primary since runtime might lag behind
+  publishState("slideshow_random_order", (ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true) ? "ON" : "OFF");
+  publishState("slideshow_photo_fit", status.config.photoFit || ARGS.slideshow_photo_fit || "contain");
+  publishState("slideshow_orientation_mode", status.config.orientationMode || ARGS.slideshow_orientation_mode || "landscape");
 
-  // Transition settings - read from ARGS (persisted values)
-  publishState("slideshow_transition_type", ARGS.slideshow_transition_type || status.config.transitionType);
-  publishState("slideshow_transition_duration", ARGS.slideshow_transition_duration || status.config.transitionDuration);
+  // Transition settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_transition_type", status.config.transitionType || ARGS.slideshow_transition_type || "fade");
+  publishState("slideshow_transition_duration", status.config.transitionDuration || ARGS.slideshow_transition_duration || 2000);
 
-  // Clock settings - read from ARGS (persisted values)
-  publishState("slideshow_show_clock", ARGS.slideshow_show_clock === "true" ? "ON" : "OFF");
-  publishState("slideshow_clock_position", ARGS.slideshow_clock_position || status.config.clockPosition);
-  publishState("slideshow_clock_size", ARGS.slideshow_clock_size || status.config.clockSize);
-  publishState("slideshow_clock_background", ARGS.slideshow_clock_background || status.config.clockBackground);
-  publishState("slideshow_clock_opacity", ARGS.slideshow_clock_opacity || status.config.clockOpacity);
-  publishState("slideshow_clock_color", ARGS.slideshow_clock_color || status.config.clockColor);
+  // Clock settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_show_clock", status.config.showClock ? "ON" : "OFF");
+  publishState("slideshow_clock_position", status.config.clockPosition || ARGS.slideshow_clock_position || "top-right");
+  publishState("slideshow_clock_size", status.config.clockSize || ARGS.slideshow_clock_size || "medium");
+  publishState("slideshow_clock_background", status.config.clockBackground || ARGS.slideshow_clock_background || "dark");
+  publishState("slideshow_clock_opacity", status.config.clockOpacity || ARGS.slideshow_clock_opacity || 0.8);
+  publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
 
-  // Source indicator settings - read from ARGS (persisted values)
-  publishState("slideshow_show_source", ARGS.slideshow_show_source === "true" ? "ON" : "OFF");
-  publishState("slideshow_source_position", ARGS.slideshow_source_position || status.config.sourcePosition);
-  publishState("slideshow_source_size", ARGS.slideshow_source_size || status.config.sourceSize);
-  publishState("slideshow_source_opacity", ARGS.slideshow_source_opacity || status.config.sourceOpacity);
+  // Source indicator settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_show_source", status.config.showSourceIndicator ? "ON" : "OFF");
+  publishState("slideshow_source_position", status.config.sourcePosition || ARGS.slideshow_source_position || "bottom-left");
+  publishState("slideshow_source_size", status.config.sourceSize || ARGS.slideshow_source_size || "small");
+  publishState("slideshow_source_opacity", status.config.sourceOpacity || ARGS.slideshow_source_opacity || 0.7);
 
-  // Counter settings - read from ARGS (persisted values)
-  publishState("slideshow_show_counter", ARGS.slideshow_show_counter === "true" ? "ON" : "OFF");
-  publishState("slideshow_counter_position", ARGS.slideshow_counter_position || status.config.counterPosition);
-  publishState("slideshow_counter_size", ARGS.slideshow_counter_size || status.config.counterSize);
-  publishState("slideshow_counter_opacity", ARGS.slideshow_counter_opacity || status.config.counterOpacity);
+  // Counter settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_show_counter", status.config.showPhotoCounter ? "ON" : "OFF");
+  publishState("slideshow_counter_position", status.config.counterPosition || ARGS.slideshow_counter_position || "bottom-right");
+  publishState("slideshow_counter_size", status.config.counterSize || ARGS.slideshow_counter_size || "small");
+  publishState("slideshow_counter_opacity", status.config.counterOpacity || ARGS.slideshow_counter_opacity || 0.7);
 };
 
 module.exports = {

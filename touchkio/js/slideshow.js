@@ -271,7 +271,10 @@ const loadPhotos = async () => {
       console.warn("No photos found for slideshow");
     } else {
       console.log(`Loaded ${SLIDESHOW.photos.length} photos for slideshow`);
-      if (SLIDESHOW.config.randomOrder) {
+      // Check persistent random mode setting
+      const randomModeEnabled = ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true;
+      if (randomModeEnabled) {
+        console.log("Random mode enabled - shuffling photos");
         shufflePhotos();
       }
     }
@@ -692,10 +695,17 @@ const showSlideshow = async () => {
   publishSlideshowState();
   SLIDESHOW.currentIndex = 0;
 
+  // Remove and re-add to ensure it's on top of all other views
+  try {
+    WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+  } catch (e) {
+    // View might not be added yet
+  }
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
   SLIDESHOW.view.setVisible(true);
 
   const windowBounds = WEBVIEW.window.getBounds();
+
   SLIDESHOW.view.setBounds({
     x: 0,
     y: 0,

@@ -434,6 +434,14 @@ const resizeView = () => {
 
   // Update slideshow view size if active
   if (global.SLIDESHOW && global.SLIDESHOW.view && global.SLIDESHOW.active) {
+    // Remove and re-add to ensure it stays on top during resize
+    try {
+      WEBVIEW.window.contentView.removeChildView(global.SLIDESHOW.view);
+      WEBVIEW.window.contentView.addChildView(global.SLIDESHOW.view);
+    } catch (e) {
+      // View might not be added
+    }
+
     global.SLIDESHOW.view.setBounds({
       x: 0,
       y: 0,
