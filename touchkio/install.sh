@@ -96,7 +96,6 @@ Environment="XDG_RUNTIME_DIR=/run/user/%U"
 ExecStartPre=/bin/bash -c 'until pgrep -x Xorg || pgrep -x Xwayland; do sleep 2; done'
 ExecStartPre=/bin/bash -c 'pkill -f touchkio || true'
 ExecStart=/usr/bin/touchkio
-ExecStartPost=/bin/bash -c 'sleep 3 && DISPLAY=:0 lxterminal --title=\"TouchKio Logs\" --command=\"bash -c \\\"sudo journalctl -f --no-hostname --output=short | grep touchkio\\\"\" &'
 Restart=always
 RestartSec=10s
 StartLimitInterval=60s
@@ -298,15 +297,14 @@ echo "4. Configure slideshow settings, Google Photos albums, timing, etc. via HA
 echo "5. Sample images are ready in: ~/TouchKio-Photo-Screensaver/photos"
 echo ""
 
-# Show live logs automatically like the original TouchKio
+# Provide instructions for viewing live logs
 echo ""
-echo "Starting live TouchKio logs (press Ctrl+C to exit):"
-echo "----------------------------------------"
-
-# Wait a moment for service to fully start
-sleep 2
-
-# Show live logs automatically (user services log to system journal)
-sudo journalctl -f --no-hostname --output=short | grep "touchkio\["
+echo "🔍 To view live TouchKio logs, use any of these commands:"
+echo "   Option 1 (Simple): sudo journalctl -f | grep touchkio"
+echo "   Option 2 (Clean):  sudo journalctl -f --no-hostname --output=short | grep touchkio"
+echo "   Option 3 (Window): lxterminal --title='TouchKio Logs' --command='sudo journalctl -f | grep touchkio' &"
+echo "   Option 4 (Recent): sudo journalctl -n 20 -f | grep touchkio"
+echo ""
+echo "💡 Press Ctrl+C to exit log viewing"
 
 exit 0
