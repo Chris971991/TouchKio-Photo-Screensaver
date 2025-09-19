@@ -1013,6 +1013,16 @@ const initSlideshow = () => {
   initSlideshowCounterSize();
   initSlideshowCounterOpacity();
 
+  // Performance settings
+  initSlideshowPreloadBufferSize();
+  initSlideshowDiskCacheEnabled();
+  initSlideshowDiskCacheMaxSize();
+  initSlideshowCacheCleanupTrigger();
+  initSlideshowConcurrentDownloads();
+  initSlideshowFallbackEnabled();
+  initSlideshowFallbackTimeout();
+  initSlideshowPreferredSource();
+
   // Publish initial states
   updateSlideshow();
 
@@ -1902,6 +1912,33 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_counter_opacity":
         slideshow.updateConfig({ counterOpacity: parseFloat(value) });
         break;
+      // Performance settings
+      case "slideshow_preload_buffer_size":
+        slideshow.updateConfig({ preloadBufferSize: parseInt(value) });
+        break;
+      case "slideshow_disk_cache_enabled":
+        const diskEnabled = value === "true" || value === true;
+        slideshow.updateConfig({ diskCacheEnabled: diskEnabled });
+        break;
+      case "slideshow_disk_cache_max_size":
+        slideshow.updateConfig({ diskCacheMaxSize: parseInt(value) });
+        break;
+      case "slideshow_cache_cleanup_trigger":
+        slideshow.updateConfig({ diskCacheCleanupTrigger: parseFloat(value) });
+        break;
+      case "slideshow_concurrent_downloads":
+        slideshow.updateConfig({ concurrentDownloads: parseInt(value) });
+        break;
+      case "slideshow_fallback_enabled":
+        const fallbackEnabled = value === "true" || value === true;
+        slideshow.updateConfig({ fallbackEnabled });
+        break;
+      case "slideshow_fallback_timeout":
+        slideshow.updateConfig({ fallbackTimeout: parseInt(value) });
+        break;
+      case "slideshow_preferred_source":
+        slideshow.updateConfig({ preferredSource: value });
+        break;
     }
     console.log(`Synced ${key} to slideshow runtime config:`, value);
   } catch (error) {
@@ -1971,6 +2008,254 @@ const updateSlideshow = async () => {
   publishState("slideshow_counter_position", status.config.counterPosition || ARGS.slideshow_counter_position || "bottom-right");
   publishState("slideshow_counter_size", status.config.counterSize || ARGS.slideshow_counter_size || "small");
   publishState("slideshow_counter_opacity", status.config.counterOpacity || ARGS.slideshow_counter_opacity || 0.7);
+
+  // Performance settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_preload_buffer_size", status.config.preloadBufferSize || ARGS.slideshow_preload_buffer_size || 20);
+  publishState("slideshow_disk_cache_enabled", status.config.diskCacheEnabled ? "ON" : "OFF");
+  publishState("slideshow_disk_cache_max_size", Math.round((status.config.diskCacheMaxSize || ARGS.slideshow_disk_cache_max_size || 2147483648) / 1024 / 1024)); // Convert to MB
+  publishState("slideshow_cache_cleanup_trigger", status.config.diskCacheCleanupTrigger || ARGS.slideshow_cache_cleanup_trigger || 0.9);
+  publishState("slideshow_concurrent_downloads", status.config.concurrentDownloads || ARGS.slideshow_concurrent_downloads || 3);
+  publishState("slideshow_fallback_enabled", status.config.fallbackEnabled ? "ON" : "OFF");
+  publishState("slideshow_fallback_timeout", status.config.fallbackTimeout || ARGS.slideshow_fallback_timeout || 5000);
+  publishState("slideshow_preferred_source", status.config.preferredSource || ARGS.slideshow_preferred_source || "google");
+};
+
+/**
+ * Initializes the slideshow preload buffer size control.
+ */
+const initSlideshowPreloadBufferSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_preload_buffer_size`;
+  const config = {
+    name: "Slideshow Preload Buffer Size",
+    unique_id: `${INTEGRATION.node}_slideshow_preload_buffer_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "box",
+    min: 5,
+    max: 100,
+    unit_of_measurement: "photos",
+    icon: "mdi:memory",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const bufferSize = parseInt(message, 10);
+        console.log("Set Slideshow Preload Buffer Size:", bufferSize);
+        updateSlideshowSetting("slideshow_preload_buffer_size", bufferSize);
+        slideshow.updateConfig({ preloadBufferSize: bufferSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow disk cache enabled control.
+ */
+const initSlideshowDiskCacheEnabled = () => {
+  const root = `${INTEGRATION.root}/slideshow_disk_cache_enabled`;
+  const config = {
+    name: "Slideshow Disk Cache Enabled",
+    unique_id: `${INTEGRATION.node}_slideshow_disk_cache_enabled`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:harddisk",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Disk Cache Enabled:", enabled);
+        updateSlideshowSetting("slideshow_disk_cache_enabled", enabled);
+        slideshow.updateConfig({ diskCacheEnabled: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow disk cache max size control.
+ */
+const initSlideshowDiskCacheMaxSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_disk_cache_max_size`;
+  const config = {
+    name: "Slideshow Disk Cache Max Size",
+    unique_id: `${INTEGRATION.node}_slideshow_disk_cache_max_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "box",
+    min: 100,
+    max: 10240,
+    unit_of_measurement: "MB",
+    icon: "mdi:harddisk-plus",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sizeInMB = parseInt(message, 10);
+        const sizeInBytes = sizeInMB * 1024 * 1024;
+        console.log("Set Slideshow Disk Cache Max Size:", sizeInMB, "MB");
+        updateSlideshowSetting("slideshow_disk_cache_max_size", sizeInBytes);
+        slideshow.updateConfig({ diskCacheMaxSize: sizeInBytes });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow cache cleanup trigger control.
+ */
+const initSlideshowCacheCleanupTrigger = () => {
+  const root = `${INTEGRATION.root}/slideshow_cache_cleanup_trigger`;
+  const config = {
+    name: "Slideshow Cache Cleanup Trigger",
+    unique_id: `${INTEGRATION.node}_slideshow_cache_cleanup_trigger`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | float }}",
+    mode: "slider",
+    min: 0.5,
+    max: 0.95,
+    step: 0.05,
+    unit_of_measurement: "%",
+    icon: "mdi:delete-sweep",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const trigger = parseFloat(message.toString());
+        console.log("Set Slideshow Cache Cleanup Trigger:", trigger);
+        updateSlideshowSetting("slideshow_cache_cleanup_trigger", trigger);
+        slideshow.updateConfig({ diskCacheCleanupTrigger: trigger });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow concurrent downloads control.
+ */
+const initSlideshowConcurrentDownloads = () => {
+  const root = `${INTEGRATION.root}/slideshow_concurrent_downloads`;
+  const config = {
+    name: "Slideshow Concurrent Downloads",
+    unique_id: `${INTEGRATION.node}_slideshow_concurrent_downloads`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "box",
+    min: 1,
+    max: 10,
+    unit_of_measurement: "downloads",
+    icon: "mdi:download-multiple",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const concurrent = parseInt(message, 10);
+        console.log("Set Slideshow Concurrent Downloads:", concurrent);
+        updateSlideshowSetting("slideshow_concurrent_downloads", concurrent);
+        slideshow.updateConfig({ concurrentDownloads: concurrent });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow fallback enabled control.
+ */
+const initSlideshowFallbackEnabled = () => {
+  const root = `${INTEGRATION.root}/slideshow_fallback_enabled`;
+  const config = {
+    name: "Slideshow Fallback Enabled",
+    unique_id: `${INTEGRATION.node}_slideshow_fallback_enabled`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:backup-restore",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Fallback Enabled:", enabled);
+        updateSlideshowSetting("slideshow_fallback_enabled", enabled);
+        slideshow.updateConfig({ fallbackEnabled: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow fallback timeout control.
+ */
+const initSlideshowFallbackTimeout = () => {
+  const root = `${INTEGRATION.root}/slideshow_fallback_timeout`;
+  const config = {
+    name: "Slideshow Fallback Timeout",
+    unique_id: `${INTEGRATION.node}_slideshow_fallback_timeout`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "box",
+    min: 1000,
+    max: 30000,
+    step: 1000,
+    unit_of_measurement: "ms",
+    icon: "mdi:timer-sand",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const timeout = parseInt(message, 10);
+        console.log("Set Slideshow Fallback Timeout:", timeout);
+        updateSlideshowSetting("slideshow_fallback_timeout", timeout);
+        slideshow.updateConfig({ fallbackTimeout: timeout });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow preferred source control.
+ */
+const initSlideshowPreferredSource = () => {
+  const root = `${INTEGRATION.root}/slideshow_preferred_source`;
+  const config = {
+    name: "Slideshow Preferred Source",
+    unique_id: `${INTEGRATION.node}_slideshow_preferred_source`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["google", "local", "auto"],
+    icon: "mdi:source-branch",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const source = message.toString();
+        console.log("Set Slideshow Preferred Source:", source);
+        updateSlideshowSetting("slideshow_preferred_source", source);
+        slideshow.updateConfig({ preferredSource: source });
+      }
+    })
+    .subscribe(config.command_topic);
 };
 
 module.exports = {

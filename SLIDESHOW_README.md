@@ -4,11 +4,29 @@ A comprehensive native photo slideshow extension for TouchKio that automatically
 
 ## Features
 
+### 🚀 **Performance & Caching**
+- **Smart Preloading**: Background downloads maintain instant photo transitions (0ms delay)
+- **Disk Cache System**: Persistent 2GB cache stores ~2000 full-resolution photos locally
+- **Memory Buffer**: Configurable 5-100 photo memory cache (default 20) for instant access
+- **Concurrent Downloads**: 1-10 simultaneous downloads for rapid cache building
+- **LRU Cache Management**: Automatic cleanup when storage limits reached
+
+### 🔄 **Reliability & Fallback**
+- **Graceful Fallback**: Automatic Google Photos ↔ Local Photos switching on failures
+- **Network Monitoring**: Smart quality detection with retry logic
+- **Auto Source Selection**: Based on network conditions and availability
+- **Progressive Loading**: Disk cache → Memory → Network priority system
+
+### 📸 **Photo Sources & Display**
 - **Dual Photo Sources**: Support for both local photo directories and Google Photos shared albums
+- **Multiple Albums**: Support for up to 5 Google Photos albums simultaneously
 - **Smart Fallback**: Automatically falls back to local photos if Google Photos fails to load
 - **Idle Detection**: Automatically shows slideshow after configurable idle time
 - **User Activity Detection**: Hides slideshow on any user interaction (touch, mouse, keyboard, VNC clicks)
+
+### 🎛️ **Control & Integration**
 - **MQTT Integration**: Full Home Assistant integration with auto-discovery for remote control
+- **Advanced Performance Controls**: 8 new MQTT entities for cache and performance tuning
 - **Smooth Transitions**: Multiple transition effects (fade, slide, zoom, blur, rotate) with configurable duration
 - **Customizable Overlays**: Clock, source indicator, and photo counter with extensive positioning and styling options
 - **Production Ready**: Follows TouchKio architecture patterns with proper error handling and cleanup
@@ -98,15 +116,69 @@ To use Google Photos shared albums:
 
 The system automatically falls back to local photos if Google Photos fails to load.
 
+## 🚀 Smart Preloading & Performance
+
+### Instant Photo Transitions
+The slideshow now features **Smart Preloading** technology that eliminates the 1-3 second delays between photos:
+
+- **Instant Transitions**: Photos change immediately (0ms delay) thanks to advanced caching
+- **Background Downloads**: Photos are downloaded ahead of time in the background
+- **Progressive Loading**: Disk cache → Memory buffer → Network fallback priority system
+- **Intelligent Buffering**: Maintains 5-50 photos ready for instant display
+
+### Disk Cache System
+- **Cache Location**: `~/TouchKio-Photo-Screensaver/cache/google-photos/`
+- **Default Size**: 2GB (configurable 100MB-10GB)
+- **Storage**: ~2000 full-resolution photos at 2GB
+- **Management**: Automatic LRU cleanup when approaching limits
+- **Persistence**: Photos remain cached between TouchKio restarts
+
+### Memory Buffer
+- **Size**: Configurable 5-100 photos (default: 20)
+- **Purpose**: Ultra-fast access for immediate photo display
+- **Efficiency**: ~400MB RAM usage for 20-photo buffer
+- **Smart Management**: LRU eviction maintains optimal performance
+
+### Graceful Fallback
+- **Network Monitoring**: Automatic quality detection and retry logic
+- **Smart Switching**: Google Photos ↔ Local Photos based on availability
+- **Seamless Experience**: Slideshow never stops due to connectivity issues
+- **Configurable**: Fallback timeout and behavior settings
+
+### Performance Optimizations
+- **Concurrent Downloads**: 1-10 parallel downloads for rapid cache building
+- **Bandwidth Awareness**: Adjusts behavior based on network speed
+- **Error Recovery**: Automatic retry with exponential backoff
+- **Cache Health**: Monitoring and repair of corrupted cache entries
+
 ## MQTT Integration
 
 When TouchKio's MQTT integration is enabled, the slideshow automatically creates Home Assistant entities:
 
 ### Auto-Discovery Entities
 
-- **Switch**: `switch.touchkio_slideshow` - Enable/disable slideshow
-- **Number**: `number.touchkio_slideshow_interval` - Photo change interval (1-60 seconds)
-- **Number**: `number.touchkio_slideshow_idle_timeout` - Idle timeout (60-3600 seconds)
+#### Basic Controls
+- **Switch**: `switch.touchkio_slideshow_enabled` - Enable/disable slideshow
+- **Switch**: `switch.touchkio_slideshow_active` - Current slideshow state
+- **Number**: `number.touchkio_slideshow_interval` - Photo change interval (1-14400 seconds)
+- **Number**: `number.touchkio_slideshow_idle_timeout` - Idle timeout (0.1-60 minutes)
+
+#### Google Photos Albums (5 separate fields)
+- **Text**: `text.touchkio_slideshow_google_album_1` - First Google Photos album URL/ID
+- **Text**: `text.touchkio_slideshow_google_album_2` - Second Google Photos album URL/ID
+- **Text**: `text.touchkio_slideshow_google_album_3` - Third Google Photos album URL/ID
+- **Text**: `text.touchkio_slideshow_google_album_4` - Fourth Google Photos album URL/ID
+- **Text**: `text.touchkio_slideshow_google_album_5` - Fifth Google Photos album URL/ID
+
+#### 🚀 **NEW: Performance Controls**
+- **Number**: `number.touchkio_slideshow_preload_buffer_size` - Memory cache size (5-100 photos)
+- **Switch**: `switch.touchkio_slideshow_disk_cache_enabled` - Enable/disable disk caching
+- **Number**: `number.touchkio_slideshow_disk_cache_max_size` - Disk cache limit (100MB-10GB)
+- **Number**: `number.touchkio_slideshow_cache_cleanup_trigger` - Cleanup threshold (50%-95%)
+- **Number**: `number.touchkio_slideshow_concurrent_downloads` - Parallel downloads (1-10)
+- **Switch**: `switch.touchkio_slideshow_fallback_enabled` - Enable automatic fallback
+- **Number**: `number.touchkio_slideshow_fallback_timeout` - Fallback delay (1-30 seconds)
+- **Select**: `select.touchkio_slideshow_preferred_source` - Preferred source (Google/Local/Auto)
 
 ### Manual MQTT Commands
 

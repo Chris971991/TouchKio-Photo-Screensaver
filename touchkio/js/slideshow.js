@@ -3,6 +3,7 @@ const path = require("path");
 const http = require("http");
 const https = require("https");
 const axios = require("axios");
+const crypto = require("crypto");
 const { app, WebContentsView } = require("electron");
 const { URL } = require("url");
 
@@ -24,6 +25,25 @@ global.SLIDESHOW = global.SLIDESHOW || {
   photoCache: new Map(),
   lastAlbumFetch: null,
   lastAlbumConfig: null,
+
+  // Smart Preloading System
+  preloadQueue: [],
+  preloadActive: false,
+  preloadWorkers: [],
+  diskCache: new Map(),
+  cacheDirectory: null,
+  networkStatus: {
+    connected: true,
+    quality: 'good',
+    lastCheck: new Date(),
+    failureCount: 0
+  },
+  fallbackMode: {
+    enabled: true,
+    currentSource: 'auto',
+    preferredSource: 'google',
+    lastSwitch: null
+  },
   config: {
     enabled: false,
     photosDir: null,
@@ -62,6 +82,16 @@ global.SLIDESHOW = global.SLIDESHOW || {
     // System settings
     port: 8081,
     maxCachedPhotos: 100,
+
+    // Smart Preloading settings
+    preloadBufferSize: 20,
+    diskCacheEnabled: true,
+    diskCacheMaxSize: 2147483648, // 2GB in bytes
+    diskCacheCleanupTrigger: 0.9, // 90%
+    concurrentDownloads: 3,
+    fallbackEnabled: true,
+    fallbackTimeout: 5000, // 5 seconds
+    preferredSource: 'google', // 'google', 'local', 'auto'
   },
 };
 
@@ -148,6 +178,16 @@ const init = async () => {
     // System settings
     port: 8081,
     maxCachedPhotos: 100,
+
+    // Smart Preloading settings
+    preloadBufferSize: parseInt(ARGS.slideshow_preload_buffer_size) || 20,
+    diskCacheEnabled: ARGS.slideshow_disk_cache_enabled !== "false",
+    diskCacheMaxSize: parseInt(ARGS.slideshow_disk_cache_max_size) || 2147483648, // 2GB in bytes
+    diskCacheCleanupTrigger: parseFloat(ARGS.slideshow_cache_cleanup_trigger) || 0.9, // 90%
+    concurrentDownloads: parseInt(ARGS.slideshow_concurrent_downloads) || 3,
+    fallbackEnabled: ARGS.slideshow_fallback_enabled !== "false",
+    fallbackTimeout: parseInt(ARGS.slideshow_fallback_timeout) || 5000, // 5 seconds
+    preferredSource: ARGS.slideshow_preferred_source || 'google', // 'google', 'local', 'auto'
   };
 
   console.log("Slideshow Configuration:", JSON.stringify(SLIDESHOW.config, null, 2));
@@ -155,8 +195,10 @@ const init = async () => {
   try {
     await initHttpServer();
     await initSlideshowView();
+    await initDiskCache();
     await loadPhotos();
     setupIdleDetection();
+    startPreloadManager();
 
     SLIDESHOW.initialized = true;
     console.log("Slideshow initialized successfully");
@@ -624,6 +666,138 @@ const loadLocalPhotos = async () => {
   }
 };
 
+const initDiskCache = async () => {
+  try {
+    const homedir = require("os").homedir();
+    SLIDESHOW.cacheDirectory = path.join(homedir, "TouchKio-Photo-Screensaver", "cache", "google-photos");
+
+    if (!fs.existsSync(SLIDESHOW.cacheDirectory)) {
+      fs.mkdirSync(SLIDESHOW.cacheDirectory, { recursive: true });
+      console.log(`Created cache directory: ${SLIDESHOW.cacheDirectory}`);
+    }
+
+    await loadDiskCacheIndex();
+    await cleanupDiskCache();
+
+    console.log(`Disk cache initialized: ${SLIDESHOW.diskCache.size} cached photos`);
+  } catch (error) {
+    console.error("Failed to initialize disk cache:", error.message);
+    SLIDESHOW.config.diskCacheEnabled = false;
+  }
+};
+
+const loadDiskCacheIndex = async () => {
+  if (!SLIDESHOW.config.diskCacheEnabled || !SLIDESHOW.cacheDirectory) {
+    return;
+  }
+
+  try {
+    const files = fs.readdirSync(SLIDESHOW.cacheDirectory);
+    const extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
+
+    for (const file of files) {
+      if (extensions.some(ext => file.toLowerCase().endsWith(ext))) {
+        const filePath = path.join(SLIDESHOW.cacheDirectory, file);
+        const stats = fs.statSync(filePath);
+
+        // Extract original URL from filename (base64 encoded)
+        const urlHash = path.basename(file, path.extname(file));
+
+        SLIDESHOW.diskCache.set(urlHash, {
+          filePath,
+          size: stats.size,
+          lastAccessed: stats.atime,
+          created: stats.birthtime
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load disk cache index:", error.message);
+  }
+};
+
+const generateUrlHash = (url) => {
+  return crypto.createHash('md5').update(url).digest('hex');
+};
+
+const cleanupDiskCache = async () => {
+  if (!SLIDESHOW.config.diskCacheEnabled || !SLIDESHOW.cacheDirectory) {
+    return;
+  }
+
+  try {
+    let totalSize = 0;
+    const cacheEntries = Array.from(SLIDESHOW.diskCache.entries()).map(([hash, data]) => ({
+      hash,
+      ...data
+    }));
+
+    for (const entry of cacheEntries) {
+      totalSize += entry.size;
+    }
+
+    const maxSize = SLIDESHOW.config.diskCacheMaxSize;
+    const cleanupTrigger = maxSize * SLIDESHOW.config.diskCacheCleanupTrigger;
+
+    if (totalSize > cleanupTrigger) {
+      console.log(`Cache cleanup triggered: ${(totalSize / 1024 / 1024).toFixed(1)}MB > ${(cleanupTrigger / 1024 / 1024).toFixed(1)}MB`);
+
+      // Sort by last accessed time (LRU eviction)
+      cacheEntries.sort((a, b) => a.lastAccessed - b.lastAccessed);
+
+      let cleanedSize = 0;
+      const targetSize = maxSize * 0.7; // Clean down to 70% of max
+
+      for (const entry of cacheEntries) {
+        if (totalSize - cleanedSize <= targetSize) {
+          break;
+        }
+
+        try {
+          fs.unlinkSync(entry.filePath);
+          SLIDESHOW.diskCache.delete(entry.hash);
+          cleanedSize += entry.size;
+          console.log(`Cleaned cached file: ${path.basename(entry.filePath)}`);
+        } catch (unlinkError) {
+          console.warn(`Failed to clean cache file: ${unlinkError.message}`);
+        }
+      }
+
+      console.log(`Cache cleanup completed: cleaned ${(cleanedSize / 1024 / 1024).toFixed(1)}MB`);
+    }
+  } catch (error) {
+    console.error("Failed to cleanup disk cache:", error.message);
+  }
+};
+
+const checkNetworkStatus = async () => {
+  try {
+    const start = Date.now();
+    const testUrl = 'https://www.google.com';
+
+    const response = await axios.get(testUrl, {
+      timeout: 3000,
+      headers: { 'User-Agent': 'TouchKio-Slideshow/1.0' }
+    });
+
+    const duration = Date.now() - start;
+    SLIDESHOW.networkStatus.connected = response.status === 200;
+    SLIDESHOW.networkStatus.quality = duration < 1000 ? 'good' : duration < 3000 ? 'fair' : 'poor';
+    SLIDESHOW.networkStatus.lastCheck = new Date();
+    SLIDESHOW.networkStatus.failureCount = 0;
+
+    return true;
+  } catch (error) {
+    SLIDESHOW.networkStatus.connected = false;
+    SLIDESHOW.networkStatus.quality = 'offline';
+    SLIDESHOW.networkStatus.lastCheck = new Date();
+    SLIDESHOW.networkStatus.failureCount++;
+
+    console.warn(`Network check failed: ${error.message}`);
+    return false;
+  }
+};
+
 const servePhoto = async (photo, res) => {
   if (photo.type === "local") {
     if (fs.existsSync(photo.path)) {
@@ -666,11 +840,46 @@ const serveGooglePhoto = async (photoUrl, res) => {
       throw new Error(`Invalid Google Photos URL format: ${cleanUrl.substring(0, 100)}...`);
     }
 
-    console.log(`Serving Google Photo: ${cleanUrl.substring(0, 80)}...`);
+    // Check if photo exists in disk cache first
+    const urlHash = generateUrlHash(cleanUrl);
+    if (SLIDESHOW.config.diskCacheEnabled && SLIDESHOW.diskCache.has(urlHash)) {
+      const diskEntry = SLIDESHOW.diskCache.get(urlHash);
+
+      if (fs.existsSync(diskEntry.filePath)) {
+        console.log(`Serving cached Google Photo: ${path.basename(diskEntry.filePath)}`);
+
+        // Update last accessed time
+        diskEntry.lastAccessed = new Date();
+
+        const ext = path.extname(diskEntry.filePath).toLowerCase();
+        const mimeType = {
+          ".jpg": "image/jpeg",
+          ".jpeg": "image/jpeg",
+          ".png": "image/png",
+          ".gif": "image/gif",
+          ".webp": "image/webp",
+        }[ext] || "image/jpeg";
+
+        res.writeHead(200, {
+          "Content-Type": mimeType,
+          "Cache-Control": "public, max-age=86400", // Cache longer for disk-cached photos
+        });
+
+        fs.createReadStream(diskEntry.filePath).pipe(res);
+        return;
+      } else {
+        // File missing from disk, remove from cache index
+        SLIDESHOW.diskCache.delete(urlHash);
+        console.warn(`Cached file missing, removed from index: ${diskEntry.filePath}`);
+      }
+    }
+
+    // Fallback to downloading directly
+    console.log(`Serving Google Photo from network: ${cleanUrl.substring(0, 80)}...`);
 
     const response = await axios.get(cleanUrl, {
       responseType: "stream",
-      timeout: 15000, // Increased timeout
+      timeout: 15000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
@@ -683,8 +892,31 @@ const serveGooglePhoto = async (photoUrl, res) => {
     });
 
     response.data.pipe(res);
+
+    // Opportunistically cache this photo for future use
+    if (SLIDESHOW.config.diskCacheEnabled) {
+      downloadPhotoToCache(cleanUrl).catch(err =>
+        console.warn(`Background caching failed: ${err.message}`)
+      );
+    }
+
   } catch (error) {
     console.error(`Failed to serve Google Photo: ${error.message}`);
+
+    // Try fallback to local photos if enabled and available
+    if (SLIDESHOW.config.fallbackEnabled && SLIDESHOW.photos.length > 0) {
+      console.log("Attempting fallback to local photos");
+      try {
+        const localPhoto = getNextLocalPhoto();
+        if (localPhoto) {
+          await servePhoto(localPhoto, res);
+          return;
+        }
+      } catch (fallbackError) {
+        console.error(`Fallback also failed: ${fallbackError.message}`);
+      }
+    }
+
     console.error(`Photo URL: ${photoUrl}`);
     res.writeHead(500);
     res.end("Failed to load photo");
@@ -700,14 +932,19 @@ const shufflePhotos = () => {
 
 const getNextGooglePhoto = async () => {
   if (SLIDESHOW.googlePhotoUrls.length === 0) {
+    // Try fallback to local photos if enabled
+    if (SLIDESHOW.config.fallbackEnabled && SLIDESHOW.photos.length > 0) {
+      console.log("Google Photos unavailable, falling back to local photos");
+      return getNextLocalPhoto();
+    }
     return null;
   }
 
   // Get next photo URL
   const photoUrl = SLIDESHOW.googlePhotoUrls[SLIDESHOW.googlePhotoIndex];
-  const photoId = `google_lazy_${SLIDESHOW.googlePhotoIndex}`;
+  const photoId = `google_${SLIDESHOW.googlePhotoIndex}`;
 
-  // Check if this photo is already cached
+  // Check if this photo is already cached in memory
   if (SLIDESHOW.photoCache.has(photoId)) {
     console.log(`Using cached photo ${SLIDESHOW.googlePhotoIndex + 1}/${SLIDESHOW.googlePhotoUrls.length}`);
     const cachedPhoto = SLIDESHOW.photoCache.get(photoId);
@@ -718,28 +955,236 @@ const getNextGooglePhoto = async () => {
     return cachedPhoto;
   }
 
-  // Create new photo object
+  // Check if photo exists in disk cache
+  const urlHash = generateUrlHash(photoUrl);
+  if (SLIDESHOW.config.diskCacheEnabled && SLIDESHOW.diskCache.has(urlHash)) {
+    console.log(`Using disk cached photo ${SLIDESHOW.googlePhotoIndex + 1}/${SLIDESHOW.googlePhotoUrls.length}`);
+
+    const diskEntry = SLIDESHOW.diskCache.get(urlHash);
+    // Update last accessed time
+    diskEntry.lastAccessed = new Date();
+
+    const photo = {
+      id: photoId,
+      url: photoUrl,
+      type: "google",
+      title: `Google Photo ${SLIDESHOW.googlePhotoIndex + 1}`,
+      index: SLIDESHOW.googlePhotoIndex,
+      cached: true,
+      cachePath: diskEntry.filePath
+    };
+
+    // Add to memory cache for faster access next time
+    addToMemoryCache(photoId, photo);
+
+    // Move to next photo for next time
+    SLIDESHOW.googlePhotoIndex = (SLIDESHOW.googlePhotoIndex + 1) % SLIDESHOW.googlePhotoUrls.length;
+
+    return photo;
+  }
+
+  // Create new photo object for on-demand loading
   const photo = {
     id: photoId,
     url: photoUrl,
     type: "google",
     title: `Google Photo ${SLIDESHOW.googlePhotoIndex + 1}`,
-    index: SLIDESHOW.googlePhotoIndex
+    index: SLIDESHOW.googlePhotoIndex,
+    cached: false
   };
 
-  // Add to cache (limit cache size to 10 photos)
-  if (SLIDESHOW.photoCache.size >= 10) {
-    const firstKey = SLIDESHOW.photoCache.keys().next().value;
-    SLIDESHOW.photoCache.delete(firstKey);
-  }
-  SLIDESHOW.photoCache.set(photoId, photo);
+  // Add to memory cache
+  addToMemoryCache(photoId, photo);
 
   console.log(`Loading photo ${SLIDESHOW.googlePhotoIndex + 1}/${SLIDESHOW.googlePhotoUrls.length} on-demand`);
+
+  // Trigger preloading for upcoming photos
+  queuePreload(SLIDESHOW.googlePhotoIndex + 1);
 
   // Move to next photo for next time
   SLIDESHOW.googlePhotoIndex = (SLIDESHOW.googlePhotoIndex + 1) % SLIDESHOW.googlePhotoUrls.length;
 
   return photo;
+};
+
+const getNextLocalPhoto = () => {
+  if (SLIDESHOW.photos.length === 0) {
+    return null;
+  }
+
+  const photo = SLIDESHOW.photos[SLIDESHOW.currentIndex];
+  SLIDESHOW.currentIndex = (SLIDESHOW.currentIndex + 1) % SLIDESHOW.photos.length;
+
+  return photo;
+};
+
+const addToMemoryCache = (photoId, photo) => {
+  // Manage memory cache size based on config
+  const maxSize = SLIDESHOW.config.preloadBufferSize;
+
+  if (SLIDESHOW.photoCache.size >= maxSize) {
+    // Remove oldest entries (LRU)
+    const keysToRemove = Array.from(SLIDESHOW.photoCache.keys()).slice(0, SLIDESHOW.photoCache.size - maxSize + 1);
+    keysToRemove.forEach(key => SLIDESHOW.photoCache.delete(key));
+  }
+
+  SLIDESHOW.photoCache.set(photoId, photo);
+};
+
+const queuePreload = (startIndex) => {
+  if (!SLIDESHOW.config.diskCacheEnabled || SLIDESHOW.googlePhotoUrls.length === 0) {
+    return;
+  }
+
+  const bufferSize = SLIDESHOW.config.preloadBufferSize;
+  const totalPhotos = SLIDESHOW.googlePhotoUrls.length;
+
+  // Queue next few photos for preloading
+  for (let i = 0; i < Math.min(bufferSize / 2, 10); i++) {
+    const index = (startIndex + i) % totalPhotos;
+    const url = SLIDESHOW.googlePhotoUrls[index];
+    const urlHash = generateUrlHash(url);
+
+    // Only queue if not already cached
+    if (!SLIDESHOW.diskCache.has(urlHash) && !SLIDESHOW.preloadQueue.includes(url)) {
+      SLIDESHOW.preloadQueue.push(url);
+    }
+  }
+
+  // Start processing queue if not already active
+  if (!SLIDESHOW.preloadActive) {
+    processPreloadQueue();
+  }
+};
+
+const processPreloadQueue = async () => {
+  if (SLIDESHOW.preloadActive || SLIDESHOW.preloadQueue.length === 0) {
+    return;
+  }
+
+  SLIDESHOW.preloadActive = true;
+  const concurrentLimit = SLIDESHOW.config.concurrentDownloads;
+
+  console.log(`Starting preload of ${SLIDESHOW.preloadQueue.length} photos with ${concurrentLimit} concurrent downloads`);
+
+  try {
+    // Process queue in batches
+    while (SLIDESHOW.preloadQueue.length > 0) {
+      const batch = SLIDESHOW.preloadQueue.splice(0, concurrentLimit);
+      const downloadPromises = batch.map(url => downloadPhotoToCache(url));
+
+      await Promise.allSettled(downloadPromises);
+
+      // Check network status between batches
+      if (!(await checkNetworkStatus())) {
+        console.log("Network issues detected, pausing preload");
+        break;
+      }
+
+      // Small delay between batches to avoid overwhelming the server
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  } catch (error) {
+    console.error("Error during preload processing:", error.message);
+  } finally {
+    SLIDESHOW.preloadActive = false;
+    console.log(`Preload batch completed. ${SLIDESHOW.preloadQueue.length} photos remaining in queue`);
+
+    // Continue processing if there are more photos and network is good
+    if (SLIDESHOW.preloadQueue.length > 0 && SLIDESHOW.networkStatus.connected) {
+      setTimeout(() => processPreloadQueue(), 1000);
+    }
+  }
+};
+
+const downloadPhotoToCache = async (photoUrl) => {
+  if (!SLIDESHOW.config.diskCacheEnabled || !photoUrl) {
+    return false;
+  }
+
+  const urlHash = generateUrlHash(photoUrl);
+
+  // Check if already cached
+  if (SLIDESHOW.diskCache.has(urlHash)) {
+    return true;
+  }
+
+  try {
+    console.log(`Downloading photo to cache: ${photoUrl.substring(0, 80)}...`);
+
+    const response = await axios.get(photoUrl, {
+      responseType: "stream",
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+      }
+    });
+
+    const contentType = response.headers['content-type'] || 'image/jpeg';
+    const extension = contentType.includes('png') ? '.png' :
+                     contentType.includes('gif') ? '.gif' :
+                     contentType.includes('webp') ? '.webp' : '.jpg';
+
+    const fileName = `${urlHash}${extension}`;
+    const filePath = path.join(SLIDESHOW.cacheDirectory, fileName);
+
+    // Write file to disk
+    const writeStream = fs.createWriteStream(filePath);
+    response.data.pipe(writeStream);
+
+    await new Promise((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    // Get file stats and add to cache index
+    const stats = fs.statSync(filePath);
+    SLIDESHOW.diskCache.set(urlHash, {
+      filePath,
+      size: stats.size,
+      lastAccessed: new Date(),
+      created: new Date()
+    });
+
+    console.log(`Successfully cached photo: ${fileName} (${(stats.size / 1024).toFixed(1)}KB)`);
+
+    // Trigger cleanup if needed
+    setTimeout(() => cleanupDiskCache(), 1000);
+
+    return true;
+
+  } catch (error) {
+    console.error(`Failed to download photo to cache: ${error.message}`);
+    SLIDESHOW.networkStatus.failureCount++;
+
+    // If too many failures, pause preloading temporarily
+    if (SLIDESHOW.networkStatus.failureCount > 5) {
+      SLIDESHOW.preloadQueue.length = 0; // Clear queue
+      console.log("Too many download failures, clearing preload queue");
+    }
+
+    return false;
+  }
+};
+
+const startPreloadManager = () => {
+  // Initial network check
+  checkNetworkStatus();
+
+  // Periodic network monitoring
+  setInterval(async () => {
+    await checkNetworkStatus();
+
+    // Resume preloading if network recovered and queue has items
+    if (SLIDESHOW.networkStatus.connected &&
+        SLIDESHOW.preloadQueue.length > 0 &&
+        !SLIDESHOW.preloadActive) {
+      processPreloadQueue();
+    }
+  }, 30000); // Check every 30 seconds
+
+  console.log("Preload manager started");
 };
 
 const setupIdleDetection = () => {
@@ -886,6 +1331,12 @@ const startSlideshowTimer = () => {
     clearInterval(SLIDESHOW.timer);
   }
 
+  // Start preloading photos for the slideshow
+  if (SLIDESHOW.googlePhotoUrls.length > 0) {
+    console.log("Starting slideshow warmup preload");
+    queuePreload(SLIDESHOW.googlePhotoIndex);
+  }
+
   SLIDESHOW.timer = setInterval(async () => {
     if (!SLIDESHOW.active) {
       return;
@@ -893,18 +1344,38 @@ const startSlideshowTimer = () => {
 
     let photo = null;
 
-    // Try Google Photos first (lazy loading)
-    if (SLIDESHOW.googlePhotoUrls.length > 0) {
+    // Determine best photo source based on config and availability
+    const preferredSource = SLIDESHOW.config.preferredSource;
+    const hasGoogle = SLIDESHOW.googlePhotoUrls.length > 0;
+    const hasLocal = SLIDESHOW.photos.length > 0;
+
+    // Smart source selection
+    if (preferredSource === 'google' && hasGoogle) {
       photo = await getNextGooglePhoto();
+    } else if (preferredSource === 'local' && hasLocal) {
+      photo = getNextLocalPhoto();
+    } else if (preferredSource === 'auto') {
+      // Auto mode: prefer Google Photos if network is good, otherwise local
+      if (hasGoogle && SLIDESHOW.networkStatus.connected && SLIDESHOW.networkStatus.quality !== 'poor') {
+        photo = await getNextGooglePhoto();
+      } else if (hasLocal) {
+        photo = getNextLocalPhoto();
+      } else if (hasGoogle) {
+        // Fallback to Google Photos even with poor network
+        photo = await getNextGooglePhoto();
+      }
     }
 
-    // Fall back to local photos if no Google Photos available
-    if (!photo && SLIDESHOW.photos.length > 0) {
-      SLIDESHOW.currentIndex = (SLIDESHOW.currentIndex + 1) % SLIDESHOW.photos.length;
-      photo = SLIDESHOW.photos[SLIDESHOW.currentIndex];
+    // Final fallback: try any available source
+    if (!photo) {
+      if (hasGoogle) {
+        photo = await getNextGooglePhoto();
+      } else if (hasLocal) {
+        photo = getNextLocalPhoto();
+      }
     }
 
-    // If no photos available at all, return
+    // If still no photos available, warn and continue
     if (!photo) {
       console.warn("No photos available for slideshow");
       return;
