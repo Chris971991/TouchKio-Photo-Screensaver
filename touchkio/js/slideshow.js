@@ -464,13 +464,24 @@ const extractPhotosFromAlbum = async (albumId) => {
         }
         return url;
       })
-      .filter(url =>
-        url.includes('googleusercontent.com') &&
-        url.length > 30 &&
-        !url.includes('=s32-') &&
-        !url.includes('=s64-') &&
-        !url.includes('=s96-')
-      )
+      .filter(url => {
+        // More strict URL validation
+        const isValid = url.includes('googleusercontent.com') &&
+          url.startsWith('https://lh') &&
+          url.length > 50 && // Minimum realistic length
+          url.length < 500 && // Maximum realistic length
+          !url.includes('=s32-') &&
+          !url.includes('=s64-') &&
+          !url.includes('=s96-') &&
+          !url.includes('undefined') &&
+          !url.includes('null') &&
+          !url.includes('%%'); // No double % characters
+
+        if (!isValid) {
+          console.log(`Filtering out invalid URL: ${url.substring(0, 100)}...`);
+        }
+        return isValid;
+      })
       .map(url => {
         // Remove size restrictions to get full resolution
         url = url.replace(/=w[0-9]+-h[0-9]+-[a-z-]+.*$/, "=w0-h0");
@@ -624,9 +635,24 @@ const servePhoto = async (photo, res) => {
 
 const serveGooglePhoto = async (photoUrl, res) => {
   try {
+    // Validate URL format
+    if (!photoUrl || typeof photoUrl !== 'string') {
+      throw new Error(`Invalid URL: ${photoUrl} (type: ${typeof photoUrl})`);
+    }
+
+    if (!photoUrl.startsWith('https://lh') || !photoUrl.includes('googleusercontent.com')) {
+      throw new Error(`Invalid Google Photos URL format: ${photoUrl.substring(0, 100)}...`);
+    }
+
+    console.log(`Serving Google Photo: ${photoUrl.substring(0, 80)}...`);
+
     const response = await axios.get(photoUrl, {
       responseType: "stream",
-      timeout: 10000,
+      timeout: 15000, // Increased timeout
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+      }
     });
 
     res.writeHead(200, {
@@ -636,7 +662,8 @@ const serveGooglePhoto = async (photoUrl, res) => {
 
     response.data.pipe(res);
   } catch (error) {
-    console.error("Failed to serve Google Photo:", error.message);
+    console.error(`Failed to serve Google Photo: ${error.message}`);
+    console.error(`Photo URL: ${photoUrl}`);
     res.writeHead(500);
     res.end("Failed to load photo");
   }
