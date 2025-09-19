@@ -95,8 +95,8 @@ Environment="XAUTHORITY=/home/%u/.Xauthority"
 Environment="XDG_RUNTIME_DIR=/run/user/%U"
 ExecStartPre=/bin/bash -c 'until pgrep -x Xorg || pgrep -x Xwayland; do sleep 2; done'
 ExecStartPre=/bin/bash -c 'pkill -f touchkio || true'
-ExecStartPre=/bin/bash -c 'pkill -f \"TouchKio Logs\" || true'
-ExecStart=/bin/bash -c '/usr/bin/touchkio & sleep 3 && lxterminal --title=\"TouchKio Logs\" --command=\"sudo journalctl -f --no-hostname --output=short | grep touchkio\" &'
+ExecStart=/usr/bin/touchkio
+ExecStartPost=/bin/bash -c 'sleep 3 && DISPLAY=:0 lxterminal --title=\"TouchKio Logs\" --command=\"bash -c \\\"sudo journalctl -f --no-hostname --output=short | grep touchkio\\\"\" &'
 Restart=always
 RestartSec=10s
 StartLimitInterval=60s
