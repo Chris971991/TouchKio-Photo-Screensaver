@@ -296,20 +296,15 @@ echo "4. Configure slideshow settings, Google Photos albums, timing, etc. via HA
 echo "5. Sample images are ready in: ~/TouchKio-Photo-Screensaver/photos"
 echo ""
 
-# Offer to show live logs
-echo "📊 View live TouchKio logs? (Y/n): "
-read -r show_logs
-if [[ ${show_logs:-y} =~ ^[Yy]$ ]]; then
-    echo ""
-    echo "Showing live TouchKio logs (press Ctrl+C to exit):"
-    echo "----------------------------------------"
-    journalctl --user -u touchkio.service -f
-else
-    echo ""
-    echo "To view TouchKio logs later, run:"
-    echo "  journalctl --user -u touchkio.service -f"
-    echo ""
-    echo "Enjoy your enhanced TouchKio experience!"
-fi
+# Show live logs automatically like the original TouchKio
+echo ""
+echo "Starting live TouchKio logs (press Ctrl+C to exit):"
+echo "----------------------------------------"
+
+# Wait a moment for service to fully start
+sleep 2
+
+# Show live logs automatically
+journalctl --user -u touchkio.service -f --no-hostname --output=short
 
 exit 0
