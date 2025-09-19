@@ -475,17 +475,33 @@ const extractPhotosFromAlbum = async (albumId) => {
           !url.includes('=s96-') &&
           !url.includes('undefined') &&
           !url.includes('null') &&
-          !url.includes('%%'); // No double % characters
+          !url.includes('%%') && // No double % characters
+          !url.includes('/a/ACg8oc') && // Filter out profile pictures (avatar URLs)
+          !url.includes('=s32-p-no') && // Filter out small profile pics
+          url.includes('/pw/'); // Only allow actual photo URLs with /pw/ path
 
         if (!isValid) {
-          console.log(`Filtering out invalid URL: ${url.substring(0, 100)}...`);
+          console.log(`Filtering out invalid/non-photo URL: ${url.substring(0, 100)}...`);
         }
         return isValid;
       })
       .map(url => {
-        // Remove size restrictions to get full resolution
-        url = url.replace(/=w[0-9]+-h[0-9]+-[a-z-]+.*$/, "=w0-h0");
-        url = url.replace(/=s[0-9]+-[a-z-]+.*$/, "=s0");
+        // Remove ALL size restrictions to get full resolution
+        // Remove =w###-h###... patterns
+        url = url.replace(/=w[0-9]+-h[0-9]+.*$/, "=w0-h0");
+        // Remove =s### patterns
+        url = url.replace(/=s[0-9]+.*$/, "=s0");
+        // Remove =d patterns (another size format)
+        url = url.replace(/=d[0-9]*$/, "=d");
+        // Remove any remaining size parameters after =
+        url = url.replace(/=[whs][0-9]+[^=]*$/g, "");
+
+        // Ensure we end with full resolution parameter
+        if (!url.includes("=w0-h0") && !url.includes("=s0") && !url.includes("=d")) {
+          url += "=w0-h0";
+        }
+
+        console.log(`Full resolution URL: ${url.substring(0, 120)}...`);
         return url;
       })
     )];
