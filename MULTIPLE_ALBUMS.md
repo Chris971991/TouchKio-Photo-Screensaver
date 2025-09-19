@@ -44,7 +44,7 @@ You can use either:
 
 **Example 1: Multiple Family Albums**
 ```bash
-touchkio --slideshow-enabled=true --slideshow-google-albums="AF1QipMPVSF9kyNT3yz5XusFfpODVq4UaLXwuTHYUS7ic6nYlND3Uzzea6MN64G-FEMpNQ?key=aUtFckttSzFhQUNtU1lFWU5zUEt0cDlWQzVnQkt3,AF1QipN8l9luendXcWgbc64gheBlj5PLChBbr7Ya8_RxOEAKiRjRWabtwU-XccrNqej3dP4m,AF1QipNAG3mySZgFKK9DIwrknSpR-IXZjW9nHCTTRmzPwd1j8I-_TGKMt29yR0OWrAPR0T7t"
+touchkio --slideshow-enabled=true --slideshow-google-albums="YOUR_FAMILY_ALBUM_ID,YOUR_VACATION_ALBUM_ID,YOUR_EVENTS_ALBUM_ID"
 ```
 
 **Example 2: Vacation + Family + Events**

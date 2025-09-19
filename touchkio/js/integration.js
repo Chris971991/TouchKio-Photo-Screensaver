@@ -1144,21 +1144,46 @@ const initSlideshowGoogleAlbums = () => {
           console.log(`Set Slideshow Google Album ${i}:`, albumUrl);
           updateSlideshowSetting(`slideshow_google_album_${i}`, albumUrl);
 
-          // Combine all 5 album fields and update slideshow
-          const combinedAlbums = [];
-          for (let j = 1; j <= 5; j++) {
-            const albumValue = global.ARGS[`slideshow_google_album_${j}`];
-            if (albumValue && albumValue.trim()) {
-              combinedAlbums.push(albumValue.trim());
-            }
-          }
-          const combinedAlbumsString = combinedAlbums.join(',');
-
-          slideshow.updateConfig({ googleAlbumIds: combinedAlbumsString });
-          slideshow.reloadPhotos();
+          // Force complete photo reload for ANY album change
+          setTimeout(() => {
+            reloadAllGoogleAlbums();
+          }, 100); // Small delay to ensure ARGS is updated
         }
       })
       .subscribe(config.command_topic);
+  }
+};
+
+/**
+ * Reloads all Google Photos albums when any album URL changes.
+ * This ensures photos are refreshed whenever albums are added, removed, or modified.
+ */
+const reloadAllGoogleAlbums = () => {
+  try {
+    // Combine all 5 album fields from current ARGS
+    const combinedAlbums = [];
+    for (let i = 1; i <= 5; i++) {
+      const albumValue = ARGS[`slideshow_google_album_${i}`];
+      if (albumValue && albumValue.trim()) {
+        combinedAlbums.push(albumValue.trim());
+      }
+    }
+
+    const combinedAlbumsString = combinedAlbums.join(',');
+    const albumCount = combinedAlbums.length;
+
+    console.log(`Reloading Google Albums: ${albumCount} album(s) configured`);
+    console.log(`Album URLs: ${combinedAlbumsString || 'None'}`);
+
+    // Update slideshow config with new album list
+    slideshow.updateConfig({ googleAlbumIds: combinedAlbumsString });
+
+    // Force complete photo reload and cache refresh
+    slideshow.reloadPhotos();
+
+    console.log(`Google Albums reload initiated for ${albumCount} album(s)`);
+  } catch (error) {
+    console.error('Failed to reload Google Albums:', error.message);
   }
 };
 
@@ -1860,11 +1885,13 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_photos_dir":
         slideshow.updateConfig({ photosDir: value.replace(/^~/, require("os").homedir()) });
         break;
-      // Google album settings trigger reload
+      // Google album settings trigger complete reload (all 5 slots)
       case "slideshow_google_album_1":
       case "slideshow_google_album_2":
       case "slideshow_google_album_3":
-        slideshow.reloadPhotos();
+      case "slideshow_google_album_4":
+      case "slideshow_google_album_5":
+        reloadAllGoogleAlbums();
         break;
       // Clock styling settings
       case "slideshow_clock_position":
