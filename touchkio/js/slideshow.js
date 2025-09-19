@@ -640,13 +640,19 @@ const serveGooglePhoto = async (photoUrl, res) => {
       throw new Error(`Invalid URL: ${photoUrl} (type: ${typeof photoUrl})`);
     }
 
-    if (!photoUrl.startsWith('https://lh') || !photoUrl.includes('googleusercontent.com')) {
-      throw new Error(`Invalid Google Photos URL format: ${photoUrl.substring(0, 100)}...`);
+    // The URL might be prefixed with the endpoint path, extract just the photo URL
+    let cleanUrl = photoUrl;
+    if (photoUrl.startsWith('/google-photo/')) {
+      cleanUrl = decodeURIComponent(photoUrl.substring(14));
     }
 
-    console.log(`Serving Google Photo: ${photoUrl.substring(0, 80)}...`);
+    if (!cleanUrl.startsWith('https://lh') || !cleanUrl.includes('googleusercontent.com')) {
+      throw new Error(`Invalid Google Photos URL format: ${cleanUrl.substring(0, 100)}...`);
+    }
 
-    const response = await axios.get(photoUrl, {
+    console.log(`Serving Google Photo: ${cleanUrl.substring(0, 80)}...`);
+
+    const response = await axios.get(cleanUrl, {
       responseType: "stream",
       timeout: 15000, // Increased timeout
       headers: {
