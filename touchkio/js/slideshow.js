@@ -95,9 +95,15 @@ const init = async () => {
   const homedir = require("os").homedir();
   const defaultPhotosDir = path.join(homedir, "TouchKio-Photo-Screensaver", "photos");
 
+  // Expand tilde in photos directory path
+  let photosDir = ARGS.slideshow_photos_dir || defaultPhotosDir;
+  if (photosDir.startsWith('~')) {
+    photosDir = photosDir.replace(/^~/, homedir);
+  }
+
   SLIDESHOW.config = {
     enabled: ARGS.slideshow_enabled === "true",
-    photosDir: ARGS.slideshow_photos_dir || defaultPhotosDir,
+    photosDir: photosDir,
     googleAlbumIds: getGoogleAlbumIds(), // Combine multiple album fields
     interval: parseInt(ARGS.slideshow_interval) * 1000 || 5000,
     idleTimeout: parseInt(ARGS.slideshow_idle_timeout) * 1000 || 180000,
