@@ -69,6 +69,8 @@ global.SLIDESHOW = global.SLIDESHOW || {
  * Combines multiple Google album fields into a single string
  */
 const getGoogleAlbumIds = () => {
+  console.log("Getting Google Album IDs from ARGS:", JSON.stringify(ARGS, null, 2));
+
   const albums = [];
 
   // Check for individual album fields (album_1, album_2, etc.)
@@ -83,12 +85,16 @@ const getGoogleAlbumIds = () => {
   // Fallback to legacy fields for backward compatibility
   if (albums.length === 0) {
     const legacyAlbums = ARGS.slideshow_google_albums || ARGS.slideshow_google_album;
+    console.log(`Legacy album fields - slideshow_google_albums: "${legacyAlbums}", slideshow_google_album: "${ARGS.slideshow_google_album}"`);
     if (legacyAlbums) {
+      console.log(`Using legacy albums: "${legacyAlbums}"`);
       return legacyAlbums;
     }
   }
 
-  return albums.length > 0 ? albums.join(',') : null;
+  const result = albums.length > 0 ? albums.join(',') : null;
+  console.log(`Final getGoogleAlbumIds result: "${result}"`);
+  return result;
 };
 
 const init = async () => {
@@ -274,22 +280,33 @@ const resizeSlideshowView = () => {
 
 const loadPhotos = async () => {
   SLIDESHOW.photos = [];
+  SLIDESHOW.googlePhotoUrls = [];
 
   try {
+    let hasGooglePhotos = false;
+
     if (SLIDESHOW.config.googleAlbumIds) {
       console.log("Loading Google Photos...");
       await loadGooglePhotos();
+      hasGooglePhotos = SLIDESHOW.googlePhotoUrls.length > 0;
     }
 
-    if (SLIDESHOW.photos.length === 0) {
-      console.log("Loading local photos...");
+    // Only load local photos if no Google Photos were found
+    if (!hasGooglePhotos) {
+      console.log("No Google Photos found, loading local photos...");
       await loadLocalPhotos();
     }
 
-    if (SLIDESHOW.photos.length === 0) {
+    const totalPhotos = SLIDESHOW.googlePhotoUrls.length + SLIDESHOW.photos.length;
+    if (totalPhotos === 0) {
       console.warn("No photos found for slideshow");
     } else {
-      console.log(`Loaded ${SLIDESHOW.photos.length} photos for slideshow`);
+      if (SLIDESHOW.googlePhotoUrls.length > 0) {
+        console.log(`Loaded ${SLIDESHOW.googlePhotoUrls.length} Google Photos for slideshow`);
+      } else {
+        console.log(`Loaded ${SLIDESHOW.photos.length} local photos for slideshow`);
+      }
+
       // Check persistent random mode setting
       const randomModeEnabled = ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true;
       if (randomModeEnabled) {
@@ -472,7 +489,11 @@ const extractPhotosFromAlbum = async (albumId) => {
 };
 
 const loadGooglePhotos = async () => {
-  if (!SLIDESHOW.config.googleAlbumIds) return;
+  console.log(`loadGooglePhotos called, googleAlbumIds: "${SLIDESHOW.config.googleAlbumIds}"`);
+  if (!SLIDESHOW.config.googleAlbumIds) {
+    console.log("No googleAlbumIds configured, skipping Google Photos");
+    return;
+  }
 
   // Parse multiple album IDs (comma-separated)
   const albumIds = SLIDESHOW.config.googleAlbumIds
