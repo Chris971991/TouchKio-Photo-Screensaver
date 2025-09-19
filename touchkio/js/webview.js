@@ -431,6 +431,16 @@ const resizeView = () => {
     });
     WEBVIEW.navigation.webContents.send("data-theme", { theme: WEBVIEW.navigationTheme });
   }
+
+  // Update slideshow view size if active
+  if (global.SLIDESHOW && global.SLIDESHOW.view && global.SLIDESHOW.active) {
+    global.SLIDESHOW.view.setBounds({
+      x: 0,
+      y: 0,
+      width: window.width,
+      height: window.height,
+    });
+  }
 };
 
 /**

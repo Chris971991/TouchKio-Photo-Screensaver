@@ -123,7 +123,7 @@ const initArgs = async () => {
     } while (!Object.keys(args).length);
     writeArgs(argsFilePath, args);
 
-    // Exit after setup if --setup was explicitly passed
+    // Exit after setup if --setup was explicitly passed (setup mode only)
     if (wasSetupMode) {
       console.log("Setup completed successfully!");
       return app.quit();

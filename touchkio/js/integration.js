@@ -1073,7 +1073,12 @@ const initSlideshowActive = () => {
         } else {
           slideshow.hideSlideshow();
         }
-        INTEGRATION.client.publish(config.state_topic, state, { retain: true });
+
+        // Publish actual slideshow state (not just echo the command)
+        setTimeout(() => {
+          const actualState = slideshow.getStatus().active ? "ON" : "OFF";
+          INTEGRATION.client.publish(config.state_topic, actualState, { retain: true });
+        }, 100); // Small delay to allow state to settle
       }
     })
     .subscribe(config.command_topic);
@@ -1783,37 +1788,37 @@ const updateSlideshow = async () => {
     publishState(`slideshow_google_album_${i}`, ARGS[`slideshow_google_album_${i}`] || "");
   }
 
-  // Timing settings
-  publishState("slideshow_interval", Math.round(status.config.interval / 1000));
-  publishState("slideshow_idle_timeout", Math.round(status.config.idleTimeout / 60000));
+  // Timing settings - read from ARGS (persisted values)
+  publishState("slideshow_interval", ARGS.slideshow_interval || Math.round(status.config.interval / 1000));
+  publishState("slideshow_idle_timeout", ARGS.slideshow_idle_timeout || Math.round(status.config.idleTimeout / 60000));
 
-  // Photo settings
-  publishState("slideshow_random_order", status.config.randomOrder ? "ON" : "OFF");
-  publishState("slideshow_photo_fit", status.config.photoFit);
+  // Photo settings - read from ARGS (persisted values)
+  publishState("slideshow_random_order", ARGS.slideshow_random_order === "true" ? "ON" : "OFF");
+  publishState("slideshow_photo_fit", ARGS.slideshow_photo_fit || status.config.photoFit);
 
-  // Transition settings
-  publishState("slideshow_transition_type", status.config.transitionType);
-  publishState("slideshow_transition_duration", status.config.transitionDuration);
+  // Transition settings - read from ARGS (persisted values)
+  publishState("slideshow_transition_type", ARGS.slideshow_transition_type || status.config.transitionType);
+  publishState("slideshow_transition_duration", ARGS.slideshow_transition_duration || status.config.transitionDuration);
 
-  // Clock settings
-  publishState("slideshow_show_clock", status.config.showClock ? "ON" : "OFF");
-  publishState("slideshow_clock_position", status.config.clockPosition);
-  publishState("slideshow_clock_size", status.config.clockSize);
-  publishState("slideshow_clock_background", status.config.clockBackground);
-  publishState("slideshow_clock_opacity", status.config.clockOpacity);
-  publishState("slideshow_clock_color", status.config.clockColor);
+  // Clock settings - read from ARGS (persisted values)
+  publishState("slideshow_show_clock", ARGS.slideshow_show_clock === "true" ? "ON" : "OFF");
+  publishState("slideshow_clock_position", ARGS.slideshow_clock_position || status.config.clockPosition);
+  publishState("slideshow_clock_size", ARGS.slideshow_clock_size || status.config.clockSize);
+  publishState("slideshow_clock_background", ARGS.slideshow_clock_background || status.config.clockBackground);
+  publishState("slideshow_clock_opacity", ARGS.slideshow_clock_opacity || status.config.clockOpacity);
+  publishState("slideshow_clock_color", ARGS.slideshow_clock_color || status.config.clockColor);
 
-  // Source indicator settings
-  publishState("slideshow_show_source", status.config.showSourceIndicator ? "ON" : "OFF");
-  publishState("slideshow_source_position", status.config.sourcePosition);
-  publishState("slideshow_source_size", status.config.sourceSize);
-  publishState("slideshow_source_opacity", status.config.sourceOpacity);
+  // Source indicator settings - read from ARGS (persisted values)
+  publishState("slideshow_show_source", ARGS.slideshow_show_source === "true" ? "ON" : "OFF");
+  publishState("slideshow_source_position", ARGS.slideshow_source_position || status.config.sourcePosition);
+  publishState("slideshow_source_size", ARGS.slideshow_source_size || status.config.sourceSize);
+  publishState("slideshow_source_opacity", ARGS.slideshow_source_opacity || status.config.sourceOpacity);
 
-  // Counter settings
-  publishState("slideshow_show_counter", status.config.showPhotoCounter ? "ON" : "OFF");
-  publishState("slideshow_counter_position", status.config.counterPosition);
-  publishState("slideshow_counter_size", status.config.counterSize);
-  publishState("slideshow_counter_opacity", status.config.counterOpacity);
+  // Counter settings - read from ARGS (persisted values)
+  publishState("slideshow_show_counter", ARGS.slideshow_show_counter === "true" ? "ON" : "OFF");
+  publishState("slideshow_counter_position", ARGS.slideshow_counter_position || status.config.counterPosition);
+  publishState("slideshow_counter_size", ARGS.slideshow_counter_size || status.config.counterSize);
+  publishState("slideshow_counter_opacity", ARGS.slideshow_counter_opacity || status.config.counterOpacity);
 };
 
 module.exports = {

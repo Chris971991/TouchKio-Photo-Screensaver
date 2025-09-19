@@ -4,6 +4,7 @@ const http = require("http");
 const https = require("https");
 const axios = require("axios");
 const { app, WebContentsView } = require("electron");
+const { URL } = require("url");
 
 global.SLIDESHOW = global.SLIDESHOW || {
   initialized: false,
@@ -22,6 +23,7 @@ global.SLIDESHOW = global.SLIDESHOW || {
   googlePhotoIndex: 0,
   photoCache: new Map(),
   lastAlbumFetch: null,
+  lastAlbumConfig: null,
   config: {
     enabled: false,
     photosDir: null,
@@ -72,6 +74,7 @@ const getGoogleAlbumIds = () => {
   // Check for individual album fields (album_1, album_2, etc.)
   for (let i = 1; i <= 5; i++) {
     const albumValue = ARGS[`slideshow_google_album_${i}`];
+    console.log(`ARGS.slideshow_google_album_${i}: "${albumValue}"`);
     if (albumValue && albumValue.trim()) {
       albums.push(albumValue.trim());
     }
@@ -229,6 +232,27 @@ const initSlideshowView = async () => {
   }
 };
 
+const publishSlideshowState = () => {
+  // Publish slideshow active state to MQTT if integration is available
+  if (global.INTEGRATION?.client && global.INTEGRATION?.root) {
+    const state = SLIDESHOW.active ? "ON" : "OFF";
+    const topic = `${global.INTEGRATION.root}/slideshow_active/state`;
+    global.INTEGRATION.client.publish(topic, state, { retain: true });
+  }
+};
+
+const resizeSlideshowView = () => {
+  if (SLIDESHOW.view && SLIDESHOW.active && global.WEBVIEW?.window) {
+    const windowBounds = global.WEBVIEW.window.getBounds();
+    SLIDESHOW.view.setBounds({
+      x: 0,
+      y: 0,
+      width: windowBounds.width,
+      height: windowBounds.height,
+    });
+  }
+};
+
 const loadPhotos = async () => {
   SLIDESHOW.photos = [];
 
@@ -269,84 +293,151 @@ const extractPhotosFromAlbum = async (albumId) => {
 
     console.log(`Fetching album: ${albumUrl}`);
 
-    // Use the same sophisticated fetching strategy as the original
+    // Helper function to handle redirects
+    const fetchWithRedirects = async (url, maxRedirects = 5) => {
+      return new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const options = {
+          hostname: urlObj.hostname,
+          path: urlObj.pathname + urlObj.search,
+          method: "GET",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "identity",
+            "Cache-Control": "no-cache",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Upgrade-Insecure-Requests": "1"
+          }
+        };
+
+        const req = https.request(options, (res) => {
+          // Handle redirects
+          if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) {
+            if (maxRedirects > 0 && res.headers.location) {
+              console.log(`Following redirect to: ${res.headers.location}`);
+              // Handle relative URLs
+              let redirectUrl = res.headers.location;
+              if (!redirectUrl.startsWith('http')) {
+                redirectUrl = new URL(redirectUrl, url).href;
+              }
+              return fetchWithRedirects(redirectUrl, maxRedirects - 1)
+                .then(resolve)
+                .catch(reject);
+            } else {
+              reject(new Error(`Too many redirects or no location header. Status: ${res.statusCode}`));
+              return;
+            }
+          }
+
+          let data = "";
+          res.on("data", chunk => data += chunk);
+          res.on("end", () => {
+            console.log(`Response length: ${data.length} characters, Status: ${res.statusCode}`);
+            resolve(data);
+          });
+        });
+
+        req.on("error", reject);
+        req.setTimeout(15000, () => {
+          req.destroy();
+          reject(new Error("Request timeout"));
+        });
+        req.end();
+      });
+    };
+
+    // Try different variations of the URL
     const urls = [
       albumUrl,
-      `${albumUrl}?hl=en&gl=US`,
-      `${albumUrl}?pageSize=200&hl=en`,
-      `${albumUrl}?count=500&hl=en`,
-      `${albumUrl}?page=1&hl=en`,
-      `${albumUrl}?page=2&hl=en`,
-      `${albumUrl}?start=200&hl=en`,
-      `${albumUrl}?offset=300&hl=en`,
-      `${albumUrl}?maxResults=1000&hl=en`,
+      albumUrl.replace('/u/0/', '/u/1/'),  // Try different user account
+      albumUrl.replace('/u/0/', '/'),      // Try without user specification
+      albumUrl + '&hl=en',
+      albumUrl + '&hl=en&gl=US',
     ];
 
     let allHtml = "";
 
     for (const fetchUrl of urls) {
       try {
-        const html = await new Promise((resolve, reject) => {
-          const urlObj = new URL(fetchUrl);
-          const options = {
-            hostname: urlObj.hostname,
-            path: urlObj.pathname + urlObj.search,
-            method: "GET",
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-              "Accept-Language": "en-US,en;q=0.9",
-              "Accept-Encoding": "identity",
-              "Cache-Control": "no-cache"
-            }
-          };
-
-          const req = https.request(options, (res) => {
-            let data = "";
-            res.on("data", chunk => data += chunk);
-            res.on("end", () => resolve(data));
-          });
-
-          req.on("error", reject);
-          req.setTimeout(10000, () => {
-            req.destroy();
-            reject(new Error("Request timeout"));
-          });
-          req.end();
-        });
-
+        console.log(`Trying URL: ${fetchUrl}`);
+        const html = await fetchWithRedirects(fetchUrl);
         allHtml += html;
+        if (html.length > 1000) { // If we got substantial content, break
+          console.log("Got substantial content, using this response");
+          break;
+        }
       } catch (error) {
         console.log(`Failed to fetch ${fetchUrl}: ${error.message}`);
       }
     }
 
-    // Extract photo URLs using the same comprehensive patterns
+    if (allHtml.length < 1000) {
+      console.log("Warning: Very little HTML content received");
+      // Try a simpler approach - just the base URL without parameters
+      try {
+        const baseUrl = albumUrl.split('?')[0];
+        console.log(`Trying simplified URL: ${baseUrl}`);
+        const html = await fetchWithRedirects(baseUrl);
+        allHtml = html;
+        console.log(`Simplified URL response length: ${allHtml.length} characters`);
+      } catch (error) {
+        console.log(`Simplified URL also failed: ${error.message}`);
+      }
+    }
+
+    // Enhanced extraction patterns that work better with modern Google Photos
     const patterns = [
+      // Original patterns for /pw/ URLs
       /"(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"/g,
       /'(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^']+)'/g,
       /https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^\s"',)}\]]+/g,
-      /\["(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"\]/g,
-      /"url":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"/g,
-      /"src":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"/g,
+
+      // Additional patterns for modern Google Photos (without /pw/)
+      /"(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"/g,
+      /'(https:\/\/lh[0-9]\.googleusercontent\.com\/[^']+)'/g,
+      /https:\/\/lh[0-9]\.googleusercontent\.com\/[^\s"',)}\]]+/g,
+
+      // JSON array patterns
+      /\["(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"\]/g,
+      /"url":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"/g,
+      /"src":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"/g,
     ];
 
     let allMatches = [];
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern, index) => {
       const matches = allHtml.match(pattern) || [];
+      console.log(`Pattern ${index + 1} found ${matches.length} matches`);
       allMatches.push(...matches);
     });
 
     // Clean and deduplicate URLs
     const cleanUrls = [...new Set(allMatches
       .map(match => {
-        let url = match.replace(/['"]/g, '');
-        url = url.replace(/.*?(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^\s'"\\,)}\]]+).*/, '$1');
+        let url = match.replace(/['"\\]/g, '');
+        // Extract just the URL part if it's in a larger string
+        const urlMatch = url.match(/(https:\/\/lh[0-9]\.googleusercontent\.com\/[^\s"',)}\]]+)/);
+        if (urlMatch) {
+          url = urlMatch[1];
+        }
         return url;
       })
-      .filter(url => url.includes('googleusercontent.com/pw/') && url.length > 50)
-      .filter(url => !url.includes('=s32-') && !url.includes('=s64-'))
-      .map(url => url.replace(/=w[0-9]+-h[0-9]+-[a-z-]+.*$/, "=w0-h0"))
+      .filter(url =>
+        url.includes('googleusercontent.com') &&
+        url.length > 30 &&
+        !url.includes('=s32-') &&
+        !url.includes('=s64-') &&
+        !url.includes('=s96-')
+      )
+      .map(url => {
+        // Remove size restrictions to get full resolution
+        url = url.replace(/=w[0-9]+-h[0-9]+-[a-z-]+.*$/, "=w0-h0");
+        url = url.replace(/=s[0-9]+-[a-z-]+.*$/, "=s0");
+        return url;
+      })
     )];
 
     console.log(`Album ${albumId}: extracted ${cleanUrls.length} photos`);
@@ -373,15 +464,27 @@ const loadGooglePhotos = async () => {
   }
 
   console.log(`Loading photos from ${albumIds.length} Google Photos album(s)...`);
+  console.log(`Album IDs detected: ${JSON.stringify(albumIds)}`);
 
   try {
-    // Check if we need to refresh the albums (every hour or first time)
+    // Check if album configuration has changed
+    const currentAlbumConfig = albumIds.join(',');
+    const albumConfigChanged = SLIDESHOW.lastAlbumConfig !== currentAlbumConfig;
+
+    // Check if we need to refresh the albums (every hour, first time, or album config changed)
     const now = new Date();
     if (SLIDESHOW.lastAlbumFetch &&
         (now - SLIDESHOW.lastAlbumFetch) < 3600000 &&
-        SLIDESHOW.googlePhotoUrls.length > 0) {
+        SLIDESHOW.googlePhotoUrls.length > 0 &&
+        !albumConfigChanged) {
       console.log(`Using cached Google Photos URLs (${SLIDESHOW.googlePhotoUrls.length} photos available)`);
       return;
+    }
+
+    if (albumConfigChanged) {
+      console.log(`Album configuration changed, clearing cache...`);
+      SLIDESHOW.googlePhotoUrls = [];
+      SLIDESHOW.photoCache.clear();
     }
 
     // Extract photos from all albums
@@ -409,6 +512,7 @@ const loadGooglePhotos = async () => {
     }
 
     SLIDESHOW.lastAlbumFetch = now;
+    SLIDESHOW.lastAlbumConfig = currentAlbumConfig;
     SLIDESHOW.googlePhotoIndex = 0;
 
     // For compatibility, create a minimal photos array for local photos fallback
@@ -585,6 +689,7 @@ const showSlideshow = async () => {
 
   console.log("Starting slideshow");
   SLIDESHOW.active = true;
+  publishSlideshowState();
   SLIDESHOW.currentIndex = 0;
 
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
@@ -632,6 +737,7 @@ const hideSlideshowSafely = () => {
 
   console.log("Stopping slideshow");
   SLIDESHOW.active = false;
+  publishSlideshowState();
 
   if (SLIDESHOW.timer) {
     clearInterval(SLIDESHOW.timer);
