@@ -1196,10 +1196,11 @@ const initSlideshowIdleTimeout = () => {
     unique_id: `${INTEGRATION.node}_slideshow_idle_timeout`,
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
-    value_template: "{{ value | int }}",
+    value_template: "{{ value | float }}",
     mode: "box",
-    min: 1,
+    min: 0.1,
     max: 60,
+    step: 0.1,
     unit_of_measurement: "min",
     icon: "mdi:clock-time-four-outline",
     device: INTEGRATION.device,
@@ -1208,7 +1209,7 @@ const initSlideshowIdleTimeout = () => {
   publishConfig("number", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
-        const idleTimeout = parseInt(message, 10);
+        const idleTimeout = parseFloat(message);
         console.log("Set Slideshow Idle Timeout:", idleTimeout);
         updateSlideshowSetting("slideshow_idle_timeout", idleTimeout);
         slideshow.updateConfig({ idleTimeout: idleTimeout * 60000 });
