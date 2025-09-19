@@ -109,7 +109,7 @@ const init = async () => {
     photosDir: photosDir,
     googleAlbumIds: getGoogleAlbumIds(), // Combine multiple album fields
     interval: parseInt(ARGS.slideshow_interval) * 1000 || 5000,
-    idleTimeout: parseInt(ARGS.slideshow_idle_timeout) * 1000 || 180000,
+    idleTimeout: parseFloat(ARGS.slideshow_idle_timeout) * 60000 || 180000,
 
     // Clock settings
     showClock: ARGS.slideshow_show_clock !== "false",

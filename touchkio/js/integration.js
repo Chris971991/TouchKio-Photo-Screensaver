@@ -1963,7 +1963,7 @@ const updateSlideshow = async () => {
 
   // Timing settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_interval", Math.round(status.config.interval / 1000) || ARGS.slideshow_interval || 5);
-  publishState("slideshow_idle_timeout", Math.round(status.config.idleTimeout / 60000) || ARGS.slideshow_idle_timeout || 3);
+  publishState("slideshow_idle_timeout", Math.round(status.config.idleTimeout / 60000) || parseFloat(ARGS.slideshow_idle_timeout) || 3);
 
   // Photo settings - use ARGS as primary since runtime might lag behind
   publishState("slideshow_random_order", (ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true) ? "ON" : "OFF");

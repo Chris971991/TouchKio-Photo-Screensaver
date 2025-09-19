@@ -268,8 +268,8 @@ const promptArgs = async (proc) => {
     },
     {
       key: "slideshow_idle_timeout",
-      question: "Enter idle timeout (seconds)",
-      fallback: "180",
+      question: "Enter idle timeout (minutes)",
+      fallback: "3",
     },
     {
       key: "slideshow_show_clock",
