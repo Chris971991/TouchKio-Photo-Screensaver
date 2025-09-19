@@ -713,7 +713,11 @@ const resetIdleTimer = () => {
   }
 
   SLIDESHOW.idleTimer = setTimeout(() => {
-    if (!SLIDESHOW.active && SLIDESHOW.photos.length > 0) {
+    // Check if photos are available (Google Photos OR local photos)
+    const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
+
+    if (!SLIDESHOW.active && hasPhotos) {
+      console.log("Idle timeout reached, starting slideshow");
       showSlideshow();
     }
   }, SLIDESHOW.config.idleTimeout);
