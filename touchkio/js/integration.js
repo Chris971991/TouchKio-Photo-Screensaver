@@ -987,7 +987,7 @@ const initSlideshow = () => {
   // Photo settings
   initSlideshowRandomOrder();
   initSlideshowPhotoFit();
-  initSlideshowOrientationMode();
+  // Orientation mode removed - smart contain handles all orientations automatically
 
   // Transition settings
   initSlideshowTransitionType();
@@ -1305,33 +1305,7 @@ const initSlideshowPhotoFit = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow orientation mode control.
- */
-const initSlideshowOrientationMode = () => {
-  const root = `${INTEGRATION.root}/slideshow_orientation_mode`;
-  const config = {
-    name: "Slideshow Orientation Mode",
-    unique_id: `${INTEGRATION.node}_slideshow_orientation_mode`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["landscape", "portrait"],
-    icon: "mdi:screen-rotation",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const orientationMode = message.toString();
-        console.log("Set Slideshow Orientation Mode:", orientationMode);
-        updateSlideshowSetting("slideshow_orientation_mode", orientationMode);
-        slideshow.updateConfig({ orientationMode });
-      }
-    })
-    .subscribe(config.command_topic);
-};
+// Orientation mode removed - smart contain handles all orientations automatically
 
 /**
  * Initializes the slideshow transition type control.
@@ -1880,9 +1854,7 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         const showCounter = value === "true" || value === true;
         slideshow.updateConfig({ showPhotoCounter: showCounter });
         break;
-      case "slideshow_orientation_mode":
-        slideshow.updateConfig({ orientationMode: value });
-        break;
+      // Orientation mode removed - smart contain handles all orientations automatically
       case "slideshow_photos_dir":
         slideshow.updateConfig({ photosDir: value.replace(/^~/, require("os").homedir()) });
         break;
@@ -1969,7 +1941,7 @@ const updateSlideshow = async () => {
   // Photo settings - use ARGS as primary since runtime might lag behind
   publishState("slideshow_random_order", (ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true) ? "ON" : "OFF");
   publishState("slideshow_photo_fit", status.config.photoFit || ARGS.slideshow_photo_fit || "contain");
-  publishState("slideshow_orientation_mode", status.config.orientationMode || ARGS.slideshow_orientation_mode || "landscape");
+  // Orientation mode removed - smart contain handles all orientations automatically
 
   // Transition settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_transition_type", status.config.transitionType || ARGS.slideshow_transition_type || "fade");
