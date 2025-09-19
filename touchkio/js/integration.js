@@ -1113,32 +1113,46 @@ const initSlideshowPhotosDir = () => {
 };
 
 /**
- * Initializes the slideshow Google Albums control.
+ * Initializes the slideshow Google Albums controls (5 separate album fields).
  */
 const initSlideshowGoogleAlbums = () => {
-  const root = `${INTEGRATION.root}/slideshow_google_albums`;
-  const config = {
-    name: "Slideshow Google Albums",
-    unique_id: `${INTEGRATION.node}_slideshow_google_albums`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    icon: "mdi:google-photos",
-    mode: "text",
-    device: INTEGRATION.device,
-  };
+  // Create 5 separate Google Photos album fields
+  for (let i = 1; i <= 5; i++) {
+    const root = `${INTEGRATION.root}/slideshow_google_album_${i}`;
+    const config = {
+      name: `Slideshow Google Album ${i}`,
+      unique_id: `${INTEGRATION.node}_slideshow_google_album_${i}`,
+      command_topic: `${root}/set`,
+      state_topic: `${root}/state`,
+      value_template: "{{ value }}",
+      icon: "mdi:google-photos",
+      mode: "text",
+      device: INTEGRATION.device,
+    };
 
-  publishConfig("text", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const googleAlbums = message.toString();
-        console.log("Set Slideshow Google Albums:", googleAlbums);
-        updateSlideshowSetting("slideshow_google_albums", googleAlbums);
-        slideshow.updateConfig({ googleAlbumIds: googleAlbums });
-        slideshow.reloadPhotos();
-      }
-    })
-    .subscribe(config.command_topic);
+    publishConfig("text", config)
+      .on("message", (topic, message) => {
+        if (topic === config.command_topic) {
+          const albumUrl = message.toString();
+          console.log(`Set Slideshow Google Album ${i}:`, albumUrl);
+          updateSlideshowSetting(`slideshow_google_album_${i}`, albumUrl);
+
+          // Combine all 5 album fields and update slideshow
+          const combinedAlbums = [];
+          for (let j = 1; j <= 5; j++) {
+            const albumValue = global.ARGS[`slideshow_google_album_${j}`];
+            if (albumValue && albumValue.trim()) {
+              combinedAlbums.push(albumValue.trim());
+            }
+          }
+          const combinedAlbumsString = combinedAlbums.join(',');
+
+          slideshow.updateConfig({ googleAlbumIds: combinedAlbumsString });
+          slideshow.reloadPhotos();
+        }
+      })
+      .subscribe(config.command_topic);
+  }
 };
 
 /**
@@ -1763,7 +1777,10 @@ const updateSlideshow = async () => {
   const photosDir = ARGS.slideshow_photos_dir || defaultPhotosDir;
   const expandedPhotosDir = photosDir.replace(/^~/, homedir);
   publishState("slideshow_photos_dir", expandedPhotosDir);
-  publishState("slideshow_google_albums", ARGS.slideshow_google_albums || ARGS.slideshow_google_album || "");
+  // Publish states for all 5 Google album fields
+  for (let i = 1; i <= 5; i++) {
+    publishState(`slideshow_google_album_${i}`, ARGS[`slideshow_google_album_${i}`] || "");
+  }
 
   // Timing settings
   publishState("slideshow_interval", Math.round(status.config.interval / 1000));

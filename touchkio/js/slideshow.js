@@ -63,6 +63,31 @@ global.SLIDESHOW = global.SLIDESHOW || {
   },
 };
 
+/**
+ * Combines multiple Google album fields into a single string
+ */
+const getGoogleAlbumIds = () => {
+  const albums = [];
+
+  // Check for individual album fields (album_1, album_2, etc.)
+  for (let i = 1; i <= 5; i++) {
+    const albumValue = ARGS[`slideshow_google_album_${i}`];
+    if (albumValue && albumValue.trim()) {
+      albums.push(albumValue.trim());
+    }
+  }
+
+  // Fallback to legacy fields for backward compatibility
+  if (albums.length === 0) {
+    const legacyAlbums = ARGS.slideshow_google_albums || ARGS.slideshow_google_album;
+    if (legacyAlbums) {
+      return legacyAlbums;
+    }
+  }
+
+  return albums.length > 0 ? albums.join(',') : null;
+};
+
 const init = async () => {
   // Always initialize slideshow when slideshow.html is loaded
   // Slideshow can be controlled via MQTT regardless of command line args
@@ -73,7 +98,7 @@ const init = async () => {
   SLIDESHOW.config = {
     enabled: ARGS.slideshow_enabled === "true",
     photosDir: ARGS.slideshow_photos_dir || defaultPhotosDir,
-    googleAlbumIds: ARGS.slideshow_google_albums || ARGS.slideshow_google_album || null, // Support both new and old arg names
+    googleAlbumIds: getGoogleAlbumIds(), // Combine multiple album fields
     interval: parseInt(ARGS.slideshow_interval) * 1000 || 5000,
     idleTimeout: parseInt(ARGS.slideshow_idle_timeout) * 1000 || 180000,
 
