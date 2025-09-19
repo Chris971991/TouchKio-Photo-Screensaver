@@ -728,10 +728,24 @@ const showSlideshow = async () => {
     height: windowBounds.height,
   });
 
-  // Send config (photos array can be empty for lazy loading)
+  // Send config with combined Google Photos and local photos for counter
+  const combinedPhotos = [
+    ...SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+      id: `google_${index}`,
+      url: `/google-photo/${encodeURIComponent(url)}`,
+      type: "google",
+      title: `Google Photo ${index + 1}`
+    })),
+    ...SLIDESHOW.photos.map((photo, index) => ({
+      ...photo,
+      id: `local_${index}`,
+      url: `/photo/${index}`
+    }))
+  ];
+
   SLIDESHOW.view.webContents.send("slideshow-config", {
     config: SLIDESHOW.config,
-    photos: SLIDESHOW.photos,
+    photos: combinedPhotos,
     googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,
   });
 
