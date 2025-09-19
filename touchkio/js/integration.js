@@ -1023,6 +1023,20 @@ const initSlideshow = () => {
   initSlideshowFallbackTimeout();
   initSlideshowPreferredSource();
 
+  // Metadata settings
+  initSlideshowShowMetadata();
+  initSlideshowMetadataPosition();
+  initSlideshowMetadataSize();
+  initSlideshowMetadataOpacity();
+  initSlideshowShowFilename();
+  initSlideshowShowDateTaken();
+  initSlideshowShowCameraInfo();
+  initSlideshowShowLocation();
+  initSlideshowMetadataBackground();
+  initSlideshowMetadataFontSize();
+  initSlideshowMetadataBackgroundOpacity();
+  initSlideshowMetadataTransitionType();
+
   // Publish initial states
   updateSlideshow();
 
@@ -1939,6 +1953,39 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_preferred_source":
         slideshow.updateConfig({ preferredSource: value });
         break;
+      // Metadata settings
+      case "slideshow_show_metadata":
+        const showMetadata = value === "true" || value === true;
+        slideshow.updateConfig({ showMetadata });
+        break;
+      case "slideshow_metadata_position":
+        slideshow.updateConfig({ metadataPosition: value });
+        break;
+      case "slideshow_metadata_size":
+        slideshow.updateConfig({ metadataSize: value });
+        break;
+      case "slideshow_metadata_opacity":
+        slideshow.updateConfig({ metadataOpacity: parseFloat(value) });
+        break;
+      case "slideshow_show_filename":
+        const showFilename = value === "true" || value === true;
+        slideshow.updateConfig({ showFilename });
+        break;
+      case "slideshow_show_date_taken":
+        const showDateTaken = value === "true" || value === true;
+        slideshow.updateConfig({ showDateTaken });
+        break;
+      case "slideshow_show_camera_info":
+        const showCameraInfo = value === "true" || value === true;
+        slideshow.updateConfig({ showCameraInfo });
+        break;
+      case "slideshow_show_location":
+        const showLocation = value === "true" || value === true;
+        slideshow.updateConfig({ showLocation });
+        break;
+      case "slideshow_metadata_background":
+        slideshow.updateConfig({ metadataBackground: value });
+        break;
     }
     console.log(`Synced ${key} to slideshow runtime config:`, value);
   } catch (error) {
@@ -2018,6 +2065,20 @@ const updateSlideshow = async () => {
   publishState("slideshow_fallback_enabled", status.config.fallbackEnabled ? "ON" : "OFF");
   publishState("slideshow_fallback_timeout", status.config.fallbackTimeout || ARGS.slideshow_fallback_timeout || 5000);
   publishState("slideshow_preferred_source", status.config.preferredSource || ARGS.slideshow_preferred_source || "google");
+
+  // Metadata settings - use runtime values as primary, ARGS as fallback
+  publishState("slideshow_show_metadata", status.config.showMetadata ? "ON" : "OFF");
+  publishState("slideshow_metadata_position", status.config.metadataPosition || ARGS.slideshow_metadata_position || "bottom-center");
+  publishState("slideshow_metadata_size", status.config.metadataSize || ARGS.slideshow_metadata_size || "small");
+  publishState("slideshow_metadata_opacity", status.config.metadataOpacity || ARGS.slideshow_metadata_opacity || 0.8);
+  publishState("slideshow_metadata_font_size", status.config.metadataFontSize || ARGS.slideshow_metadata_font_size || "small");
+  publishState("slideshow_metadata_background_opacity", status.config.metadataBackgroundOpacity || ARGS.slideshow_metadata_background_opacity || 70);
+  publishState("slideshow_metadata_transition_type", status.config.metadataTransitionType || ARGS.slideshow_metadata_transition_type || "fade");
+  publishState("slideshow_show_filename", status.config.showFilename ? "ON" : "OFF");
+  publishState("slideshow_show_date_taken", status.config.showDateTaken ? "ON" : "OFF");
+  publishState("slideshow_show_camera_info", status.config.showCameraInfo ? "ON" : "OFF");
+  publishState("slideshow_show_location", status.config.showLocation ? "ON" : "OFF");
+  publishState("slideshow_metadata_background", status.config.metadataBackground || ARGS.slideshow_metadata_background || "dark");
 };
 
 /**
@@ -2253,6 +2314,337 @@ const initSlideshowPreferredSource = () => {
         console.log("Set Slideshow Preferred Source:", source);
         updateSlideshowSetting("slideshow_preferred_source", source);
         slideshow.updateConfig({ preferredSource: source });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow show metadata control.
+ */
+const initSlideshowShowMetadata = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_metadata`;
+  const config = {
+    name: "Slideshow Show Metadata",
+    unique_id: `${INTEGRATION.node}_slideshow_show_metadata`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:information-outline",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Show Metadata:", enabled);
+        updateSlideshowSetting("slideshow_show_metadata", enabled);
+        slideshow.updateConfig({ showMetadata: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata position control.
+ */
+const initSlideshowMetadataPosition = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_position`;
+  const config = {
+    name: "Slideshow Metadata Position",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_position`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "bottom-center"],
+    icon: "mdi:format-vertical-align-bottom",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const position = message.toString();
+        console.log("Set Slideshow Metadata Position:", position);
+        updateSlideshowSetting("slideshow_metadata_position", position);
+        slideshow.updateConfig({ metadataPosition: position });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata size control.
+ */
+const initSlideshowMetadataSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_size`;
+  const config = {
+    name: "Slideshow Metadata Size",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["small", "medium", "large"],
+    icon: "mdi:format-size",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const size = message.toString();
+        console.log("Set Slideshow Metadata Size:", size);
+        updateSlideshowSetting("slideshow_metadata_size", size);
+        slideshow.updateConfig({ metadataSize: size });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata opacity control.
+ */
+const initSlideshowMetadataOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_opacity`;
+  const config = {
+    name: "Slideshow Metadata Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | float }}",
+    mode: "slider",
+    min: 0.1,
+    max: 1.0,
+    step: 0.1,
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const opacity = parseFloat(message.toString());
+        console.log("Set Slideshow Metadata Opacity:", opacity);
+        updateSlideshowSetting("slideshow_metadata_opacity", opacity);
+        slideshow.updateConfig({ metadataOpacity: opacity });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow show filename control.
+ */
+const initSlideshowShowFilename = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_filename`;
+  const config = {
+    name: "Slideshow Show Filename",
+    unique_id: `${INTEGRATION.node}_slideshow_show_filename`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:file-outline",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Show Filename:", enabled);
+        updateSlideshowSetting("slideshow_show_filename", enabled);
+        slideshow.updateConfig({ showFilename: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow show date taken control.
+ */
+const initSlideshowShowDateTaken = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_date_taken`;
+  const config = {
+    name: "Slideshow Show Date Taken",
+    unique_id: `${INTEGRATION.node}_slideshow_show_date_taken`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:calendar-clock",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Show Date Taken:", enabled);
+        updateSlideshowSetting("slideshow_show_date_taken", enabled);
+        slideshow.updateConfig({ showDateTaken: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow show camera info control.
+ */
+const initSlideshowShowCameraInfo = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_camera_info`;
+  const config = {
+    name: "Slideshow Show Camera Info",
+    unique_id: `${INTEGRATION.node}_slideshow_show_camera_info`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:camera",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Show Camera Info:", enabled);
+        updateSlideshowSetting("slideshow_show_camera_info", enabled);
+        slideshow.updateConfig({ showCameraInfo: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow show location control.
+ */
+const initSlideshowShowLocation = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_location`;
+  const config = {
+    name: "Slideshow Show Location",
+    unique_id: `${INTEGRATION.node}_slideshow_show_location`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:map-marker",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "ON";
+        console.log("Set Slideshow Show Location:", enabled);
+        updateSlideshowSetting("slideshow_show_location", enabled);
+        slideshow.updateConfig({ showLocation: enabled });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata background control.
+ */
+const initSlideshowMetadataBackground = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_background`;
+  const config = {
+    name: "Slideshow Metadata Background",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_background`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["dark", "light", "blue", "green", "red", "purple", "none"],
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const background = message.toString();
+        console.log("Set Slideshow Metadata Background:", background);
+        updateSlideshowSetting("slideshow_metadata_background", background);
+        slideshow.updateConfig({ metadataBackground: background });
+        // Publish state back to Home Assistant
+        INTEGRATION.client.publish(config.state_topic, background, { retain: true });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initSlideshowMetadataFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_font_size`;
+  const config = {
+    name: "Slideshow Metadata Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
+    icon: "mdi:format-font-size-increase",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const fontSize = message.toString();
+        console.log("Set Slideshow Metadata Font Size:", fontSize);
+        updateSlideshowSetting("slideshow_metadata_font_size", fontSize);
+        slideshow.updateConfig({ metadataFontSize: fontSize });
+        // Publish state back to Home Assistant
+        INTEGRATION.client.publish(config.state_topic, fontSize, { retain: true });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initSlideshowMetadataBackgroundOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_background_opacity`;
+  const config = {
+    name: "Slideshow Metadata Background Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_background_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    min: 0,
+    max: 100,
+    step: 5,
+    mode: "slider",
+    unit_of_measurement: "%",
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const opacity = parseInt(message.toString());
+        console.log("Set Slideshow Metadata Background Opacity:", opacity);
+        updateSlideshowSetting("slideshow_metadata_background_opacity", opacity);
+        slideshow.updateConfig({ metadataBackgroundOpacity: opacity });
+        // Publish state back to Home Assistant
+        INTEGRATION.client.publish(config.state_topic, opacity.toString(), { retain: true });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initSlideshowMetadataTransitionType = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_transition_type`;
+  const config = {
+    name: "Slideshow Metadata Transition Type",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_transition_type`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["fade", "blur", "slide-up", "slide-down", "typewriter", "glow"],
+    icon: "mdi:transition",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const transitionType = message.toString();
+        console.log("Set Slideshow Metadata Transition Type:", transitionType);
+        updateSlideshowSetting("slideshow_metadata_transition_type", transitionType);
+        slideshow.updateConfig({ metadataTransitionType: transitionType });
+        // Publish state back to Home Assistant
+        INTEGRATION.client.publish(config.state_topic, transitionType, { retain: true });
       }
     })
     .subscribe(config.command_topic);

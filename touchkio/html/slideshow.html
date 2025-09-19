@@ -301,6 +301,167 @@
             z-index: 10;
         }
 
+        .metadata-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 50%;
+            transform: translateX(50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            text-align: center;
+            max-width: 80%;
+            display: none;
+            transition: opacity 1s ease-in-out;
+            opacity: 0;
+        }
+
+        .metadata-overlay.background-dark {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .metadata-overlay.background-light {
+            background: rgba(255, 255, 255, 0.3);
+            color: #333;
+        }
+
+        .metadata-overlay.background-blue {
+            background: rgba(52, 152, 219, 0.7);
+            color: white;
+        }
+
+        .metadata-overlay.background-green {
+            background: rgba(52, 168, 83, 0.7);
+            color: white;
+        }
+
+        .metadata-overlay.background-red {
+            background: rgba(231, 76, 60, 0.7);
+            color: white;
+        }
+
+        .metadata-overlay.background-purple {
+            background: rgba(155, 89, 182, 0.7);
+            color: white;
+        }
+
+        .metadata-overlay.background-none {
+            background: none !important;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .metadata-line {
+            margin: 2px 0;
+            line-height: 1.2;
+        }
+
+        .metadata-filename {
+            font-weight: bold;
+            font-size: 0.85em;
+            margin-bottom: 4px;
+        }
+
+        .metadata-date {
+            color: #ccc;
+            font-size: 0.8em;
+        }
+
+        .metadata-camera {
+            color: #aaa;
+            font-size: 0.75em;
+        }
+
+        .metadata-exposure {
+            color: #888;
+            font-size: 0.7em;
+            font-family: monospace;
+        }
+
+        .metadata-location {
+            color: #999;
+            font-size: 0.7em;
+        }
+
+        /* Metadata overlay positioning */
+        .metadata-overlay.pos-top-left { top: 20px; left: 20px; right: auto; bottom: auto; transform: none; }
+        .metadata-overlay.pos-top-center { top: 20px; left: 50%; right: auto; bottom: auto; transform: translateX(-50%); }
+        .metadata-overlay.pos-top-right { top: 20px; right: 20px; left: auto; bottom: auto; transform: none; }
+        .metadata-overlay.pos-bottom-left { bottom: 20px; left: 20px; right: auto; top: auto; transform: none; }
+        .metadata-overlay.pos-bottom-center {
+            bottom: 20px;
+            left: 50%;
+            right: auto;
+            top: auto;
+            transform: translateX(-50%);
+        }
+        .metadata-overlay.pos-bottom-right { bottom: 20px; right: 20px; left: auto; top: auto; transform: none; }
+        .metadata-overlay.pos-center {
+            top: 50%;
+            left: 50%;
+            right: auto;
+            bottom: auto;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Font size classes for metadata */
+        .metadata-overlay.font-tiny { font-size: 0.5rem !important; }
+        .metadata-overlay.font-small { font-size: 0.7rem !important; }
+        .metadata-overlay.font-medium { font-size: 0.9rem !important; }
+        .metadata-overlay.font-large { font-size: 1.1rem !important; }
+        .metadata-overlay.font-xlarge { font-size: 1.4rem !important; }
+        .metadata-overlay.font-xxlarge { font-size: 1.8rem !important; }
+
+        /* Smooth text content transitions - overlay stays in place */
+        .metadata-overlay.visible {
+            opacity: 1;
+        }
+
+        .metadata-overlay.transitioning {
+            opacity: 0.3;
+        }
+
+        /* Individual metadata line transitions */
+        .metadata-line {
+            transition: opacity 1s ease-in-out, filter 1s ease-in-out;
+        }
+
+        .metadata-line.fade-out {
+            opacity: 0;
+        }
+
+        .metadata-line.blur-out {
+            opacity: 0;
+            filter: blur(3px);
+        }
+
+        .metadata-line.slide-up-out {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .metadata-line.slide-down-out {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .metadata-line.glow-out {
+            opacity: 0;
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        .metadata-line.typewriter-out {
+            opacity: 0;
+            letter-spacing: 0.2em;
+        }
+
+        /* Enhanced transitions for transform effects */
+        .metadata-line {
+            transition: opacity 1s ease-in-out, filter 1s ease-in-out, transform 1s ease-in-out, text-shadow 1s ease-in-out, letter-spacing 1s ease-in-out;
+        }
+
         .loading-indicator {
             position: absolute;
             top: 50%;
@@ -404,6 +565,14 @@
             <span id="photoCounter">0 / 0</span>
         </div>
 
+        <div class="metadata-overlay" id="metadataOverlay">
+            <div class="metadata-line metadata-filename" id="metadataFilename"></div>
+            <div class="metadata-line metadata-date" id="metadataDate"></div>
+            <div class="metadata-line metadata-camera" id="metadataCamera"></div>
+            <div class="metadata-line metadata-exposure" id="metadataExposure"></div>
+            <div class="metadata-line metadata-location" id="metadataLocation"></div>
+        </div>
+
         <div class="overlay" id="clockOverlay">
             <div class="clock" id="clock">00:00</div>
             <div class="date" id="date">Loading...</div>
@@ -441,6 +610,12 @@
             sourceIcon: document.getElementById('sourceIcon'),
             sourceText: document.getElementById('sourceText'),
             photoCounter: document.getElementById('photoCounter'),
+            metadataOverlay: document.getElementById('metadataOverlay'),
+            metadataFilename: document.getElementById('metadataFilename'),
+            metadataDate: document.getElementById('metadataDate'),
+            metadataCamera: document.getElementById('metadataCamera'),
+            metadataExposure: document.getElementById('metadataExposure'),
+            metadataLocation: document.getElementById('metadataLocation'),
             clockOverlay: document.getElementById('clockOverlay'),
             clock: document.getElementById('clock'),
             date: document.getElementById('date'),
@@ -488,6 +663,172 @@
 
         function updatePhotoCounter(current, total) {
             elements.photoCounter.textContent = `${current + 1} / ${total}`;
+        }
+
+        function updateMetadataDisplay(photo) {
+            // Use smooth content transition for photo changes
+            transitionMetadataContent(photo);
+        }
+
+        function showMetadataOverlay() {
+            updateMetadataStyles();
+            elements.metadataOverlay.style.display = 'block';
+            // Force reflow before adding visible class
+            elements.metadataOverlay.offsetHeight;
+            elements.metadataOverlay.classList.add('visible');
+        }
+
+        function hideMetadataOverlay() {
+            elements.metadataOverlay.classList.remove('visible');
+            const transitionDuration = config.transitionDuration || 2000;
+            setTimeout(() => {
+                elements.metadataOverlay.style.display = 'none';
+            }, transitionDuration / 2); // Match half transition duration
+        }
+
+        function transitionMetadataContent(newPhoto) {
+            if (!config.showMetadata || !newPhoto.metadata) {
+                hideMetadataOverlay();
+                return;
+            }
+
+            const transitionType = config.metadataTransitionType || 'fade';
+            const transitionDuration = config.transitionDuration || 2000; // Get slideshow transition duration
+            const halfDuration = transitionDuration / 2;
+            const metadataLines = elements.metadataOverlay.querySelectorAll('.metadata-line');
+
+            // Update CSS transition duration to match slideshow
+            metadataLines.forEach(line => {
+                line.style.transition = `opacity ${halfDuration}ms ease-in-out, filter ${halfDuration}ms ease-in-out, transform ${halfDuration}ms ease-in-out, text-shadow ${halfDuration}ms ease-in-out, letter-spacing ${halfDuration}ms ease-in-out`;
+            });
+
+            // Start transition - apply appropriate out effect
+            const outClass = `${transitionType}-out`;
+            metadataLines.forEach(line => line.classList.add(outClass));
+
+            // After fade out, update content and fade in
+            setTimeout(() => {
+                updateMetadataContent(newPhoto);
+
+                // Fade in new content
+                setTimeout(() => {
+                    metadataLines.forEach(line => {
+                        line.classList.remove('fade-out', 'blur-out', 'slide-up-out', 'slide-down-out', 'glow-out', 'typewriter-out');
+                    });
+                }, 50);
+            }, halfDuration);
+        }
+
+        function updateMetadataContent(photo) {
+            const metadata = photo.metadata;
+            let hasContent = false;
+
+            // Clear all fields first
+            elements.metadataFilename.textContent = '';
+            elements.metadataDate.textContent = '';
+            elements.metadataCamera.textContent = '';
+            elements.metadataExposure.textContent = '';
+            elements.metadataLocation.textContent = '';
+
+            // Show/hide filename
+            if (config.showFilename && metadata.filename) {
+                elements.metadataFilename.textContent = metadata.filename;
+                elements.metadataFilename.style.display = 'block';
+                hasContent = true;
+            } else {
+                elements.metadataFilename.style.display = 'none';
+            }
+
+            // Show/hide date taken
+            if (config.showDateTaken && metadata.dateFormatted) {
+                elements.metadataDate.textContent = metadata.dateFormatted;
+                elements.metadataDate.style.display = 'block';
+                hasContent = true;
+            } else {
+                elements.metadataDate.style.display = 'none';
+            }
+
+            // Show/hide camera info
+            if (config.showCameraInfo && metadata.camera) {
+                let cameraText = metadata.camera;
+                if (metadata.lens) {
+                    cameraText += ` • ${metadata.lens}`;
+                }
+                elements.metadataCamera.textContent = cameraText;
+                elements.metadataCamera.style.display = 'block';
+                hasContent = true;
+            } else {
+                elements.metadataCamera.style.display = 'none';
+            }
+
+            // Show/hide exposure settings
+            if (config.showCameraInfo && metadata.exposure) {
+                elements.metadataExposure.textContent = metadata.exposure;
+                elements.metadataExposure.style.display = 'block';
+                hasContent = true;
+            } else {
+                elements.metadataExposure.style.display = 'none';
+            }
+
+            // Show/hide location (GPS coordinates)
+            if (config.showLocation && metadata.location) {
+                elements.metadataLocation.textContent = `📍 ${metadata.location.formatted}`;
+                elements.metadataLocation.style.display = 'block';
+                hasContent = true;
+            } else {
+                elements.metadataLocation.style.display = 'none';
+            }
+
+            // Show/hide entire overlay based on content
+            if (hasContent) {
+                if (elements.metadataOverlay.style.display === 'none') {
+                    showMetadataOverlay();
+                }
+            } else {
+                hideMetadataOverlay();
+            }
+        }
+
+        function updateMetadataStyles() {
+            const overlay = elements.metadataOverlay;
+
+            // Preserve the visible state
+            const wasVisible = overlay.classList.contains('visible');
+
+            // Clear existing classes
+            overlay.className = 'metadata-overlay';
+
+            // Apply position
+            overlay.classList.add(`pos-${config.metadataPosition || 'bottom-center'}`);
+
+            // Apply font size
+            overlay.classList.add(`font-${config.metadataFontSize || 'small'}`);
+
+            // Apply background
+            overlay.classList.add(`background-${config.metadataBackground || 'dark'}`);
+
+            // Restore visible state if it was visible
+            if (wasVisible) {
+                overlay.classList.add('visible');
+            }
+
+            // Apply custom opacity if set
+            if (config.metadataBackgroundOpacity !== undefined) {
+                const opacity = config.metadataBackgroundOpacity / 100;
+                if (config.metadataBackground === 'dark') {
+                    overlay.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+                } else if (config.metadataBackground === 'light') {
+                    overlay.style.backgroundColor = `rgba(255, 255, 255, ${opacity * 0.4})`;
+                } else if (config.metadataBackground === 'blue') {
+                    overlay.style.backgroundColor = `rgba(52, 152, 219, ${opacity})`;
+                } else if (config.metadataBackground === 'green') {
+                    overlay.style.backgroundColor = `rgba(52, 168, 83, ${opacity})`;
+                } else if (config.metadataBackground === 'red') {
+                    overlay.style.backgroundColor = `rgba(231, 76, 60, ${opacity})`;
+                } else if (config.metadataBackground === 'purple') {
+                    overlay.style.backgroundColor = `rgba(155, 89, 182, ${opacity})`;
+                }
+            }
         }
 
         function showLoading() {
@@ -548,6 +889,7 @@
 
             updateSourceIndicator(photo);
             updatePhotoCounter(index, photos.length);
+            updateMetadataDisplay(photo);
 
             const photoUrl = getPhotoUrl(photo, index);
 
@@ -644,15 +986,34 @@
                     photoCounter.style.opacity = config.counterOpacity || 0.8;
                 }
 
-                // Photo fit configuration - smart contain handles all orientations
-                const photos = document.querySelectorAll('.photo');
-                photos.forEach(photo => {
-                    photo.className = `photo fit-${config.photoFit || 'contain'}`;
-                });
+                // Metadata overlay configuration
+                const metadataOverlay = document.querySelector('.metadata-overlay');
+                if (config.showMetadata) {
+                    // Update all metadata styles when config changes
+                    updateMetadataStyles();
+                    // Metadata visibility will be handled by updateMetadataDisplay when photos are shown
+                } else {
+                    metadataOverlay.style.display = 'none';
+                }
 
-                // Apply transition type
-                const container = document.querySelector('.slideshow-container');
-                container.className = `slideshow-container transition-${config.transitionType || 'fade'}`;
+                // Photo fit configuration - only update if it changed
+                if (data.config.photoFit !== undefined) {
+                    const photos = document.querySelectorAll('.photo');
+                    photos.forEach(photo => {
+                        // Preserve the visible state when updating photo fit
+                        const wasVisible = photo.classList.contains('visible');
+                        photo.className = `photo fit-${config.photoFit || 'contain'}`;
+                        if (wasVisible) {
+                            photo.classList.add('visible');
+                        }
+                    });
+                }
+
+                // Apply transition type - only update if it changed
+                if (data.config.transitionType !== undefined) {
+                    const container = document.querySelector('.slideshow-container');
+                    container.className = `slideshow-container transition-${config.transitionType || 'fade'}`;
+                }
             }
 
             if (data.photos) {

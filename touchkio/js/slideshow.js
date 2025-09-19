@@ -4,6 +4,7 @@ const http = require("http");
 const https = require("https");
 const axios = require("axios");
 const crypto = require("crypto");
+const exifr = require("exifr");
 const { app, WebContentsView } = require("electron");
 const { URL } = require("url");
 
@@ -70,6 +71,20 @@ global.SLIDESHOW = global.SLIDESHOW || {
     counterPosition: "bottom-left", // "top-left", "top-right", "bottom-left", "bottom-right"
     counterSize: "medium", // "small", "medium", "large"
     counterOpacity: 0.8,
+
+    // Photo metadata settings
+    showMetadata: true,
+    metadataPosition: "bottom-center", // "top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right", "center"
+    metadataSize: "small", // "small", "medium", "large"
+    metadataOpacity: 0.8,
+    metadataFontSize: "small", // "tiny", "small", "medium", "large", "xlarge", "xxlarge"
+    metadataBackgroundOpacity: 70, // 0-100%
+    metadataTransitionType: "fade", // "fade", "blur", "slide-up", "slide-down", "typewriter", "glow"
+    showFilename: true,
+    showDateTaken: true,
+    showCameraInfo: true,
+    showLocation: false, // GPS coordinates can be sensitive
+    metadataBackground: "dark", // "dark", "light", "blue", "green", "red", "purple", "none"
 
     // Photo settings
     randomOrder: true,
@@ -166,6 +181,20 @@ const init = async () => {
     counterPosition: ARGS.slideshow_counter_position || "bottom-left",
     counterSize: ARGS.slideshow_counter_size || "medium",
     counterOpacity: parseFloat(ARGS.slideshow_counter_opacity) || 0.8,
+
+    // Photo metadata settings
+    showMetadata: ARGS.slideshow_show_metadata !== "false",
+    metadataPosition: ARGS.slideshow_metadata_position || "bottom-center",
+    metadataSize: ARGS.slideshow_metadata_size || "small",
+    metadataOpacity: parseFloat(ARGS.slideshow_metadata_opacity) || 0.8,
+    metadataFontSize: ARGS.slideshow_metadata_font_size || "small",
+    metadataBackgroundOpacity: parseInt(ARGS.slideshow_metadata_background_opacity) || 70,
+    metadataTransitionType: ARGS.slideshow_metadata_transition_type || "fade",
+    showFilename: ARGS.slideshow_show_filename !== "false",
+    showDateTaken: ARGS.slideshow_show_date_taken !== "false",
+    showCameraInfo: ARGS.slideshow_show_camera_info !== "false",
+    showLocation: ARGS.slideshow_show_location === "true", // Default false for privacy
+    metadataBackground: ARGS.slideshow_metadata_background || "dark",
 
     // Photo settings
     randomOrder: ARGS.slideshow_random_order !== "false",
@@ -652,12 +681,32 @@ const loadLocalPhotos = async () => {
       .filter(file => extensions.some(ext => file.toLowerCase().endsWith(ext)))
       .slice(0, SLIDESHOW.config.maxCachedPhotos);
 
-    SLIDESHOW.photos = photoFiles.map((file, index) => ({
-      id: `local_${index}`,
-      path: path.join(SLIDESHOW.config.photosDir, file),
-      type: "local",
-      title: path.basename(file, path.extname(file)),
-    }));
+    // Create photo objects and extract metadata if enabled
+    const localPhotos = [];
+    for (let index = 0; index < photoFiles.length; index++) {
+      const file = photoFiles[index];
+      const filePath = path.join(SLIDESHOW.config.photosDir, file);
+
+      const photo = {
+        id: `local_${index}`,
+        path: filePath,
+        type: "local",
+        title: path.basename(file, path.extname(file)),
+      };
+
+      // Extract metadata if enabled
+      if (SLIDESHOW.config.showMetadata) {
+        try {
+          photo.metadata = await extractPhotoMetadata(filePath);
+        } catch (error) {
+          console.warn(`Failed to extract metadata for ${file}: ${error.message}`);
+        }
+      }
+
+      localPhotos.push(photo);
+    }
+
+    SLIDESHOW.photos = localPhotos;
 
     console.log(`Loaded ${SLIDESHOW.photos.length} local photos`);
   } catch (error) {
@@ -718,6 +767,122 @@ const loadDiskCacheIndex = async () => {
 
 const generateUrlHash = (url) => {
   return crypto.createHash('md5').update(url).digest('hex');
+};
+
+const extractPhotoMetadata = async (photoPath, photoBuffer = null) => {
+  try {
+    let metadata = {};
+    let exifData = null;
+
+    // Extract EXIF data from file path or buffer
+    if (photoBuffer) {
+      exifData = await exifr.parse(photoBuffer, {
+        pick: ['DateTimeOriginal', 'DateTime', 'CreateDate', 'Make', 'Model', 'LensModel',
+               'FNumber', 'ExposureTime', 'ISO', 'FocalLength', 'latitude', 'longitude',
+               'ImageWidth', 'ImageHeight', 'Orientation'],
+        skipTags: ['thumbnail', 'preview'] // Skip large embedded images for performance
+      });
+    } else if (photoPath && fs.existsSync(photoPath)) {
+      exifData = await exifr.parse(photoPath, {
+        pick: ['DateTimeOriginal', 'DateTime', 'CreateDate', 'Make', 'Model', 'LensModel',
+               'FNumber', 'ExposureTime', 'ISO', 'FocalLength', 'latitude', 'longitude',
+               'ImageWidth', 'ImageHeight', 'Orientation'],
+        skipTags: ['thumbnail', 'preview'] // Skip large embedded images for performance
+      });
+    }
+
+    // Extract filename
+    if (photoPath) {
+      metadata.filename = path.basename(photoPath, path.extname(photoPath));
+    }
+
+    // Extract date taken (try multiple date fields)
+    if (exifData) {
+      const dateTaken = exifData.DateTimeOriginal || exifData.DateTime || exifData.CreateDate;
+      if (dateTaken) {
+        metadata.dateTaken = new Date(dateTaken);
+        metadata.dateFormatted = metadata.dateTaken.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+
+      // Extract camera information
+      if (exifData.Make || exifData.Model) {
+        const make = exifData.Make || '';
+        const model = exifData.Model || '';
+        // Avoid duplication (e.g., "Canon Canon EOS R5" -> "Canon EOS R5")
+        if (model.toLowerCase().includes(make.toLowerCase())) {
+          metadata.camera = model;
+        } else {
+          metadata.camera = `${make} ${model}`.trim();
+        }
+      }
+
+      // Extract lens information
+      if (exifData.LensModel) {
+        metadata.lens = exifData.LensModel;
+      }
+
+      // Extract exposure settings
+      const exposureSettings = [];
+      if (exifData.FNumber) {
+        exposureSettings.push(`f/${exifData.FNumber}`);
+      }
+      if (exifData.ExposureTime) {
+        if (exifData.ExposureTime >= 1) {
+          exposureSettings.push(`${exifData.ExposureTime}s`);
+        } else {
+          exposureSettings.push(`1/${Math.round(1/exifData.ExposureTime)}s`);
+        }
+      }
+      if (exifData.ISO) {
+        exposureSettings.push(`ISO ${exifData.ISO}`);
+      }
+      if (exifData.FocalLength) {
+        exposureSettings.push(`${exifData.FocalLength}mm`);
+      }
+      if (exposureSettings.length > 0) {
+        metadata.exposure = exposureSettings.join(' • ');
+      }
+
+      // Extract GPS coordinates
+      if (exifData.latitude && exifData.longitude) {
+        metadata.location = {
+          latitude: exifData.latitude,
+          longitude: exifData.longitude,
+          formatted: `${exifData.latitude.toFixed(6)}, ${exifData.longitude.toFixed(6)}`
+        };
+      }
+
+      // Extract image dimensions
+      if (exifData.ImageWidth && exifData.ImageHeight) {
+        metadata.dimensions = `${exifData.ImageWidth} × ${exifData.ImageHeight}`;
+      }
+    }
+
+    // Get file size if we have a path
+    if (photoPath && fs.existsSync(photoPath)) {
+      const stats = fs.statSync(photoPath);
+      const fileSizeKB = Math.round(stats.size / 1024);
+      if (fileSizeKB < 1024) {
+        metadata.fileSize = `${fileSizeKB} KB`;
+      } else {
+        metadata.fileSize = `${(fileSizeKB / 1024).toFixed(1)} MB`;
+      }
+    }
+
+    return metadata;
+
+  } catch (error) {
+    console.warn(`Failed to extract metadata: ${error.message}`);
+    return {
+      filename: photoPath ? path.basename(photoPath, path.extname(photoPath)) : 'Unknown'
+    };
+  }
 };
 
 const cleanupDiskCache = async () => {
@@ -973,6 +1138,15 @@ const getNextGooglePhoto = async () => {
       cached: true,
       cachePath: diskEntry.filePath
     };
+
+    // Extract metadata from cached file
+    if (SLIDESHOW.config.showMetadata) {
+      try {
+        photo.metadata = await extractPhotoMetadata(diskEntry.filePath);
+      } catch (error) {
+        console.warn(`Failed to extract metadata for cached photo: ${error.message}`);
+      }
+    }
 
     // Add to memory cache for faster access next time
     addToMemoryCache(photoId, photo);
