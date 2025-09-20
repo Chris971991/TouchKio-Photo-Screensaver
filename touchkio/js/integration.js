@@ -972,64 +972,72 @@ const initSlideshow = () => {
   // Always initialize slideshow MQTT controls when MQTT is enabled
   // Users can enable/disable slideshow through Home Assistant
 
-  // Master slideshow controls
+  // === BASIC SLIDESHOW SETTINGS ===
   initSlideshowEnabled();
   initSlideshowActive();
-
-  // Photo source settings
-  initSlideshowPhotosDir();
-  initSlideshowGoogleAlbums();
-
-  // Timing settings
   initSlideshowInterval();
   initSlideshowIdleTimeout();
-
-  // Photo settings
-  initSlideshowRandomOrder();
   initSlideshowPhotoFit();
-  // Orientation mode removed - smart contain handles all orientations automatically
-
-  // Transition settings
+  initSlideshowRandomOrder();
   initSlideshowTransitionType();
   initSlideshowTransitionDuration();
 
-  // Clock settings
+  // === PHOTO SOURCES ===
+  initSlideshowPhotosDir();
+  initSlideshowGoogleAlbums();
+  initSlideshowPreferredSource();
+
+  // === CLOCK ELEMENT ===
   initSlideshowShowClock();
   initSlideshowClockPosition();
+  initSlideshowClockCustomFontSize();
+  initSlideshowClockColor();
   initSlideshowClockBackground();
   initSlideshowClockOpacity();
-  initSlideshowClockColor();
-  initSlideshowClockCustomFontSize();
   initSlideshowClockBackgroundOpacity();
 
-  // Date settings (independent from clock)
+  // === DATE ELEMENT ===
   initSlideshowShowDate();
   initSlideshowDatePosition();
+  initSlideshowDateCustomFontSize();
+  initSlideshowDateColor();
   initSlideshowDateBackground();
   initSlideshowDateOpacity();
-  initSlideshowDateColor();
-  initSlideshowDateCustomFontSize();
   initSlideshowDateBackgroundOpacity();
 
-  // Source indicator settings
+  // === SOURCE INDICATOR ===
   initSlideshowShowSource();
   initSlideshowSourcePosition();
-  initSlideshowSourceOpacity();
-  initSlideshowSourceBackground();
-  initSlideshowSourceColor();
   initSlideshowSourceCustomFontSize();
+  initSlideshowSourceColor();
+  initSlideshowSourceBackground();
+  initSlideshowSourceOpacity();
   initSlideshowSourceBackgroundOpacity();
 
-  // Counter settings
+  // === PHOTO COUNTER ===
   initSlideshowShowCounter();
   initSlideshowCounterPosition();
-  initSlideshowCounterOpacity();
-  initSlideshowCounterBackground();
-  initSlideshowCounterColor();
   initSlideshowCounterCustomFontSize();
+  initSlideshowCounterColor();
+  initSlideshowCounterBackground();
+  initSlideshowCounterOpacity();
   initSlideshowCounterBackgroundOpacity();
 
-  // Performance settings
+  // === METADATA OVERLAY ===
+  initSlideshowShowMetadata();
+  initSlideshowMetadataPosition();
+  initSlideshowMetadataCustomFontSize();
+  initSlideshowMetadataColor();
+  initSlideshowMetadataBackground();
+  initSlideshowMetadataOpacity();
+  initSlideshowMetadataBackgroundOpacity();
+  initSlideshowMetadataTransitionType();
+  initSlideshowShowFilename();
+  initSlideshowShowDateTaken();
+  initSlideshowShowCameraInfo();
+  initSlideshowShowLocation();
+
+  // === PERFORMANCE SETTINGS ===
   initSlideshowPreloadBufferSize();
   initSlideshowDiskCacheEnabled();
   initSlideshowDiskCacheMaxSize();
@@ -1037,21 +1045,6 @@ const initSlideshow = () => {
   initSlideshowConcurrentDownloads();
   initSlideshowFallbackEnabled();
   initSlideshowFallbackTimeout();
-  initSlideshowPreferredSource();
-
-  // Metadata settings
-  initSlideshowShowMetadata();
-  initSlideshowMetadataPosition();
-  initSlideshowMetadataOpacity();
-  initSlideshowShowFilename();
-  initSlideshowShowDateTaken();
-  initSlideshowShowCameraInfo();
-  initSlideshowShowLocation();
-  initSlideshowMetadataBackground();
-  initSlideshowMetadataColor();
-  initSlideshowMetadataCustomFontSize();
-  initSlideshowMetadataBackgroundOpacity();
-  initSlideshowMetadataTransitionType();
 
   // Publish initial states
   updateSlideshow();
