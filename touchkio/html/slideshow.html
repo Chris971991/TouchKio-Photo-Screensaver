@@ -895,10 +895,14 @@
                 overlay.style.transform = 'none';
 
                 if (hasCustomX) {
-                    overlay.style.left = config.metadataCustomX;
+                    // Ensure the value has units - if it's just a number, add 'px'
+                    const xValue = /^\d+$/.test(config.metadataCustomX.trim()) ? config.metadataCustomX + 'px' : config.metadataCustomX;
+                    overlay.style.left = xValue;
                 }
                 if (hasCustomY) {
-                    overlay.style.top = config.metadataCustomY;
+                    // Ensure the value has units - if it's just a number, add 'px'
+                    const yValue = /^\d+$/.test(config.metadataCustomY.trim()) ? config.metadataCustomY + 'px' : config.metadataCustomY;
+                    overlay.style.top = yValue;
                 }
             } else {
                 // Use preset position with CSS classes
@@ -1311,10 +1315,14 @@
                     sourceIndicator.style.transform = 'none';
 
                     if (hasCustomX) {
-                        sourceIndicator.style.left = config.sourceCustomX;
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const xValue = /^\d+$/.test(config.sourceCustomX.trim()) ? config.sourceCustomX + 'px' : config.sourceCustomX;
+                        sourceIndicator.style.left = xValue;
                     }
                     if (hasCustomY) {
-                        sourceIndicator.style.top = config.sourceCustomY;
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const yValue = /^\d+$/.test(config.sourceCustomY.trim()) ? config.sourceCustomY + 'px' : config.sourceCustomY;
+                        sourceIndicator.style.top = yValue;
                     }
                 } else {
                     // Use preset position - clear all custom positioning first
@@ -1435,12 +1443,16 @@
                     clock.style.transform = 'none';
 
                     if (hasCustomX) {
-                        clock.style.left = config.clockCustomX;
-                        console.log('Applied custom clock X:', config.clockCustomX);
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const xValue = /^\d+$/.test(config.clockCustomX.trim()) ? config.clockCustomX + 'px' : config.clockCustomX;
+                        clock.style.left = xValue;
+                        console.log('Applied custom clock X:', xValue, '(original:', config.clockCustomX, ')');
                     }
                     if (hasCustomY) {
-                        clock.style.top = config.clockCustomY;
-                        console.log('Applied custom clock Y:', config.clockCustomY);
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const yValue = /^\d+$/.test(config.clockCustomY.trim()) ? config.clockCustomY + 'px' : config.clockCustomY;
+                        clock.style.top = yValue;
+                        console.log('Applied custom clock Y:', yValue, '(original:', config.clockCustomY, ')');
                     }
                 } else {
                     // Use preset position - clear all custom positioning first
@@ -1560,10 +1572,14 @@
                     date.style.transform = 'none';
 
                     if (hasCustomX) {
-                        date.style.left = config.dateCustomX;
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const xValue = /^\d+$/.test(config.dateCustomX.trim()) ? config.dateCustomX + 'px' : config.dateCustomX;
+                        date.style.left = xValue;
                     }
                     if (hasCustomY) {
-                        date.style.top = config.dateCustomY;
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const yValue = /^\d+$/.test(config.dateCustomY.trim()) ? config.dateCustomY + 'px' : config.dateCustomY;
+                        date.style.top = yValue;
                     }
                 } else {
                     // Use preset position - clear all custom positioning first
@@ -1682,10 +1698,14 @@
                     photoCounter.style.transform = 'none';
 
                     if (hasCustomX) {
-                        photoCounter.style.left = config.counterCustomX;
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const xValue = /^\d+$/.test(config.counterCustomX.trim()) ? config.counterCustomX + 'px' : config.counterCustomX;
+                        photoCounter.style.left = xValue;
                     }
                     if (hasCustomY) {
-                        photoCounter.style.top = config.counterCustomY;
+                        // Ensure the value has units - if it's just a number, add 'px'
+                        const yValue = /^\d+$/.test(config.counterCustomY.trim()) ? config.counterCustomY + 'px' : config.counterCustomY;
+                        photoCounter.style.top = yValue;
                     }
                 } else {
                     // Use preset position - clear all custom positioning first

@@ -77,6 +77,46 @@ const init = async () => {
       initPageUrl();
       initSlideshow();
 
+      // Initialize slideshow runtime config with saved ARGS values for custom positioning
+      if (ARGS.slideshow_enabled === "true") {
+        console.log("Loading saved custom positioning values into slideshow runtime config...");
+        const savedCustomConfig = {};
+
+        // Load all saved custom coordinate values from ARGS
+        if (ARGS.slideshow_clock_custom_x) savedCustomConfig.clockCustomX = ARGS.slideshow_clock_custom_x;
+        if (ARGS.slideshow_clock_custom_y) savedCustomConfig.clockCustomY = ARGS.slideshow_clock_custom_y;
+        if (ARGS.slideshow_date_custom_x) savedCustomConfig.dateCustomX = ARGS.slideshow_date_custom_x;
+        if (ARGS.slideshow_date_custom_y) savedCustomConfig.dateCustomY = ARGS.slideshow_date_custom_y;
+        if (ARGS.slideshow_source_custom_x) savedCustomConfig.sourceCustomX = ARGS.slideshow_source_custom_x;
+        if (ARGS.slideshow_source_custom_y) savedCustomConfig.sourceCustomY = ARGS.slideshow_source_custom_y;
+        if (ARGS.slideshow_counter_custom_x) savedCustomConfig.counterCustomX = ARGS.slideshow_counter_custom_x;
+        if (ARGS.slideshow_counter_custom_y) savedCustomConfig.counterCustomY = ARGS.slideshow_counter_custom_y;
+        if (ARGS.slideshow_metadata_custom_x) savedCustomConfig.metadataCustomX = ARGS.slideshow_metadata_custom_x;
+        if (ARGS.slideshow_metadata_custom_y) savedCustomConfig.metadataCustomY = ARGS.slideshow_metadata_custom_y;
+
+        // Also load other saved styling values
+        if (ARGS.slideshow_clock_border_radius) savedCustomConfig.clockBorderRadius = ARGS.slideshow_clock_border_radius;
+        if (ARGS.slideshow_clock_padding) savedCustomConfig.clockPadding = ARGS.slideshow_clock_padding;
+        if (ARGS.slideshow_clock_shadow) savedCustomConfig.clockShadow = ARGS.slideshow_clock_shadow;
+        if (ARGS.slideshow_date_border_radius) savedCustomConfig.dateBorderRadius = ARGS.slideshow_date_border_radius;
+        if (ARGS.slideshow_date_padding) savedCustomConfig.datePadding = ARGS.slideshow_date_padding;
+        if (ARGS.slideshow_date_shadow) savedCustomConfig.dateShadow = ARGS.slideshow_date_shadow;
+        if (ARGS.slideshow_source_border_radius) savedCustomConfig.sourceBorderRadius = ARGS.slideshow_source_border_radius;
+        if (ARGS.slideshow_source_padding) savedCustomConfig.sourcePadding = ARGS.slideshow_source_padding;
+        if (ARGS.slideshow_source_shadow) savedCustomConfig.sourceShadow = ARGS.slideshow_source_shadow;
+        if (ARGS.slideshow_counter_border_radius) savedCustomConfig.counterBorderRadius = ARGS.slideshow_counter_border_radius;
+        if (ARGS.slideshow_counter_padding) savedCustomConfig.counterPadding = ARGS.slideshow_counter_padding;
+        if (ARGS.slideshow_counter_shadow) savedCustomConfig.counterShadow = ARGS.slideshow_counter_shadow;
+        if (ARGS.slideshow_metadata_border_radius) savedCustomConfig.metadataBorderRadius = ARGS.slideshow_metadata_border_radius;
+        if (ARGS.slideshow_metadata_padding) savedCustomConfig.metadataPadding = ARGS.slideshow_metadata_padding;
+        if (ARGS.slideshow_metadata_shadow) savedCustomConfig.metadataShadow = ARGS.slideshow_metadata_shadow;
+
+        if (Object.keys(savedCustomConfig).length > 0) {
+          console.log("Applying saved custom config to slideshow:", savedCustomConfig);
+          slideshow.updateConfig(savedCustomConfig);
+        }
+      }
+
       // Init client sensors
       initModel();
       initSerialNumber();
@@ -2547,8 +2587,12 @@ const updateSlideshow = async () => {
 
   // Phase 3: Custom X/Y Coordinate Positioning
   // Clock custom positioning
-  publishState("slideshow_clock_custom_x", status.config.clockCustomX || ARGS.slideshow_clock_custom_x || "");
-  publishState("slideshow_clock_custom_y", status.config.clockCustomY || ARGS.slideshow_clock_custom_y || "");
+  const clockCustomX = status.config.clockCustomX || ARGS.slideshow_clock_custom_x || "";
+  const clockCustomY = status.config.clockCustomY || ARGS.slideshow_clock_custom_y || "";
+  console.log(`Publishing clock custom coordinates: X="${clockCustomX}" (runtime: "${status.config.clockCustomX}", args: "${ARGS.slideshow_clock_custom_x}")`);
+  console.log(`Publishing clock custom coordinates: Y="${clockCustomY}" (runtime: "${status.config.clockCustomY}", args: "${ARGS.slideshow_clock_custom_y}")`);
+  publishState("slideshow_clock_custom_x", clockCustomX);
+  publishState("slideshow_clock_custom_y", clockCustomY);
 
   // Date custom positioning
   publishState("slideshow_date_custom_x", status.config.dateCustomX || ARGS.slideshow_date_custom_x || "");
