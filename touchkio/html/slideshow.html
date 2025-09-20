@@ -12,7 +12,7 @@
         }
 
         body {
-            background: #000;
+            background: transparent;
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
@@ -35,6 +35,215 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            transform-origin: center center;
+        }
+
+        /* Slideshow Entrance/Exit Animation Classes */
+        .slideshow-entrance-animation {
+            animation-fill-mode: both;
+        }
+
+        .slideshow-exit-animation {
+            animation-fill-mode: both;
+        }
+
+        /* Default Animation Theme */
+        .slideshow-entrance-default {
+            animation-name: fadeIn;
+        }
+
+        .slideshow-exit-default {
+            animation-name: fadeOut;
+        }
+
+        /* Elegant Animation Theme */
+        .slideshow-entrance-elegant {
+            animation-name: elegantIn;
+        }
+
+        /* Disable conflicting transitions during elegant entrance */
+        .slideshow-entrance-elegant .photo,
+        .slideshow-entrance-elegant .photo-background {
+            transition: none !important;
+        }
+
+        .slideshow-exit-elegant {
+            animation-name: elegantOut;
+        }
+
+        /* Disable conflicting transitions during elegant exit */
+        .slideshow-exit-elegant .photo,
+        .slideshow-exit-elegant .photo-background {
+            transition: none !important;
+        }
+
+        /* Dynamic Animation Theme */
+        .slideshow-entrance-dynamic {
+            animation-name: dynamicIn;
+        }
+
+        .slideshow-exit-dynamic {
+            animation-name: dynamicOut;
+        }
+
+        /* Minimal Animation Theme */
+        .slideshow-entrance-minimal {
+            animation-name: minimalIn;
+        }
+
+        .slideshow-exit-minimal {
+            animation-name: minimalOut;
+        }
+
+        /* Playful Animation Theme */
+        .slideshow-entrance-playful {
+            animation-name: playfulIn;
+        }
+
+        .slideshow-exit-playful {
+            animation-name: playfulOut;
+        }
+
+        /* Animation Keyframes */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Elegant animations - Simple clean fade */
+        @keyframes elegantIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes elegantOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* Element zoom animations - These happen on the actual content */
+        @keyframes elegantElementIn {
+            from {
+                transform: scale(1.5);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes elegantElementOut {
+            from {
+                transform: scale(1);
+            }
+            to {
+                transform: scale(1.5);
+            }
+        }
+
+        /* Special animations for photos that already have transforms */
+        @keyframes elegantPhotoIn {
+            from {
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @keyframes elegantPhotoOut {
+            from {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+
+        @keyframes dynamicIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) rotate(-5deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        @keyframes dynamicOut {
+            from {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            to {
+                opacity: 0;
+                transform: scale(1.2) rotate(5deg);
+            }
+        }
+
+        @keyframes minimalIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes minimalOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(10px);
+            }
+        }
+
+        @keyframes playfulIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5) rotate(180deg);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1) rotate(90deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        @keyframes playfulOut {
+            from {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(0.9) rotate(-90deg);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.5) rotate(-180deg);
+            }
         }
 
         .photo-container {
@@ -44,6 +253,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transform-style: preserve-3d;
         }
 
         .photo-background {
@@ -610,6 +820,235 @@
             pointer-events: none;
         }
 
+        /* ================================
+           PHASE 4A: ANIMATION FRAMEWORK
+           ================================ */
+
+        /* Animation Duration Utilities */
+        :root {
+            --animation-speed-multiplier: 1.0;
+            --animation-duration-fast: calc(0.3s * var(--animation-speed-multiplier));
+            --animation-duration-normal: calc(0.6s * var(--animation-speed-multiplier));
+            --animation-duration-slow: calc(1.2s * var(--animation-speed-multiplier));
+            --animation-duration-position: calc(0.8s * var(--animation-speed-multiplier));
+            --animation-duration-content: calc(0.4s * var(--animation-speed-multiplier));
+        }
+
+        /* Animation Easing Presets */
+        .animate-ease-smooth { animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-ease-bounce { animation-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        .animate-ease-elastic { animation-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-ease-back { animation-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+
+        /* Base Animation Classes */
+        .animate-enabled {
+            transition-property: transform, opacity, left, top, right, bottom;
+            transition-duration: var(--animation-duration-normal);
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-position {
+            transition-property: left, top, right, bottom, transform;
+            transition-duration: var(--animation-duration-position);
+            transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-content {
+            transition-property: opacity;
+            transition-duration: var(--animation-duration-content);
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Entrance Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInFromLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInFromRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInFromTop {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInFromBottom {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) translateY(-30px);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05) translateY(0);
+            }
+            70% {
+                transform: scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Exit Animations */
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        @keyframes slideOutToLeft {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+        }
+
+        @keyframes slideOutToRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        @keyframes scaleOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+
+        /* Animation State Classes */
+        .animate-fade-in {
+            animation: fadeIn var(--animation-duration-normal) ease-out;
+        }
+
+        .animate-slide-in-left {
+            animation: slideInFromLeft var(--animation-duration-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-slide-in-right {
+            animation: slideInFromRight var(--animation-duration-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-slide-in-top {
+            animation: slideInFromTop var(--animation-duration-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-slide-in-bottom {
+            animation: slideInFromBottom var(--animation-duration-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-scale-in {
+            animation: scaleIn var(--animation-duration-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-bounce-in {
+            animation: bounceIn var(--animation-duration-slow) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .animate-fade-out {
+            animation: fadeOut var(--animation-duration-normal) ease-in;
+        }
+
+        .animate-slide-out-left {
+            animation: slideOutToLeft var(--animation-duration-normal) cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+
+        .animate-slide-out-right {
+            animation: slideOutToRight var(--animation-duration-normal) cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+
+        .animate-scale-out {
+            animation: scaleOut var(--animation-duration-normal) cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+
+        /* Additional animation keyframes for partial fade */
+        @keyframes fadeOutPartial {
+            from { opacity: 1; }
+            to { opacity: 0.3; }
+        }
+
+        /* Additional animation classes for JavaScript controller */
+        .animate-fade-out-partial {
+            animation: fadeOutPartial var(--animation-duration-fast) ease-in forwards;
+        }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        /* Animation Disabled State */
+        .animations-disabled * {
+            animation: none !important;
+            transition: none !important;
+        }
+
         @media (max-width: 768px) {
             .clock {
                 font-size: 2rem;
@@ -707,6 +1146,207 @@
             noPhotos: document.getElementById('noPhotos')
         };
 
+        // TouchKio Animation Controller - Phase 4A: Animation Foundation
+        class TouchKioAnimator {
+            constructor() {
+                this.animationQueue = [];
+                this.currentAnimations = new Map();
+                this.globalSpeed = 1.0;
+                this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            }
+
+            // Set global animation speed multiplier
+            setGlobalSpeed(speed) {
+                this.globalSpeed = Math.max(0.1, Math.min(5.0, speed));
+                document.documentElement.style.setProperty('--animation-speed-multiplier', this.globalSpeed);
+            }
+
+            // Animate element with specified animation type
+            animate(element, animationType, options = {}) {
+                if (!element || this.reducedMotion) return Promise.resolve();
+
+                const {
+                    duration = 'normal',
+                    delay = 0,
+                    easing = 'ease-out',
+                    direction = 'normal',
+                    fillMode = 'both',
+                    onComplete = null
+                } = options;
+
+                // Cancel any existing animation on this element
+                this.cancelAnimation(element);
+
+                return new Promise((resolve) => {
+                    const animationClass = `animate-${animationType}`;
+
+                    // Apply animation class
+                    element.classList.add(animationClass);
+
+                    // Set custom animation properties if needed
+                    if (duration !== 'normal') {
+                        element.style.animationDuration = this.getDurationValue(duration);
+                    }
+                    if (delay > 0) {
+                        element.style.animationDelay = `${delay}ms`;
+                    }
+                    if (easing !== 'ease-out') {
+                        element.style.animationTimingFunction = easing;
+                    }
+                    if (direction !== 'normal') {
+                        element.style.animationDirection = direction;
+                    }
+                    if (fillMode !== 'both') {
+                        element.style.animationFillMode = fillMode;
+                    }
+
+                    // Track this animation
+                    const animationData = {
+                        element,
+                        class: animationClass,
+                        resolve,
+                        onComplete
+                    };
+                    this.currentAnimations.set(element, animationData);
+
+                    // Listen for animation end
+                    const handleAnimationEnd = (event) => {
+                        if (event.target === element) {
+                            element.removeEventListener('animationend', handleAnimationEnd);
+                            this.cleanupAnimation(element);
+                            if (onComplete) onComplete();
+                            resolve();
+                        }
+                    };
+
+                    element.addEventListener('animationend', handleAnimationEnd);
+
+                    // Fallback timeout in case animationend doesn't fire
+                    setTimeout(() => {
+                        if (this.currentAnimations.has(element)) {
+                            element.removeEventListener('animationend', handleAnimationEnd);
+                            this.cleanupAnimation(element);
+                            if (onComplete) onComplete();
+                            resolve();
+                        }
+                    }, this.getDurationMs(duration) + delay + 100);
+                });
+            }
+
+            // Cancel animation on element
+            cancelAnimation(element) {
+                if (this.currentAnimations.has(element)) {
+                    const animationData = this.currentAnimations.get(element);
+                    element.classList.remove(animationData.class);
+                    this.cleanupAnimation(element);
+                }
+            }
+
+            // Clean up animation styles and tracking
+            cleanupAnimation(element) {
+                if (this.currentAnimations.has(element)) {
+                    const animationData = this.currentAnimations.get(element);
+                    element.classList.remove(animationData.class);
+
+                    // Reset custom animation properties
+                    element.style.animationDuration = '';
+                    element.style.animationDelay = '';
+                    element.style.animationTimingFunction = '';
+                    element.style.animationDirection = '';
+                    element.style.animationFillMode = '';
+
+                    this.currentAnimations.delete(element);
+                }
+            }
+
+            // Get duration value for CSS
+            getDurationValue(duration) {
+                const speeds = {
+                    'fast': 'var(--animation-duration-fast)',
+                    'normal': 'var(--animation-duration-normal)',
+                    'slow': 'var(--animation-duration-slow)',
+                    'position': 'var(--animation-duration-position)',
+                    'content': 'var(--animation-duration-content)'
+                };
+                return speeds[duration] || `${duration}ms`;
+            }
+
+            // Get duration in milliseconds for timeouts
+            getDurationMs(duration) {
+                const baseSpeeds = {
+                    'fast': 300,
+                    'normal': 600,
+                    'slow': 1200,
+                    'position': 800,
+                    'content': 400
+                };
+                const baseMs = baseSpeeds[duration] || parseInt(duration) || 600;
+                return Math.round(baseMs / this.globalSpeed);
+            }
+
+            // Batch animate multiple elements
+            async animateSequence(animations, options = {}) {
+                const { parallel = false, stagger = 0 } = options;
+
+                if (parallel) {
+                    // Run all animations in parallel
+                    const promises = animations.map((anim, index) => {
+                        const delay = (anim.delay || 0) + (stagger * index);
+                        return this.animate(anim.element, anim.type, { ...anim.options, delay });
+                    });
+                    return Promise.all(promises);
+                } else {
+                    // Run animations sequentially
+                    for (let i = 0; i < animations.length; i++) {
+                        const anim = animations[i];
+                        if (stagger > 0 && i > 0) {
+                            await new Promise(resolve => setTimeout(resolve, stagger));
+                        }
+                        await this.animate(anim.element, anim.type, anim.options);
+                    }
+                }
+            }
+
+            // Cancel all animations
+            cancelAllAnimations() {
+                for (const element of this.currentAnimations.keys()) {
+                    this.cancelAnimation(element);
+                }
+            }
+
+            // Entrance animations for slideshow elements
+            async animateElementEntrance(element, type = 'fadeIn', delay = 0) {
+                return this.animate(element, type, { delay, duration: 'content' });
+            }
+
+            // Exit animations for slideshow elements
+            async animateElementExit(element, type = 'fadeOut', delay = 0) {
+                return this.animate(element, type, { delay, duration: 'content' });
+            }
+
+            // Position change animations
+            async animatePositionChange(element, newClasses = [], delay = 0) {
+                // First fade out slightly
+                await this.animate(element, 'fade-out-partial', {
+                    duration: 'fast',
+                    delay
+                });
+
+                // Apply new position classes
+                if (newClasses.length > 0) {
+                    newClasses.forEach(cls => element.classList.add(cls));
+                }
+
+                // Fade back in
+                return this.animate(element, 'fadeIn', {
+                    duration: 'position'
+                });
+            }
+        }
+
+        // Initialize animation controller
+        const animator = new TouchKioAnimator();
+
         function initializeClock() {
             if (clockInterval) {
                 clearInterval(clockInterval);
@@ -751,6 +1391,666 @@
         function updateMetadataDisplay(photo) {
             // Use smooth content transition for photo changes
             transitionMetadataContent(photo);
+        }
+
+        // Phase 4B: Animated Element Updates
+        async function updateSourceIndicatorAnimated(photo) {
+            const sourceIndicator = document.querySelector('.source-indicator');
+            if (!sourceIndicator || sourceIndicator.style.display === 'none') return;
+
+            // Animate content change if needed
+            const currentText = elements.sourceText.textContent;
+            const newText = photo.type === 'google' ? 'Google Photos' : 'Local Photos';
+            const currentIcon = elements.sourceIcon.className;
+            const newIcon = photo.type === 'google' ? 'source-icon google' : 'source-icon local';
+
+            if (currentText !== newText || currentIcon !== newIcon) {
+                // Exit animation
+                await animator.animateElementExit(sourceIndicator, 'fadeOut', 0);
+
+                // Update content
+                updateSourceIndicator(photo);
+
+                // Entrance animation
+                await animator.animateElementEntrance(sourceIndicator, 'slideInFromLeft', 50);
+            }
+        }
+
+        async function updatePhotoCounterAnimated(current, total) {
+            const photoCounter = document.querySelector('.photo-counter');
+            if (!photoCounter || photoCounter.style.display === 'none') return;
+
+            const currentText = elements.photoCounter.textContent;
+            const newText = `${current + 1} / ${total}`;
+
+            if (currentText !== newText) {
+                // Animate counter change with number flip effect
+                await animator.animateElementExit(photoCounter, 'scaleOut', 0);
+
+                // Update content
+                updatePhotoCounter(current, total);
+
+                // Entrance animation
+                await animator.animateElementEntrance(photoCounter, 'scaleIn', 100);
+            }
+        }
+
+        async function updateMetadataDisplayAnimated(photo) {
+            // Use existing smooth content transition but with enhanced animations
+            transitionMetadataContent(photo);
+        }
+
+        // Store previous config state for position change detection
+        let previousClockConfig = null;
+
+        // Enhanced position change animations for Phase 3 integration
+        async function animateClockPositionChange() {
+            const clock = document.querySelector('.clock');
+            if (clock && clock.style.display !== 'none') {
+                // Check if config actually changed for position-related settings
+                const currentConfig = {
+                    position: config.clockPosition || 'bottom-right',
+                    customX: config.clockCustomX,
+                    customY: config.clockCustomY
+                };
+
+                // Initialize previousClockConfig if this is the first call
+                const isFirstInitialization = !previousClockConfig;
+                if (isFirstInitialization) {
+                    previousClockConfig = { ...currentConfig };
+                    console.log('Initialized clock config (applying without animation):', previousClockConfig);
+                }
+
+                const hasChanged = previousClockConfig.position !== currentConfig.position ||
+                    previousClockConfig.customX !== currentConfig.customX ||
+                    previousClockConfig.customY !== currentConfig.customY;
+
+                if (hasChanged || isFirstInitialization) {
+                    console.log('Clock position config changed:', { previous: previousClockConfig, current: currentConfig });
+
+                    if (isFirstInitialization) {
+                        // Apply position immediately without animation on startup
+                        const newPosition = calculateClockPosition();
+                        Object.assign(clock.style, newPosition);
+                        console.log('Applied initial clock position without animation');
+                    } else {
+                        // Store current opacity and create smooth transition
+                        const currentOpacity = window.getComputedStyle(clock).opacity;
+
+                        // Manual opacity transition to 30%
+                        clock.style.transition = 'opacity 0.3s ease-in';
+                        clock.style.opacity = '0.3';
+
+                        // Wait for fade out
+                        await new Promise(resolve => setTimeout(resolve, 300));
+
+                        // Calculate and apply new position during fade
+                        const newPosition = calculateClockPosition();
+                        Object.assign(clock.style, newPosition);
+
+                        // Fade back to original opacity
+                        clock.style.opacity = currentOpacity;
+
+                        // Wait for fade in
+                        await new Promise(resolve => setTimeout(resolve, 300));
+
+                        // Clear transition
+                        clock.style.transition = '';
+                    }
+
+                    // Update previous config
+                    previousClockConfig = { ...currentConfig };
+                } else {
+                    console.log('Clock position config unchanged, skipping animation');
+                }
+            }
+        }
+
+        async function animateDatePositionChange() {
+            const date = document.querySelector('.date');
+            if (date && date.style.display !== 'none') {
+                const currentStyle = {
+                    top: date.style.top,
+                    right: date.style.right,
+                    bottom: date.style.bottom,
+                    left: date.style.left,
+                    transform: date.style.transform
+                };
+
+                const newPosition = calculateDatePosition();
+                const hasChanged = (
+                    currentStyle.top !== newPosition.top ||
+                    currentStyle.right !== newPosition.right ||
+                    currentStyle.bottom !== newPosition.bottom ||
+                    currentStyle.left !== newPosition.left ||
+                    currentStyle.transform !== newPosition.transform
+                );
+
+                if (hasChanged) {
+                    await animator.animate(date, 'fade-out-partial', { duration: 'fast' });
+                    Object.assign(date.style, newPosition);
+                    await animator.animate(date, 'fadeIn', { duration: 'position' });
+                }
+            }
+        }
+
+        async function animateSourcePositionChange() {
+            const sourceIndicator = document.querySelector('.source-indicator');
+            if (sourceIndicator && sourceIndicator.style.display !== 'none') {
+                const currentStyle = {
+                    top: sourceIndicator.style.top,
+                    right: sourceIndicator.style.right,
+                    bottom: sourceIndicator.style.bottom,
+                    left: sourceIndicator.style.left,
+                    transform: sourceIndicator.style.transform
+                };
+
+                const newPosition = calculateSourcePosition();
+                const hasChanged = (
+                    currentStyle.top !== newPosition.top ||
+                    currentStyle.right !== newPosition.right ||
+                    currentStyle.bottom !== newPosition.bottom ||
+                    currentStyle.left !== newPosition.left ||
+                    currentStyle.transform !== newPosition.transform
+                );
+
+                if (hasChanged) {
+                    await animator.animate(sourceIndicator, 'fade-out-partial', { duration: 'fast' });
+                    Object.assign(sourceIndicator.style, newPosition);
+                    await animator.animate(sourceIndicator, 'fadeIn', { duration: 'position' });
+                }
+            }
+        }
+
+        async function animateCounterPositionChange() {
+            const counter = document.querySelector('.photo-counter');
+            if (counter && counter.style.display !== 'none') {
+                const currentStyle = {
+                    top: counter.style.top,
+                    right: counter.style.right,
+                    bottom: counter.style.bottom,
+                    left: counter.style.left,
+                    transform: counter.style.transform
+                };
+
+                const newPosition = calculateCounterPosition();
+                const hasChanged = (
+                    currentStyle.top !== newPosition.top ||
+                    currentStyle.right !== newPosition.right ||
+                    currentStyle.bottom !== newPosition.bottom ||
+                    currentStyle.left !== newPosition.left ||
+                    currentStyle.transform !== newPosition.transform
+                );
+
+                if (hasChanged) {
+                    await animator.animate(counter, 'fade-out-partial', { duration: 'fast' });
+                    Object.assign(counter.style, newPosition);
+                    await animator.animate(counter, 'fadeIn', { duration: 'position' });
+                }
+            }
+        }
+
+        async function animateMetadataPositionChange() {
+            const metadata = document.querySelector('.metadata-overlay');
+            if (metadata && metadata.style.display !== 'none') {
+                const currentStyle = {
+                    top: metadata.style.top,
+                    right: metadata.style.right,
+                    bottom: metadata.style.bottom,
+                    left: metadata.style.left,
+                    transform: metadata.style.transform
+                };
+
+                const newPosition = calculateMetadataPosition();
+                const hasChanged = (
+                    currentStyle.top !== newPosition.top ||
+                    currentStyle.right !== newPosition.right ||
+                    currentStyle.bottom !== newPosition.bottom ||
+                    currentStyle.left !== newPosition.left ||
+                    currentStyle.transform !== newPosition.transform
+                );
+
+                if (hasChanged) {
+                    await animator.animate(metadata, 'fade-out-partial', { duration: 'fast' });
+                    Object.assign(metadata.style, newPosition);
+                    await animator.animate(metadata, 'fadeIn', { duration: 'position' });
+                }
+            }
+        }
+
+        // Position calculation functions - extract positioning logic for animations
+        function calculateClockPosition() {
+            const clockPos = config.clockPosition || 'bottom-right';
+            const position = {
+                position: 'absolute',
+                zIndex: '10',
+                top: 'auto',
+                right: 'auto',
+                bottom: 'auto',
+                left: 'auto',
+                transform: 'none'
+            };
+
+            // Check if custom coordinates are provided (handle empty strings, null, undefined)
+            const hasCustomX = config.clockCustomX &&
+                config.clockCustomX.toString().trim() !== '' &&
+                config.clockCustomX.toString().trim() !== 'null' &&
+                config.clockCustomX.toString().trim() !== 'undefined';
+            const hasCustomY = config.clockCustomY &&
+                config.clockCustomY.toString().trim() !== '' &&
+                config.clockCustomY.toString().trim() !== 'null' &&
+                config.clockCustomY.toString().trim() !== 'undefined';
+
+            if (hasCustomX || hasCustomY) {
+                // Mixed mode: use custom coordinates where provided, preset fallbacks where not
+                if (hasCustomX) {
+                    const xValue = /^\d+$/.test(config.clockCustomX.toString().trim()) ? config.clockCustomX + 'px' : config.clockCustomX;
+                    position.left = xValue;
+                } else {
+                    // Fall back to preset X positioning
+                    if (clockPos.includes('left')) {
+                        position.left = '20px';
+                    } else if (clockPos.includes('right')) {
+                        position.right = '20px';
+                    } else if (clockPos === 'center') {
+                        position.left = '50%';
+                    }
+                }
+
+                if (hasCustomY) {
+                    const yValue = /^\d+$/.test(config.clockCustomY.toString().trim()) ? config.clockCustomY + 'px' : config.clockCustomY;
+                    position.top = yValue;
+                } else {
+                    // Fall back to preset Y positioning
+                    if (clockPos.includes('top')) {
+                        position.top = '20px';
+                    } else if (clockPos.includes('bottom')) {
+                        position.bottom = '20px';
+                    } else if (clockPos === 'center') {
+                        position.top = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                    }
+                }
+
+                // Handle center transform when only one custom coordinate is set
+                if (clockPos === 'center' && hasCustomX && !hasCustomY) {
+                    position.transform = 'translateX(-50%)';
+                } else if (clockPos === 'center' && !hasCustomX && hasCustomY) {
+                    position.transform = 'translateY(-50%)';
+                }
+            } else {
+                // Use full preset positioning when no custom coordinates
+                switch(clockPos) {
+                    case 'top-left':
+                        position.top = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'top-right':
+                        position.top = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        position.bottom = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        position.bottom = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'center':
+                        position.top = '50%';
+                        position.left = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+            }
+
+            return position;
+        }
+
+        function calculateDatePosition() {
+            const datePos = config.datePosition || 'bottom-left';
+            const position = {
+                position: 'absolute',
+                zIndex: '10',
+                top: 'auto',
+                right: 'auto',
+                bottom: 'auto',
+                left: 'auto',
+                transform: 'none'
+            };
+
+            const hasCustomX = config.dateCustomX &&
+                config.dateCustomX.toString().trim() !== '' &&
+                config.dateCustomX.toString().trim() !== 'null' &&
+                config.dateCustomX.toString().trim() !== 'undefined';
+            const hasCustomY = config.dateCustomY &&
+                config.dateCustomY.toString().trim() !== '' &&
+                config.dateCustomY.toString().trim() !== 'null' &&
+                config.dateCustomY.toString().trim() !== 'undefined';
+
+            if (hasCustomX || hasCustomY) {
+                if (hasCustomX) {
+                    const xValue = /^\d+$/.test(config.dateCustomX.toString().trim()) ? config.dateCustomX + 'px' : config.dateCustomX;
+                    position.left = xValue;
+                } else {
+                    if (datePos.includes('left')) {
+                        position.left = '20px';
+                    } else if (datePos.includes('right')) {
+                        position.right = '20px';
+                    } else if (datePos === 'center') {
+                        position.left = '50%';
+                    }
+                }
+
+                if (hasCustomY) {
+                    const yValue = /^\d+$/.test(config.dateCustomY.toString().trim()) ? config.dateCustomY + 'px' : config.dateCustomY;
+                    position.top = yValue;
+                } else {
+                    if (datePos.includes('top')) {
+                        position.top = '20px';
+                    } else if (datePos.includes('bottom')) {
+                        position.bottom = '20px';
+                    } else if (datePos === 'center') {
+                        position.top = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                    }
+                }
+
+                if (datePos === 'center' && hasCustomX && !hasCustomY) {
+                    position.transform = 'translateX(-50%)';
+                } else if (datePos === 'center' && !hasCustomX && hasCustomY) {
+                    position.transform = 'translateY(-50%)';
+                }
+            } else {
+                switch(datePos) {
+                    case 'top-left':
+                        position.top = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'top-right':
+                        position.top = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        position.bottom = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        position.bottom = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'center':
+                        position.top = '50%';
+                        position.left = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+            }
+
+            return position;
+        }
+
+        function calculateSourcePosition() {
+            const sourcePos = config.sourcePosition || 'top-left';
+            const position = {
+                position: 'absolute',
+                zIndex: '10',
+                top: 'auto',
+                right: 'auto',
+                bottom: 'auto',
+                left: 'auto',
+                transform: 'none'
+            };
+
+            const hasCustomX = config.sourceCustomX &&
+                config.sourceCustomX.toString().trim() !== '' &&
+                config.sourceCustomX.toString().trim() !== 'null' &&
+                config.sourceCustomX.toString().trim() !== 'undefined';
+            const hasCustomY = config.sourceCustomY &&
+                config.sourceCustomY.toString().trim() !== '' &&
+                config.sourceCustomY.toString().trim() !== 'null' &&
+                config.sourceCustomY.toString().trim() !== 'undefined';
+
+            if (hasCustomX || hasCustomY) {
+                if (hasCustomX) {
+                    const xValue = /^\d+$/.test(config.sourceCustomX.toString().trim()) ? config.sourceCustomX + 'px' : config.sourceCustomX;
+                    position.left = xValue;
+                } else {
+                    if (sourcePos.includes('left')) {
+                        position.left = '20px';
+                    } else if (sourcePos.includes('right')) {
+                        position.right = '20px';
+                    } else if (sourcePos === 'center') {
+                        position.left = '50%';
+                    }
+                }
+
+                if (hasCustomY) {
+                    const yValue = /^\d+$/.test(config.sourceCustomY.toString().trim()) ? config.sourceCustomY + 'px' : config.sourceCustomY;
+                    position.top = yValue;
+                } else {
+                    if (sourcePos.includes('top')) {
+                        position.top = '20px';
+                    } else if (sourcePos.includes('bottom')) {
+                        position.bottom = '20px';
+                    } else if (sourcePos === 'center') {
+                        position.top = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                    }
+                }
+
+                if (sourcePos === 'center' && hasCustomX && !hasCustomY) {
+                    position.transform = 'translateX(-50%)';
+                } else if (sourcePos === 'center' && !hasCustomX && hasCustomY) {
+                    position.transform = 'translateY(-50%)';
+                }
+            } else {
+                switch(sourcePos) {
+                    case 'top-left':
+                        position.top = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'top-right':
+                        position.top = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        position.bottom = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        position.bottom = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'center':
+                        position.top = '50%';
+                        position.left = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+            }
+
+            return position;
+        }
+
+        function calculateCounterPosition() {
+            const counterPos = config.counterPosition || 'top-right';
+            const position = {
+                position: 'absolute',
+                zIndex: '10',
+                top: 'auto',
+                right: 'auto',
+                bottom: 'auto',
+                left: 'auto',
+                transform: 'none'
+            };
+
+            const hasCustomX = config.counterCustomX &&
+                config.counterCustomX.toString().trim() !== '' &&
+                config.counterCustomX.toString().trim() !== 'null' &&
+                config.counterCustomX.toString().trim() !== 'undefined';
+            const hasCustomY = config.counterCustomY &&
+                config.counterCustomY.toString().trim() !== '' &&
+                config.counterCustomY.toString().trim() !== 'null' &&
+                config.counterCustomY.toString().trim() !== 'undefined';
+
+            if (hasCustomX || hasCustomY) {
+                if (hasCustomX) {
+                    const xValue = /^\d+$/.test(config.counterCustomX.toString().trim()) ? config.counterCustomX + 'px' : config.counterCustomX;
+                    position.left = xValue;
+                } else {
+                    if (counterPos.includes('left')) {
+                        position.left = '20px';
+                    } else if (counterPos.includes('right')) {
+                        position.right = '20px';
+                    } else if (counterPos === 'center') {
+                        position.left = '50%';
+                    }
+                }
+
+                if (hasCustomY) {
+                    const yValue = /^\d+$/.test(config.counterCustomY.toString().trim()) ? config.counterCustomY + 'px' : config.counterCustomY;
+                    position.top = yValue;
+                } else {
+                    if (counterPos.includes('top')) {
+                        position.top = '20px';
+                    } else if (counterPos.includes('bottom')) {
+                        position.bottom = '20px';
+                    } else if (counterPos === 'center') {
+                        position.top = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                    }
+                }
+
+                if (counterPos === 'center' && hasCustomX && !hasCustomY) {
+                    position.transform = 'translateX(-50%)';
+                } else if (counterPos === 'center' && !hasCustomX && hasCustomY) {
+                    position.transform = 'translateY(-50%)';
+                }
+            } else {
+                switch(counterPos) {
+                    case 'top-left':
+                        position.top = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'top-right':
+                        position.top = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        position.bottom = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        position.bottom = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'center':
+                        position.top = '50%';
+                        position.left = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+            }
+
+            return position;
+        }
+
+        function calculateMetadataPosition() {
+            const metadataPos = config.metadataPosition || 'bottom-center';
+            const position = {
+                position: 'absolute',
+                zIndex: '10',
+                top: 'auto',
+                right: 'auto',
+                bottom: 'auto',
+                left: 'auto',
+                transform: 'none'
+            };
+
+            const hasCustomX = config.metadataCustomX &&
+                config.metadataCustomX.toString().trim() !== '' &&
+                config.metadataCustomX.toString().trim() !== 'null' &&
+                config.metadataCustomX.toString().trim() !== 'undefined';
+            const hasCustomY = config.metadataCustomY &&
+                config.metadataCustomY.toString().trim() !== '' &&
+                config.metadataCustomY.toString().trim() !== 'null' &&
+                config.metadataCustomY.toString().trim() !== 'undefined';
+
+            if (hasCustomX || hasCustomY) {
+                if (hasCustomX) {
+                    const xValue = /^\d+$/.test(config.metadataCustomX.toString().trim()) ? config.metadataCustomX + 'px' : config.metadataCustomX;
+                    position.left = xValue;
+                } else {
+                    if (metadataPos.includes('left')) {
+                        position.left = '20px';
+                    } else if (metadataPos.includes('right')) {
+                        position.right = '20px';
+                    } else if (metadataPos.includes('center')) {
+                        position.left = '50%';
+                        position.transform = 'translateX(-50%)';
+                    }
+                }
+
+                if (hasCustomY) {
+                    const yValue = /^\d+$/.test(config.metadataCustomY.toString().trim()) ? config.metadataCustomY + 'px' : config.metadataCustomY;
+                    position.top = yValue;
+                } else {
+                    if (metadataPos.includes('top')) {
+                        position.top = '20px';
+                    } else if (metadataPos.includes('bottom')) {
+                        position.bottom = '20px';
+                    } else if (metadataPos === 'center') {
+                        position.top = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                    }
+                }
+
+                if (metadataPos.includes('center') && hasCustomX && !hasCustomY) {
+                    position.transform = 'translateX(-50%)';
+                } else if (metadataPos === 'center' && !hasCustomX && hasCustomY) {
+                    position.transform = 'translateY(-50%)';
+                } else if (metadataPos === 'center' && hasCustomX && hasCustomY) {
+                    position.transform = 'none';
+                }
+            } else {
+                switch(metadataPos) {
+                    case 'top-left':
+                        position.top = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'top-center':
+                        position.top = '20px';
+                        position.left = '50%';
+                        position.transform = 'translateX(-50%)';
+                        break;
+                    case 'top-right':
+                        position.top = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        position.bottom = '20px';
+                        position.left = '20px';
+                        break;
+                    case 'bottom-center':
+                        position.bottom = '20px';
+                        position.left = '50%';
+                        position.transform = 'translateX(-50%)';
+                        break;
+                    case 'bottom-right':
+                        position.bottom = '20px';
+                        position.right = '20px';
+                        break;
+                    case 'center':
+                        position.top = '50%';
+                        position.left = '50%';
+                        position.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+            }
+
+            return position;
         }
 
         function showMetadataOverlay() {
@@ -882,8 +2182,14 @@
             overlay.className = 'metadata-overlay';
 
             // Check if custom coordinates are provided
-            const hasCustomX = config.metadataCustomX && config.metadataCustomX.toString().trim() !== '';
-            const hasCustomY = config.metadataCustomY && config.metadataCustomY.toString().trim() !== '';
+            const hasCustomX = config.metadataCustomX &&
+                config.metadataCustomX.toString().trim() !== '' &&
+                config.metadataCustomX.toString().trim() !== 'null' &&
+                config.metadataCustomX.toString().trim() !== 'undefined';
+            const hasCustomY = config.metadataCustomY &&
+                config.metadataCustomY.toString().trim() !== '' &&
+                config.metadataCustomY.toString().trim() !== 'null' &&
+                config.metadataCustomY.toString().trim() !== 'undefined';
 
             if (hasCustomX || hasCustomY) {
                 // Use custom positioning - don't add position class, apply directly
@@ -1030,9 +2336,10 @@
 
             hideError();
 
-            updateSourceIndicator(photo);
-            updatePhotoCounter(index, photos.length);
-            updateMetadataDisplay(photo);
+            // Animate element updates with entrance animations
+            updateSourceIndicatorAnimated(photo);
+            updatePhotoCounterAnimated(index, photos.length);
+            updateMetadataDisplayAnimated(photo);
 
             const photoUrl = getPhotoUrl(photo, index);
 
@@ -1050,12 +2357,17 @@
                 nextPhoto.src = photoUrl;
                 nextBg.src = photoUrl;
 
-                // Start transition: fade in new photo and background
+                // Start transition: crossfade properly to avoid transparency gap
                 setTimeout(() => {
+                    // First, fade in the new photo
                     nextPhoto.classList.add('visible');
                     nextBg.classList.add('visible');
-                    currentPhoto.classList.remove('visible');
-                    currentBg.classList.remove('visible');
+
+                    // Wait for new photo to be mostly visible before fading out old
+                    setTimeout(() => {
+                        currentPhoto.classList.remove('visible');
+                        currentBg.classList.remove('visible');
+                    }, 1000); // Halfway through 2s transition
                 }, 50); // Small delay to ensure src is set
 
                 // Update which element is current after transition completes
@@ -1078,16 +2390,39 @@
             newPhoto.src = photoUrl;
         }
 
-        ipcRenderer.on('slideshow-config', (event, data) => {
+        ipcRenderer.on('slideshow-config', async (event, data) => {
             console.log('Received slideshow config:', data);
+            console.log('Clock position in config:', data.config?.clockPosition);
 
+            // Check if we're currently in an entrance/exit animation
+            const container = document.querySelector('.slideshow-container');
+            const isAnimating = container.classList.contains('slideshow-entrance-animation') ||
+                                container.classList.contains('slideshow-exit-animation');
+
+            if (isAnimating) {
+                console.log('Delaying config application - animation in progress');
+                // Wait for animation to complete before applying config
+                setTimeout(() => {
+                    applyConfigData(data);
+                }, 1500);
+                return;
+            }
+
+            applyConfigData(data);
+        });
+
+        async function applyConfigData(data) {
             if (data.config) {
                 config = data.config;
 
                 // Clock and date configuration
-                applyClock();
-                applyDate();
+                await applyClock();
+                await applyDate();
                 initializeClock();
+
+                // Trigger position animations after applying styles
+                console.log('Triggering position animations after config update');
+                await animateClockPositionChange();
 
                 // Source indicator configuration
                 const sourceIndicator = document.querySelector('.source-indicator');
@@ -1096,7 +2431,7 @@
                     const sourcePos = config.sourcePosition || 'top-left';
 
                     // Apply proper styling via the dedicated function
-                    applySourceIndicatorPosition();
+                    await applySourceIndicatorPosition();
 
                     sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
                 } else {
@@ -1110,7 +2445,7 @@
                     const counterPos = config.counterPosition || 'bottom-left';
 
                     // Apply proper styling via the dedicated function
-                    applyPhotoCounterPosition();
+                    await applyPhotoCounterPosition();
 
                     photoCounter.style.opacity = config.counterOpacity || 0.8;
                 } else {
@@ -1161,12 +2496,88 @@
             showPhoto(photoData);
         });
 
+        // Slideshow Animation Event Handlers
+        ipcRenderer.on('slideshow-entrance-animation', (event, data) => {
+            const { theme, speed } = data;
+            console.log(`Executing ${theme} entrance animation at ${speed}x speed`);
+
+            // Reset activity detection when slideshow starts
+            resetActivityDetection();
+
+            const container = document.querySelector('.slideshow-container');
+            const body = document.body;
+
+            // Clear any existing animation classes
+            container.classList.remove(
+                'slideshow-entrance-animation', 'slideshow-exit-animation',
+                'slideshow-entrance-default', 'slideshow-entrance-elegant',
+                'slideshow-entrance-dynamic', 'slideshow-entrance-minimal', 'slideshow-entrance-playful',
+                'slideshow-exit-default', 'slideshow-exit-elegant',
+                'slideshow-exit-dynamic', 'slideshow-exit-minimal', 'slideshow-exit-playful'
+            );
+
+            // Apply entrance animation with correct duration for each theme
+            const durations = {
+                'default': 500,
+                'elegant': 1200,
+                'dynamic': 400,
+                'minimal': 300,
+                'playful': 600
+            };
+            const duration = durations[theme] || 500;
+
+            // Apply animation classes and let CSS handle the opacity
+            container.classList.add('slideshow-entrance-animation', `slideshow-entrance-${theme}`);
+            container.style.animationDuration = `${duration / speed}ms`;
+        });
+
+        ipcRenderer.on('slideshow-exit-animation', (event, data) => {
+            const { theme, speed } = data;
+            console.log(`Executing ${theme} exit animation at ${speed}x speed`);
+
+            const container = document.querySelector('.slideshow-container');
+            const body = document.body;
+
+            // Clear any existing animation classes
+            container.classList.remove(
+                'slideshow-entrance-animation', 'slideshow-exit-animation',
+                'slideshow-entrance-default', 'slideshow-entrance-elegant',
+                'slideshow-entrance-dynamic', 'slideshow-entrance-minimal', 'slideshow-entrance-playful',
+                'slideshow-exit-default', 'slideshow-exit-elegant',
+                'slideshow-exit-dynamic', 'slideshow-exit-minimal', 'slideshow-exit-playful'
+            );
+
+            // Apply exit animation with correct duration for each theme
+            const durations = {
+                'default': 500,
+                'elegant': 1200,
+                'dynamic': 400,
+                'minimal': 300,
+                'playful': 600
+            };
+            const duration = durations[theme] || 500;
+            container.classList.add('slideshow-exit-animation', `slideshow-exit-${theme}`);
+            container.style.animationDuration = `${duration / speed}ms`;
+        });
+
         // Delay before enabling activity detection to prevent false triggers
         let activityDetectionEnabled = false;
-        setTimeout(() => {
-            activityDetectionEnabled = true;
-            console.log('Activity detection enabled');
-        }, 1000); // Wait 1 second before enabling
+        let activityDetectionTimeout = null;
+
+        const resetActivityDetection = () => {
+            activityDetectionEnabled = false;
+            if (activityDetectionTimeout) {
+                clearTimeout(activityDetectionTimeout);
+            }
+            // Wait 3 seconds after slideshow starts before enabling activity detection
+            activityDetectionTimeout = setTimeout(() => {
+                activityDetectionEnabled = true;
+                console.log('Activity detection enabled');
+            }, 3000);
+        };
+
+        // Initial delay on page load
+        resetActivityDetection();
 
         // Aggressive event capture for VNC and remote clicks
         const triggerUserActivity = () => {
@@ -1217,7 +2628,7 @@
         });
 
         // Create function to apply source indicator styling
-        function applySourceIndicatorPosition() {
+        async function applySourceIndicatorPosition() {
             const sourceIndicator = document.querySelector('.source-indicator');
             if (config.showSourceIndicator && sourceIndicator) {
                 sourceIndicator.style.display = 'flex';
@@ -1357,13 +2768,16 @@
                 } else {
                     sourceIndicator.style.boxShadow = ''; // Clear custom shadow
                 }
+
+                // Animate position change for smooth transitions
+                await animateSourcePositionChange();
             } else if (sourceIndicator) {
                 sourceIndicator.style.display = 'none';
             }
         }
 
         // Create function to apply clock styling
-        function applyClock() {
+        async function applyClock() {
             const clock = elements.clock;
             if (config.showClock && clock) {
                 clock.style.display = 'block';
@@ -1373,106 +2787,20 @@
 
                 // Apply classes for background and font size (if no custom size)
                 if (config.clockCustomFontSize) {
-                    clock.className = `clock background-${clockBackground} pos-${clockPos}`;
+                    clock.className = `clock background-${clockBackground}`;
                     clock.style.fontSize = config.clockCustomFontSize;
                 } else {
-                    clock.className = `clock background-${clockBackground} font-size-${clockFontSize} pos-${clockPos}`;
+                    clock.className = `clock background-${clockBackground} font-size-${clockFontSize}`;
                 }
 
-                // Apply positioning - use custom coordinates if provided, otherwise use preset positions
+                // Set basic positioning styles - actual positioning handled by animation function
                 clock.style.position = 'absolute';
                 clock.style.zIndex = '10';
-                clock.style.top = 'auto';
-                clock.style.right = 'auto';
-                clock.style.bottom = 'auto';
-                clock.style.left = 'auto';
-                clock.style.transform = 'none';
 
-                // Check if custom coordinates are provided (handle empty strings and undefined)
-                const hasCustomX = config.clockCustomX && config.clockCustomX.toString().trim() !== '';
-                const hasCustomY = config.clockCustomY && config.clockCustomY.toString().trim() !== '';
-
-                console.log('Clock positioning debug:', {
-                    clockCustomX: config.clockCustomX,
-                    clockCustomY: config.clockCustomY,
-                    hasCustomX,
-                    hasCustomY
-                });
-
-                // Handle custom positioning independently for X and Y coordinates
-                // Clear all positioning first
-                clock.style.top = 'auto';
-                clock.style.right = 'auto';
-                clock.style.bottom = 'auto';
-                clock.style.left = 'auto';
-                clock.style.transform = 'none';
-
-                if (hasCustomX || hasCustomY) {
-                    // Mixed mode: use custom coordinates where provided, preset fallbacks where not
-                    if (hasCustomX) {
-                        // Use custom X coordinate
-                        const xValue = /^\d+$/.test(config.clockCustomX.trim()) ? config.clockCustomX + 'px' : config.clockCustomX;
-                        clock.style.left = xValue;
-                        console.log('Applied custom clock X:', xValue, '(original:', config.clockCustomX, ')');
-                    } else {
-                        // Fall back to preset X positioning
-                        if (clockPos.includes('left')) {
-                            clock.style.left = '20px';
-                        } else if (clockPos.includes('right')) {
-                            clock.style.right = '20px';
-                        } else if (clockPos === 'center') {
-                            clock.style.left = '50%';
-                        }
-                    }
-
-                    if (hasCustomY) {
-                        // Use custom Y coordinate
-                        const yValue = /^\d+$/.test(config.clockCustomY.trim()) ? config.clockCustomY + 'px' : config.clockCustomY;
-                        clock.style.top = yValue;
-                        console.log('Applied custom clock Y:', yValue, '(original:', config.clockCustomY, ')');
-                    } else {
-                        // Fall back to preset Y positioning
-                        if (clockPos.includes('top')) {
-                            clock.style.top = '20px';
-                        } else if (clockPos.includes('bottom')) {
-                            clock.style.bottom = '20px';
-                        } else if (clockPos === 'center') {
-                            clock.style.top = '50%';
-                            clock.style.transform = 'translate(-50%, -50%)';
-                        }
-                    }
-
-                    // Handle center transform when only one custom coordinate is set
-                    if (clockPos === 'center' && hasCustomX && !hasCustomY) {
-                        clock.style.transform = 'translateX(-50%)';
-                    } else if (clockPos === 'center' && !hasCustomX && hasCustomY) {
-                        clock.style.transform = 'translateY(-50%)';
-                    }
-                } else {
-                    // Use full preset positioning when no custom coordinates
-                    switch(clockPos) {
-                        case 'top-left':
-                            clock.style.top = '20px';
-                            clock.style.left = '20px';
-                            break;
-                        case 'top-right':
-                            clock.style.top = '20px';
-                            clock.style.right = '20px';
-                            break;
-                        case 'bottom-left':
-                            clock.style.bottom = '20px';
-                            clock.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            clock.style.bottom = '20px';
-                            clock.style.right = '20px';
-                            break;
-                        case 'center':
-                            clock.style.top = '50%';
-                            clock.style.left = '50%';
-                            clock.style.transform = 'translate(-50%, -50%)';
-                            break;
-                    }
+                // Apply initial position if no position is currently set
+                if (!clock.style.top && !clock.style.bottom && !clock.style.left && !clock.style.right) {
+                    const initialPosition = calculateClockPosition();
+                    Object.assign(clock.style, initialPosition);
                 }
 
                 // Apply custom color if specified
@@ -1515,13 +2843,16 @@
                 } else {
                     clock.style.boxShadow = ''; // Clear custom shadow
                 }
+
+                // Animate position change for smooth transitions
+                await animateClockPositionChange();
             } else if (clock) {
                 clock.style.display = 'none';
             }
         }
 
         // Create function to apply date styling
-        function applyDate() {
+        async function applyDate() {
             const date = elements.date;
             if (config.showDate !== false && date) {
                 date.style.display = 'block';
@@ -1658,13 +2989,16 @@
                 } else {
                     date.style.boxShadow = ''; // Clear custom shadow
                 }
+
+                // Animate position change for smooth transitions
+                await animateDatePositionChange();
             } else if (date) {
                 date.style.display = 'none';
             }
         }
 
         // Create function to apply photo counter styling
-        function applyPhotoCounterPosition() {
+        async function applyPhotoCounterPosition() {
             const photoCounter = document.querySelector('.photo-counter');
             if (config.showPhotoCounter && photoCounter) {
                 photoCounter.style.display = 'flex';
@@ -1804,36 +3138,306 @@
                 } else {
                     photoCounter.style.boxShadow = ''; // Clear custom shadow
                 }
+
+                // Animate position change for smooth transitions
+                await animateCounterPositionChange();
             } else if (photoCounter) {
                 photoCounter.style.display = 'none';
             }
         }
 
+        // =================== Phase 4C: Advanced Animation Features ===================
+
+        // Animation themes with different style combinations
+        const animationThemes = {
+            default: {
+                entrance: 'fadeIn',
+                exit: 'fadeOut',
+                positionChange: 'fade-out-partial',
+                contentChange: 'slideInFromLeft',
+                stagger: 100
+            },
+            elegant: {
+                entrance: 'scaleIn',
+                exit: 'scaleOut',
+                positionChange: 'fadeOut',
+                contentChange: 'slideInFromBottom',
+                stagger: 150
+            },
+            dynamic: {
+                entrance: 'slideInFromRight',
+                exit: 'slideOutToLeft',
+                positionChange: 'bounceOut',
+                contentChange: 'slideInFromTop',
+                stagger: 80
+            },
+            minimal: {
+                entrance: 'fadeIn',
+                exit: 'fadeOut',
+                positionChange: 'fadeOut',
+                contentChange: 'fadeIn',
+                stagger: 200
+            },
+            playful: {
+                entrance: 'bounceIn',
+                exit: 'bounceOut',
+                positionChange: 'scaleOut',
+                contentChange: 'slideInFromRight',
+                stagger: 120
+            }
+        };
+
+        // Current animation theme
+        let currentAnimationTheme = 'default';
+
+        // Smart timing based on user interaction patterns
+        let lastInteractionTime = Date.now();
+        let userActivityLevel = 'normal'; // 'low', 'normal', 'high'
+
+        // Adaptive animation controller
+        class AdaptiveAnimationController {
+            constructor() {
+                this.baseSpeed = 1.0;
+                this.adaptiveSpeed = 1.0;
+                this.interactionHistory = [];
+                this.maxHistoryLength = 20;
+                this.updateInterval = null;
+                this.startAdaptiveTracking();
+            }
+
+            // Update user activity tracking
+            trackUserActivity() {
+                const now = Date.now();
+                this.interactionHistory.push(now);
+
+                // Keep only recent interactions
+                this.interactionHistory = this.interactionHistory.filter(
+                    time => now - time < 300000 // Last 5 minutes
+                );
+
+                // Calculate activity level
+                const interactionCount = this.interactionHistory.length;
+                if (interactionCount > 15) {
+                    userActivityLevel = 'high';
+                    this.adaptiveSpeed = 1.5; // Faster animations for active users
+                } else if (interactionCount < 5) {
+                    userActivityLevel = 'low';
+                    this.adaptiveSpeed = 0.7; // Slower, more noticeable animations
+                } else {
+                    userActivityLevel = 'normal';
+                    this.adaptiveSpeed = 1.0;
+                }
+
+                lastInteractionTime = now;
+                this.updateAnimationSpeed();
+            }
+
+            // Start tracking user activity patterns
+            startAdaptiveTracking() {
+                // Track MQTT configuration changes as user interactions
+                const originalUpdateConfig = window.updateConfig;
+                if (originalUpdateConfig) {
+                    window.updateConfig = async function(newConfig) {
+                        adaptiveController.trackUserActivity();
+                        return originalUpdateConfig.call(this, newConfig);
+                    };
+                }
+
+                // Periodic check for idle state
+                this.updateInterval = setInterval(() => {
+                    const timeSinceLastInteraction = Date.now() - lastInteractionTime;
+
+                    // If user has been idle for 10+ minutes, use slower animations
+                    if (timeSinceLastInteraction > 600000) {
+                        userActivityLevel = 'idle';
+                        this.adaptiveSpeed = 0.5;
+                        this.updateAnimationSpeed();
+                    }
+                }, 60000); // Check every minute
+            }
+
+            // Update global animation speed based on adaptive calculations
+            updateAnimationSpeed() {
+                const finalSpeed = this.baseSpeed * this.adaptiveSpeed;
+                animator.setGlobalSpeed(finalSpeed);
+                console.log(`Animation speed adapted: ${finalSpeed} (activity: ${userActivityLevel})`);
+            }
+
+            // Set base animation speed (from user config)
+            setBaseSpeed(speed) {
+                this.baseSpeed = Math.max(0.1, Math.min(5.0, speed));
+                this.updateAnimationSpeed();
+            }
+
+            // Get current theme configuration
+            getCurrentTheme() {
+                return animationThemes[currentAnimationTheme] || animationThemes.default;
+            }
+
+            // Apply animation theme
+            applyTheme(themeName) {
+                if (animationThemes[themeName]) {
+                    currentAnimationTheme = themeName;
+                    console.log(`Animation theme changed to: ${themeName}`);
+                    return true;
+                }
+                return false;
+            }
+
+            // Enhanced entrance animation with theme support
+            async animateElementEntranceThemed(element, delay = 0) {
+                const theme = this.getCurrentTheme();
+                return animator.animateElementEntrance(element, theme.entrance, delay);
+            }
+
+            // Enhanced exit animation with theme support
+            async animateElementExitThemed(element, delay = 0) {
+                const theme = this.getCurrentTheme();
+                return animator.animateElementExit(element, theme.exit, delay);
+            }
+
+            // Smart content transition with contextual animations
+            async animateContentChangeThemed(element, newContent, updateFunction) {
+                const theme = this.getCurrentTheme();
+
+                // Exit current content
+                await animator.animate(element, theme.exit, { duration: 'fast' });
+
+                // Update content during transition
+                if (updateFunction) {
+                    updateFunction();
+                }
+
+                // Enter with new content
+                return animator.animate(element, theme.contentChange, {
+                    duration: 'content',
+                    delay: theme.stagger / 3
+                });
+            }
+
+            // Smart position change with theme and context awareness
+            async animatePositionChangeThemed(element, newPositionFunction) {
+                const theme = this.getCurrentTheme();
+
+                // Check if this is a rapid series of position changes
+                const elementId = element.id || element.className;
+                const now = Date.now();
+                const lastChangeKey = `${elementId}_lastChange`;
+                const lastChange = this[lastChangeKey] || 0;
+
+                // If rapid changes detected, use faster animation
+                const isRapidChange = (now - lastChange) < 2000;
+                const animationType = isRapidChange ? 'fade-out-partial' : theme.positionChange;
+                const duration = isRapidChange ? 'fast' : 'position';
+
+                this[lastChangeKey] = now;
+
+                // Animate position change
+                await animator.animate(element, animationType, { duration: 'fast' });
+
+                // Apply new position
+                if (newPositionFunction) {
+                    newPositionFunction();
+                }
+
+                // Return to view
+                return animator.animate(element, 'fadeIn', {
+                    duration: duration,
+                    delay: isRapidChange ? 50 : theme.stagger / 2
+                });
+            }
+
+            // Orchestrated slideshow entrance (when slideshow starts)
+            async animateSlideshowEntrance() {
+                const theme = this.getCurrentTheme();
+                const visibleElements = [
+                    elements.clock,
+                    elements.date,
+                    document.querySelector('.source-indicator'),
+                    elements.photoCounter,
+                    document.querySelector('.metadata-overlay')
+                ].filter(el => el && el.style.display !== 'none');
+
+                // Staggered entrance animation
+                const animations = visibleElements.map((element, index) => ({
+                    element,
+                    type: theme.entrance,
+                    options: {
+                        duration: 'content',
+                        delay: index * theme.stagger
+                    }
+                }));
+
+                return animator.animateSequence(animations, { parallel: true });
+            }
+        }
+
+        // Initialize adaptive animation controller
+        const adaptiveController = new AdaptiveAnimationController();
+
+        // Enhanced photo transition with smart timing
+        async function transitionToNextPhotoAnimated() {
+            if (!photosArray.length) return;
+
+            const theme = adaptiveController.getCurrentTheme();
+
+            // Fade out overlay elements briefly
+            const overlayElements = [
+                document.querySelector('.source-indicator'),
+                elements.photoCounter,
+                document.querySelector('.metadata-overlay')
+            ].filter(el => el && el.style.display !== 'none');
+
+            // Quick fade out
+            const fadeOutPromises = overlayElements.map(el =>
+                animator.animate(el, 'fadeOut', { duration: 'fast' })
+            );
+
+            await Promise.all(fadeOutPromises);
+
+            // Change photo (existing logic would go here)
+            nextPhoto();
+
+            // Staggered fade in with theme
+            const fadeInAnimations = overlayElements.map((element, index) => ({
+                element,
+                type: theme.entrance,
+                options: {
+                    duration: 'content',
+                    delay: index * (theme.stagger / 2)
+                }
+            }));
+
+            return animator.animateSequence(fadeInAnimations, { parallel: true });
+        }
+
+        // =================== End Phase 4C ===================
+
         // Expose updateConfig function for backend communication
-        window.updateConfig = function(newConfig) {
+        window.updateConfig = async function(newConfig) {
             // Merge new config with existing config
             Object.assign(config, newConfig);
 
             // Re-apply source indicator styling if any source option changed
             if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
                 newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow || newConfig.sourceCustomX || newConfig.sourceCustomY)) {
-                applySourceIndicatorPosition();
+                await applySourceIndicatorPosition();
             }
 
             // Re-apply counter styling if any counter option changed
             if (currentPhotoIndex !== -1 && (newConfig.counterPosition || newConfig.counterBackground ||
                 newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity || newConfig.counterBorderRadius || newConfig.counterPadding || newConfig.counterShadow || newConfig.counterCustomX || newConfig.counterCustomY)) {
-                applyPhotoCounterPosition();
+                await applyPhotoCounterPosition();
             }
 
             // Re-apply clock styling if any clock option changed
             if (newConfig.clockFontSize || newConfig.clockCustomFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.clockBorderRadius || newConfig.clockPadding || newConfig.clockShadow || newConfig.clockCustomX || newConfig.clockCustomY || newConfig.showClock !== undefined) {
-                applyClock();
+                await applyClock();
             }
 
             // Re-apply date styling if any date option changed
             if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.dateBorderRadius || newConfig.datePadding || newConfig.dateShadow || newConfig.dateCustomX || newConfig.dateCustomY || newConfig.showDate !== undefined) {
-                applyDate();
+                await applyDate();
             }
 
             // Re-apply metadata styling if any metadata option changed
@@ -1841,6 +3445,28 @@
                 if (currentPhotoIndex !== -1) {
                     updateMetadataOverlay();
                 }
+            }
+
+            // Handle animation settings changes
+            if (newConfig.animationTheme !== undefined) {
+                adaptiveController.applyTheme(newConfig.animationTheme);
+                console.log('Animation theme updated to:', newConfig.animationTheme);
+            }
+
+            if (newConfig.animationSpeed !== undefined) {
+                adaptiveController.setBaseSpeed(newConfig.animationSpeed);
+                console.log('Animation speed updated to:', newConfig.animationSpeed);
+            }
+
+            if (newConfig.animationEnabled !== undefined) {
+                // Toggle animation system on/off
+                if (newConfig.animationEnabled === false) {
+                    animator.cancelAllAnimations();
+                    animator.setGlobalSpeed(0.01); // Effectively disable animations
+                } else {
+                    adaptiveController.updateAnimationSpeed(); // Restore normal speed
+                }
+                console.log('Animations enabled:', newConfig.animationEnabled);
             }
         };
 

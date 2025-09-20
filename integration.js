@@ -1102,11 +1102,6 @@ const initSlideshow = () => {
   initSlideshowShowCameraInfo();
   initSlideshowShowLocation();
 
-  // === ANIMATION SETTINGS ===
-  initAnimationTheme();
-  initAnimationSpeed();
-  initAnimationEnabled();
-
   // === PERFORMANCE SETTINGS ===
   initSlideshowPreloadBufferSize();
   initSlideshowDiskCacheEnabled();
@@ -1519,7 +1514,6 @@ const initSlideshowClockPosition = () => {
         console.log("Set Slideshow Clock Position:", clockPosition);
         updateSlideshowSetting("slideshow_clock_position", clockPosition);
         slideshow.updateConfig({ clockPosition });
-        publishState(config.state_topic, clockPosition);
       }
     })
     .subscribe(config.command_topic);
@@ -2498,11 +2492,7 @@ const updateSlideshow = async () => {
 
   // Clock settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_clock", status.config.showClock ? "ON" : "OFF");
-
-  // Debug clock position state publishing
-  const actualClockPosition = status.config.clockPosition || ARGS.slideshow_clock_position || "bottom-right";
-  console.log(`Publishing clock position state: runtime="${status.config.clockPosition}" args="${ARGS.slideshow_clock_position}" final="${actualClockPosition}"`);
-  publishState("slideshow_clock_position", actualClockPosition);
+  publishState("slideshow_clock_position", status.config.clockPosition || ARGS.slideshow_clock_position || "bottom-right");
 
   // Debug clock background value resolution
   const clockBg = status.config.clockBackground || ARGS.slideshow_clock_background || "dark";
@@ -3916,93 +3906,6 @@ const initSlideshowMetadataCustomY = () => {
         console.log("Set Slideshow Metadata Custom Y:", metadataCustomY);
         updateSlideshowSetting("slideshow_metadata_custom_y", metadataCustomY);
         slideshow.updateConfig({ metadataCustomY });
-      }
-    })
-    .subscribe(config.command_topic);
-};
-
-/**
- * Initializes the animation theme selector.
- */
-const initAnimationTheme = () => {
-  const root = `${INTEGRATION.root}/animation_theme`;
-  const config = {
-    name: "Animation Theme",
-    unique_id: `${INTEGRATION.node}_animation_theme`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    icon: "mdi:animation",
-    options: ["default", "elegant", "dynamic", "minimal", "playful"],
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const animationTheme = message.toString();
-        console.log("Set Animation Theme:", animationTheme);
-        updateSlideshowSetting("slideshow_animation_theme", animationTheme);
-        slideshow.updateConfig({ animationTheme });
-        publishState(config.state_topic, animationTheme);
-      }
-    })
-    .subscribe(config.command_topic);
-};
-
-/**
- * Initializes the animation speed control.
- */
-const initAnimationSpeed = () => {
-  const root = `${INTEGRATION.root}/animation_speed`;
-  const config = {
-    name: "Animation Speed",
-    unique_id: `${INTEGRATION.node}_animation_speed`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    icon: "mdi:speedometer",
-    min: 0.1,
-    max: 3.0,
-    step: 0.1,
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("number", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const animationSpeed = parseFloat(message.toString());
-        console.log("Set Animation Speed:", animationSpeed);
-        updateSlideshowSetting("slideshow_animation_speed", animationSpeed.toString());
-        slideshow.updateConfig({ animationSpeed });
-        publishState(config.state_topic, animationSpeed.toString());
-      }
-    })
-    .subscribe(config.command_topic);
-};
-
-/**
- * Initializes the animation enable/disable toggle.
- */
-const initAnimationEnabled = () => {
-  const root = `${INTEGRATION.root}/animation_enabled`;
-  const config = {
-    name: "Animations Enabled",
-    unique_id: `${INTEGRATION.node}_animation_enabled`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    icon: "mdi:animation-play",
-    payload_on: "true",
-    payload_off: "false",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("switch", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const animationEnabled = message.toString();
-        console.log("Set Animations Enabled:", animationEnabled);
-        updateSlideshowSetting("slideshow_animation_enabled", animationEnabled);
-        slideshow.updateConfig({ animationEnabled: animationEnabled === "true" });
-        publishState(config.state_topic, animationEnabled);
       }
     })
     .subscribe(config.command_topic);

@@ -308,7 +308,10 @@ if [ -f "$CONFIG_FILE" ]; then
                 "slideshow_counter_custom_x": "",
                 "slideshow_counter_custom_y": "",
                 "slideshow_metadata_custom_x": "",
-                "slideshow_metadata_custom_y": ""
+                "slideshow_metadata_custom_y": "",
+                "slideshow_animation_theme": "default",
+                "slideshow_animation_speed": "1.0",
+                "slideshow_animation_enabled": "true"
             }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
         elif command -v python3 &> /dev/null; then
             # Fallback to python but preserve existing password encryption
@@ -389,7 +392,10 @@ try:
         'slideshow_counter_custom_x': '',
         'slideshow_counter_custom_y': '',
         'slideshow_metadata_custom_x': '',
-        'slideshow_metadata_custom_y': ''
+        'slideshow_metadata_custom_y': '',
+        'slideshow_animation_theme': 'default',
+        'slideshow_animation_speed': '1.0',
+        'slideshow_animation_enabled': 'true'
     }
 
     # Only add defaults that don't exist (preserve ALL user setup choices)
