@@ -318,13 +318,27 @@ const initSlideshowView = async () => {
 
     // Listen for user activity events from the slideshow interface
     const { ipcMain } = require("electron");
+    let activityGracePeriod = false;
+
     ipcMain.on("slideshow-user-activity", () => {
-      // Only process activity if slideshow is actually visible
-      if (SLIDESHOW.active) {
+      // Only process activity if slideshow is actually visible and not in grace period
+      if (SLIDESHOW.active && !activityGracePeriod) {
         console.log("User activity detected in slideshow");
         EVENTS.emit("userActivity");
+      } else if (activityGracePeriod) {
+        console.log("User activity detected but ignored during grace period");
       }
     });
+
+    // Function to start activity grace period after slideshow starts
+    SLIDESHOW.startActivityGracePeriod = () => {
+      activityGracePeriod = true;
+      console.log("Activity detection disabled for 3 seconds (grace period)");
+      setTimeout(() => {
+        activityGracePeriod = false;
+        console.log("Activity detection re-enabled");
+      }, 3000);
+    };
   } catch (error) {
     console.warn("Running outside Electron context, slideshow view not initialized");
     SLIDESHOW.view = null;
@@ -1403,87 +1417,6 @@ const resetIdleTimer = () => {
   }, SLIDESHOW.config.idleTimeout);
 };
 
-// Slideshow Animation System for show/hide transitions
-const applySlideshowEntranceAnimation = async () => {
-  const animationEnabled = SLIDESHOW.config.animationEnabled !== 'false';
-  const animationTheme = SLIDESHOW.config.animationTheme || 'default';
-  const animationSpeed = parseFloat(SLIDESHOW.config.animationSpeed || '1.0');
-
-  console.log(`Applying ${animationTheme} entrance animation (speed: ${animationSpeed}x, enabled: ${animationEnabled})`);
-
-  if (!animationEnabled) {
-    SLIDESHOW.view.setVisible(true);
-    return;
-  }
-
-  // Pause slideshow timer during animation to prevent photo advancing
-  const wasTimerActive = !!SLIDESHOW.timer;
-  if (wasTimerActive) {
-    clearInterval(SLIDESHOW.timer);
-    SLIDESHOW.timer = null;
-    console.log('Paused slideshow timer during entrance animation');
-  }
-
-  // Send animation command to slideshow HTML
-  SLIDESHOW.view.webContents.send('slideshow-entrance-animation', {
-    theme: animationTheme,
-    speed: animationSpeed
-  });
-
-  // Show the view (it will start hidden and animate in)
-  SLIDESHOW.view.setVisible(true);
-
-  // Wait for animation to complete
-  const duration = getAnimationDuration(animationTheme, animationSpeed);
-  await new Promise(resolve => setTimeout(resolve, duration));
-
-  // Resume slideshow timer after animation
-  if (wasTimerActive) {
-    startSlideshowTimer();
-    console.log('Resumed slideshow timer after entrance animation');
-  }
-};
-
-const applySlideshowExitAnimation = async () => {
-  const animationEnabled = SLIDESHOW.config.animationEnabled !== 'false';
-  const animationTheme = SLIDESHOW.config.animationTheme || 'default';
-  const animationSpeed = parseFloat(SLIDESHOW.config.animationSpeed || '1.0');
-
-  console.log(`Applying ${animationTheme} exit animation (speed: ${animationSpeed}x, enabled: ${animationEnabled})`);
-
-  if (!animationEnabled) {
-    SLIDESHOW.view.setVisible(false);
-    return;
-  }
-
-  // Send animation command to slideshow HTML
-  SLIDESHOW.view.webContents.send('slideshow-exit-animation', {
-    theme: animationTheme,
-    speed: animationSpeed
-  });
-
-  // Wait for animation to complete (fade to transparent)
-  const duration = getAnimationDuration(animationTheme, animationSpeed);
-  await new Promise(resolve => setTimeout(resolve, duration));
-
-  // Now hide the view so user can interact with TouchKio underneath
-  SLIDESHOW.view.setVisible(false);
-  console.log('Exit animation completed - slideshow hidden, can now interact with TouchKio');
-};
-
-const getAnimationDuration = (theme, speed) => {
-  const baseDurations = {
-    'default': 500,
-    'elegant': 1200,  // Increased for more dramatic zoom effect
-    'dynamic': 400,
-    'minimal': 300,
-    'playful': 600
-  };
-
-  const baseDuration = baseDurations[theme] || 500;
-  return baseDuration / speed;
-};
-
 const showSlideshow = async () => {
   // Check if photos are available (Google Photos or local)
   const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
@@ -1500,6 +1433,11 @@ const showSlideshow = async () => {
   publishSlideshowState();
   SLIDESHOW.currentIndex = 0;
 
+  // Start activity grace period immediately to prevent false activity detection
+  if (SLIDESHOW.startActivityGracePeriod) {
+    SLIDESHOW.startActivityGracePeriod();
+  }
+
   // Remove and re-add to ensure it's on top of all other views
   try {
     WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
@@ -1507,9 +1445,7 @@ const showSlideshow = async () => {
     // View might not be added yet
   }
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
-
-  // Apply entrance animation based on theme
-  await applySlideshowEntranceAnimation();
+  SLIDESHOW.view.setVisible(true);
 
   const windowBounds = WEBVIEW.window.getBounds();
 
@@ -1568,7 +1504,7 @@ const showSlideshow = async () => {
   EVENTS.emit("slideshowStateChanged", true);
 };
 
-const hideSlideshowSafely = async () => {
+const hideSlideshowSafely = () => {
   if (!SLIDESHOW.active) {
     return;
   }
@@ -1583,9 +1519,7 @@ const hideSlideshowSafely = async () => {
   }
 
   if (SLIDESHOW.view) {
-    // Apply exit animation based on theme
-    await applySlideshowExitAnimation();
-
+    SLIDESHOW.view.setVisible(false);
     try {
       WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
     } catch (error) {
