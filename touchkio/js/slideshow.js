@@ -513,6 +513,9 @@ const init = async () => {
 
     SLIDESHOW.initialized = true;
 
+    // Pre-populate frontend with photos now that slideshow is fully initialized
+    await prePopulateSlideshowPhotos();
+
     // Start backend memory monitoring
     global.backendMemoryManager.startMonitoring();
     console.log('Slideshow initialized with memory management');
@@ -690,6 +693,65 @@ const loadPhotos = async () => {
     }
   } catch (error) {
     console.error("Error loading photos:", error.message);
+  }
+};
+
+// Pre-populate frontend slideshow with photos during startup to prevent "No Photos Available"
+const prePopulateSlideshowPhotos = async () => {
+  // Only pre-populate if slideshow view exists and is initialized
+  if (!SLIDESHOW.view || !SLIDESHOW.initialized) {
+    console.log("Slideshow view not ready yet, skipping photo pre-population");
+    return;
+  }
+
+  try {
+    // Prepare photo list for frontend counting (same logic as in showSlideshow)
+    let photosToCount;
+    if (SLIDESHOW.googlePhotoUrls.length > 0) {
+      // Google Photos are available
+      photosToCount = SLIDESHOW.googlePhotoUrls.map((url, index) => ({
+        id: `google_${index}`,
+        url: `/google-photo/${encodeURIComponent(url)}`,
+        type: "google",
+        title: `Google Photo ${index + 1}`
+      }));
+    } else {
+      // Local photos
+      photosToCount = SLIDESHOW.photos.map((photo, index) => ({
+        ...photo,
+        id: `local_${index}`,
+        url: `/photo/${index}`
+      }));
+    }
+
+    // Send photo configuration to frontend
+    global.ipcBatcher.queue("slideshow-config", {
+      config: SLIDESHOW.config,
+      photos: photosToCount,
+      googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,
+    });
+
+    console.log("Pre-populated slideshow with photo configuration");
+
+    // Optionally load and send first photo to avoid any delay
+    if (photosToCount.length > 0) {
+      let firstPhoto = null;
+      if (SLIDESHOW.googlePhotoUrls.length > 0) {
+        firstPhoto = await getNextGooglePhoto();
+      } else if (SLIDESHOW.photos.length > 0) {
+        firstPhoto = SLIDESHOW.photos[0];
+      }
+
+      if (firstPhoto) {
+        SLIDESHOW.view.webContents.send("show-photo", {
+          index: 0,
+          photo: firstPhoto,
+        });
+        console.log("Pre-loaded first photo for immediate display");
+      }
+    }
+  } catch (error) {
+    console.warn("Error pre-populating slideshow photos:", error.message);
   }
 };
 
@@ -1771,15 +1833,6 @@ const showSlideshow = async () => {
   }
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
 
-  SLIDESHOW.view.setVisible(true);
-
-  // Trigger entrance animation with configured duration
-  const animationDuration = getAnimationDuration();
-  if (animationDuration > 0) {
-    console.log(`Triggering slideshow entrance animation (${animationDuration}ms)`);
-    SLIDESHOW.view.webContents.send('apply-entrance-animation', animationDuration);
-  }
-
   const windowBounds = WEBVIEW.window.getBounds();
 
   SLIDESHOW.view.setBounds({
@@ -1817,7 +1870,7 @@ const showSlideshow = async () => {
   const sourceType = SLIDESHOW.googlePhotoUrls.length > 0 ? "Google Photos" : "local photos";
   console.log(`Started slideshow with ${photosToCount.length} ${sourceType} for counter`);
 
-  // Get and show first photo
+  // Get and show first photo BEFORE triggering entrance animation
   let firstPhoto = null;
 
   if (SLIDESHOW.googlePhotoUrls.length > 0) {
@@ -1831,6 +1884,15 @@ const showSlideshow = async () => {
       index: firstPhoto.index || SLIDESHOW.currentIndex,
       photo: firstPhoto,
     });
+  }
+
+  SLIDESHOW.view.setVisible(true);
+
+  // Trigger entrance animation with configured duration AFTER first photo is ready
+  const animationDuration = getAnimationDuration();
+  if (animationDuration > 0) {
+    console.log(`Triggering slideshow entrance animation (${animationDuration}ms)`);
+    SLIDESHOW.view.webContents.send('apply-entrance-animation', animationDuration);
   }
 
   startSlideshowTimer();
