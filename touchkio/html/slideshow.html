@@ -262,8 +262,6 @@
 
         .source-indicator {
             position: absolute;
-            top: 20px;
-            left: 20px;
             background: rgba(0, 0, 0, 0.7);
             padding: 10px 15px;
             border-radius: 20px;
@@ -273,6 +271,7 @@
             gap: 8px;
             backdrop-filter: blur(10px);
             z-index: 10;
+            /* NO default position - will be set by pos- classes */
         }
 
         .source-icon {
@@ -291,15 +290,49 @@
 
         .photo-counter {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
             background: rgba(0, 0, 0, 0.7);
             padding: 10px 15px;
             border-radius: 10px;
             font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             backdrop-filter: blur(10px);
             z-index: 10;
+            /* NO default position - will be set by pos- classes */
         }
+
+        /* Photo counter positioning - uses general .pos- classes */
+
+        /* Source indicator size classes */
+        .source-indicator.size-small {
+            font-size: 0.7rem !important;
+            padding: 8px 12px !important;
+        }
+        .source-indicator.size-medium {
+            font-size: 0.9rem !important;
+            padding: 10px 15px !important;
+        }
+        .source-indicator.size-large {
+            font-size: 1.1rem !important;
+            padding: 12px 18px !important;
+        }
+
+        /* Photo counter size classes */
+        .photo-counter.size-small {
+            font-size: 0.7rem !important;
+            padding: 8px 12px !important;
+        }
+        .photo-counter.size-medium {
+            font-size: 0.9rem !important;
+            padding: 10px 15px !important;
+        }
+        .photo-counter.size-large {
+            font-size: 1.1rem !important;
+            padding: 12px 18px !important;
+        }
+
+        /* Source indicator positioning - uses general .pos- classes */
 
         .metadata-overlay {
             position: absolute;
@@ -536,10 +569,9 @@
 
             .source-indicator,
             .photo-counter {
-                bottom: 10px;
-                left: 10px;
                 padding: 8px 12px;
                 font-size: 0.8rem;
+                /* Removed fixed positioning - pos- classes will handle this */
             }
         }
     </style>
@@ -556,12 +588,12 @@
             </div>
         </div>
 
-        <div class="source-indicator">
+        <div class="source-indicator pos-top-left size-medium">
             <div class="source-icon" id="sourceIcon"></div>
             <span id="sourceText">Local Photos</span>
         </div>
 
-        <div class="photo-counter">
+        <div class="photo-counter pos-bottom-left size-medium">
             <span id="photoCounter">0 / 0</span>
         </div>
 
@@ -962,28 +994,90 @@
 
                 // Source indicator configuration
                 const sourceIndicator = document.querySelector('.source-indicator');
-                sourceIndicator.style.display = config.showSourceIndicator ? 'flex' : 'none';
-                if (config.showSourceIndicator) {
-                    const sourceClasses = [
-                        'source-indicator',
-                        `pos-${config.sourcePosition || 'top-left'}`,
-                        `size-${config.sourceSize || 'medium'}`
-                    ];
-                    sourceIndicator.className = sourceClasses.join(' ');
+                if (config.showSourceIndicator !== false) {
+                    sourceIndicator.style.display = 'flex';
+                    const sourcePos = config.sourcePosition || 'top-left';
+
+                    // Apply size class
+                    sourceIndicator.className = `source-indicator size-${config.sourceSize || 'medium'}`;
+
+                    // Set absolute positioning directly
+                    sourceIndicator.style.position = 'absolute';
+                    sourceIndicator.style.zIndex = '10';
+
+                    // Clear all positioning
+                    sourceIndicator.style.top = 'auto';
+                    sourceIndicator.style.right = 'auto';
+                    sourceIndicator.style.bottom = 'auto';
+                    sourceIndicator.style.left = 'auto';
+
+                    // Apply specific position
+                    switch(sourcePos) {
+                        case 'top-left':
+                            sourceIndicator.style.top = '20px';
+                            sourceIndicator.style.left = '20px';
+                            break;
+                        case 'top-right':
+                            sourceIndicator.style.top = '20px';
+                            sourceIndicator.style.right = '20px';
+                            break;
+                        case 'bottom-left':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.left = '20px';
+                            break;
+                        case 'bottom-right':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.right = '20px';
+                            break;
+                    }
+
                     sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
+                } else {
+                    sourceIndicator.style.display = 'none';
                 }
 
                 // Photo counter configuration
                 const photoCounter = document.querySelector('.photo-counter');
-                photoCounter.style.display = config.showPhotoCounter ? 'flex' : 'none';
                 if (config.showPhotoCounter) {
-                    const counterClasses = [
-                        'photo-counter',
-                        `pos-${config.counterPosition || 'bottom-left'}`,
-                        `size-${config.counterSize || 'medium'}`
-                    ];
-                    photoCounter.className = counterClasses.join(' ');
+                    photoCounter.style.display = 'flex';
+                    const counterPos = config.counterPosition || 'bottom-left';
+
+                    // Apply size class
+                    photoCounter.className = `photo-counter size-${config.counterSize || 'medium'}`;
+
+                    // Set absolute positioning directly
+                    photoCounter.style.position = 'absolute';
+                    photoCounter.style.zIndex = '10';
+
+                    // Clear all positioning
+                    photoCounter.style.top = 'auto';
+                    photoCounter.style.right = 'auto';
+                    photoCounter.style.bottom = 'auto';
+                    photoCounter.style.left = 'auto';
+
+                    // Apply specific position
+                    switch(counterPos) {
+                        case 'top-left':
+                            photoCounter.style.top = '20px';
+                            photoCounter.style.left = '20px';
+                            break;
+                        case 'top-right':
+                            photoCounter.style.top = '20px';
+                            photoCounter.style.right = '20px';
+                            break;
+                        case 'bottom-left':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.left = '20px';
+                            break;
+                        case 'bottom-right':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.right = '20px';
+                            break;
+                    }
+
                     photoCounter.style.opacity = config.counterOpacity || 0.8;
+                } else {
+                    photoCounter.style.display = 'none';
                 }
 
                 // Metadata overlay configuration
@@ -1084,6 +1178,100 @@
                 clearInterval(clockInterval);
             }
         });
+
+        // Create function to apply source indicator positioning
+        function applySourceIndicatorPosition() {
+            const sourceIndicator = document.querySelector('.source-indicator');
+            if (config.showSourceIndicator && sourceIndicator) {
+                sourceIndicator.style.display = 'flex';
+                const sourcePos = config.sourcePosition || 'top-left';
+                sourceIndicator.className = `source-indicator size-${config.sourceSize || 'medium'}`;
+                sourceIndicator.style.position = 'absolute';
+                sourceIndicator.style.zIndex = '10';
+                sourceIndicator.style.top = 'auto';
+                sourceIndicator.style.right = 'auto';
+                sourceIndicator.style.bottom = 'auto';
+                sourceIndicator.style.left = 'auto';
+
+                switch(sourcePos) {
+                    case 'top-left':
+                        sourceIndicator.style.top = '20px';
+                        sourceIndicator.style.left = '20px';
+                        break;
+                    case 'top-right':
+                        sourceIndicator.style.top = '20px';
+                        sourceIndicator.style.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        sourceIndicator.style.bottom = '20px';
+                        sourceIndicator.style.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        sourceIndicator.style.bottom = '20px';
+                        sourceIndicator.style.right = '20px';
+                        break;
+                }
+
+                sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
+            } else if (sourceIndicator) {
+                sourceIndicator.style.display = 'none';
+            }
+        }
+
+        // Create function to apply photo counter positioning
+        function applyPhotoCounterPosition() {
+            const photoCounter = document.querySelector('.photo-counter');
+            if (config.showPhotoCounter && photoCounter) {
+                photoCounter.style.display = 'flex';
+                const counterPos = config.counterPosition || 'bottom-left';
+                photoCounter.className = `photo-counter size-${config.counterSize || 'medium'}`;
+                photoCounter.style.position = 'absolute';
+                photoCounter.style.zIndex = '10';
+                photoCounter.style.top = 'auto';
+                photoCounter.style.right = 'auto';
+                photoCounter.style.bottom = 'auto';
+                photoCounter.style.left = 'auto';
+
+                switch(counterPos) {
+                    case 'top-left':
+                        photoCounter.style.top = '20px';
+                        photoCounter.style.left = '20px';
+                        break;
+                    case 'top-right':
+                        photoCounter.style.top = '20px';
+                        photoCounter.style.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        photoCounter.style.bottom = '20px';
+                        photoCounter.style.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        photoCounter.style.bottom = '20px';
+                        photoCounter.style.right = '20px';
+                        break;
+                }
+
+                photoCounter.style.opacity = config.counterOpacity || 0.8;
+            } else if (photoCounter) {
+                photoCounter.style.display = 'none';
+            }
+        }
+
+        // Expose updateConfig function for backend communication
+        window.updateConfig = function(newConfig) {
+            // Merge new config with existing config
+            Object.assign(config, newConfig);
+
+            // Re-apply source indicator positioning if position changed
+            if (newConfig.sourcePosition && currentPhotoIndex !== -1) {
+                applySourceIndicatorPosition();
+            }
+
+            // Re-apply counter positioning if position changed
+            if (newConfig.counterPosition && currentPhotoIndex !== -1) {
+                applyPhotoCounterPosition();
+            }
+        };
 
         console.log('Slideshow HTML loaded and ready');
     </script>

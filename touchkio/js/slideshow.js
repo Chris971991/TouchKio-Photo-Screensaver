@@ -1164,7 +1164,16 @@ const getNextGooglePhoto = async () => {
     type: "google",
     title: `Google Photo ${SLIDESHOW.googlePhotoIndex + 1}`,
     index: SLIDESHOW.googlePhotoIndex,
-    cached: false
+    cached: false,
+    // Add basic metadata for Google Photos so metadata display works
+    metadata: {
+      filename: `Google Photo ${SLIDESHOW.googlePhotoIndex + 1}`,
+      dateFormatted: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    }
   };
 
   // Add to memory cache
@@ -1574,9 +1583,12 @@ const updateConfig = (newConfig) => {
 
   resetIdleTimer();
 
-  SLIDESHOW.view?.webContents.send("slideshow-config", {
-    config: SLIDESHOW.config,
-  });
+  // Send config update to view if it exists
+  if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
+    SLIDESHOW.view.webContents.send("slideshow-config", {
+      config: SLIDESHOW.config,
+    });
+  }
 };
 
 const reloadPhotos = async () => {
