@@ -882,8 +882,8 @@
             overlay.className = 'metadata-overlay';
 
             // Check if custom coordinates are provided
-            const hasCustomX = config.metadataCustomX && config.metadataCustomX.trim() !== '';
-            const hasCustomY = config.metadataCustomY && config.metadataCustomY.trim() !== '';
+            const hasCustomX = config.metadataCustomX && config.metadataCustomX.toString().trim() !== '';
+            const hasCustomY = config.metadataCustomY && config.metadataCustomY.toString().trim() !== '';
 
             if (hasCustomX || hasCustomY) {
                 // Use custom positioning - don't add position class, apply directly
@@ -896,12 +896,12 @@
 
                 if (hasCustomX) {
                     // Ensure the value has units - if it's just a number, add 'px'
-                    const xValue = /^\d+$/.test(config.metadataCustomX.trim()) ? config.metadataCustomX + 'px' : config.metadataCustomX;
+                    const xValue = /^\d+$/.test(config.metadataCustomX.toString().trim()) ? config.metadataCustomX + 'px' : config.metadataCustomX;
                     overlay.style.left = xValue;
                 }
                 if (hasCustomY) {
                     // Ensure the value has units - if it's just a number, add 'px'
-                    const yValue = /^\d+$/.test(config.metadataCustomY.trim()) ? config.metadataCustomY + 'px' : config.metadataCustomY;
+                    const yValue = /^\d+$/.test(config.metadataCustomY.toString().trim()) ? config.metadataCustomY + 'px' : config.metadataCustomY;
                     overlay.style.top = yValue;
                 }
             } else {
@@ -1098,36 +1098,6 @@
                     // Apply proper styling via the dedicated function
                     applySourceIndicatorPosition();
 
-                    // Set absolute positioning directly
-                    sourceIndicator.style.position = 'absolute';
-                    sourceIndicator.style.zIndex = '10';
-
-                    // Clear all positioning
-                    sourceIndicator.style.top = 'auto';
-                    sourceIndicator.style.right = 'auto';
-                    sourceIndicator.style.bottom = 'auto';
-                    sourceIndicator.style.left = 'auto';
-
-                    // Apply specific position
-                    switch(sourcePos) {
-                        case 'top-left':
-                            sourceIndicator.style.top = '20px';
-                            sourceIndicator.style.left = '20px';
-                            break;
-                        case 'top-right':
-                            sourceIndicator.style.top = '20px';
-                            sourceIndicator.style.right = '20px';
-                            break;
-                        case 'bottom-left':
-                            sourceIndicator.style.bottom = '20px';
-                            sourceIndicator.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            sourceIndicator.style.bottom = '20px';
-                            sourceIndicator.style.right = '20px';
-                            break;
-                    }
-
                     sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
                 } else {
                     sourceIndicator.style.display = 'none';
@@ -1141,36 +1111,6 @@
 
                     // Apply proper styling via the dedicated function
                     applyPhotoCounterPosition();
-
-                    // Set absolute positioning directly
-                    photoCounter.style.position = 'absolute';
-                    photoCounter.style.zIndex = '10';
-
-                    // Clear all positioning
-                    photoCounter.style.top = 'auto';
-                    photoCounter.style.right = 'auto';
-                    photoCounter.style.bottom = 'auto';
-                    photoCounter.style.left = 'auto';
-
-                    // Apply specific position
-                    switch(counterPos) {
-                        case 'top-left':
-                            photoCounter.style.top = '20px';
-                            photoCounter.style.left = '20px';
-                            break;
-                        case 'top-right':
-                            photoCounter.style.top = '20px';
-                            photoCounter.style.right = '20px';
-                            break;
-                        case 'bottom-left':
-                            photoCounter.style.bottom = '20px';
-                            photoCounter.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            photoCounter.style.bottom = '20px';
-                            photoCounter.style.right = '20px';
-                            break;
-                    }
 
                     photoCounter.style.opacity = config.counterOpacity || 0.8;
                 } else {
@@ -1303,35 +1243,60 @@
                 sourceIndicator.style.transform = 'none';
 
                 // Check if custom coordinates are provided
-                const hasCustomX = config.sourceCustomX && config.sourceCustomX.trim() !== '';
-                const hasCustomY = config.sourceCustomY && config.sourceCustomY.trim() !== '';
+                const hasCustomX = config.sourceCustomX && config.sourceCustomX.toString().trim() !== '';
+                const hasCustomY = config.sourceCustomY && config.sourceCustomY.toString().trim() !== '';
 
+                console.log('Source positioning debug:', {
+                    sourceCustomX: config.sourceCustomX,
+                    sourceCustomY: config.sourceCustomY,
+                    hasCustomX,
+                    hasCustomY
+                });
+
+                // Handle custom positioning independently for X and Y coordinates
                 if (hasCustomX || hasCustomY) {
-                    // Use custom positioning - clear preset styles first
-                    sourceIndicator.style.top = 'auto';
-                    sourceIndicator.style.right = 'auto';
-                    sourceIndicator.style.bottom = 'auto';
-                    sourceIndicator.style.left = 'auto';
-                    sourceIndicator.style.transform = 'none';
-
+                    // Mixed mode: use custom coordinates where provided, preset fallbacks where not
                     if (hasCustomX) {
-                        // Ensure the value has units - if it's just a number, add 'px'
-                        const xValue = /^\d+$/.test(config.sourceCustomX.trim()) ? config.sourceCustomX + 'px' : config.sourceCustomX;
+                        // Use custom X coordinate
+                        const xValue = /^\d+$/.test(config.sourceCustomX.toString().trim()) ? config.sourceCustomX + 'px' : config.sourceCustomX;
                         sourceIndicator.style.left = xValue;
+                        console.log('Applied custom source X:', xValue, '(original:', config.sourceCustomX, ')');
+                    } else {
+                        // Fall back to preset X positioning
+                        if (sourcePos.includes('left')) {
+                            sourceIndicator.style.left = '20px';
+                        } else if (sourcePos.includes('right')) {
+                            sourceIndicator.style.right = '20px';
+                        } else if (sourcePos === 'center') {
+                            sourceIndicator.style.left = '50%';
+                        }
                     }
+
                     if (hasCustomY) {
-                        // Ensure the value has units - if it's just a number, add 'px'
-                        const yValue = /^\d+$/.test(config.sourceCustomY.trim()) ? config.sourceCustomY + 'px' : config.sourceCustomY;
+                        // Use custom Y coordinate
+                        const yValue = /^\d+$/.test(config.sourceCustomY.toString().trim()) ? config.sourceCustomY + 'px' : config.sourceCustomY;
                         sourceIndicator.style.top = yValue;
+                        console.log('Applied custom source Y:', yValue, '(original:', config.sourceCustomY, ')');
+                    } else {
+                        // Fall back to preset Y positioning
+                        if (sourcePos.includes('top')) {
+                            sourceIndicator.style.top = '20px';
+                        } else if (sourcePos.includes('bottom')) {
+                            sourceIndicator.style.bottom = '20px';
+                        } else if (sourcePos === 'center') {
+                            sourceIndicator.style.top = '50%';
+                            sourceIndicator.style.transform = 'translate(-50%, -50%)';
+                        }
+                    }
+
+                    // Handle center transform when only one custom coordinate is set
+                    if (sourcePos === 'center' && hasCustomX && !hasCustomY) {
+                        sourceIndicator.style.transform = 'translateX(-50%)';
+                    } else if (sourcePos === 'center' && !hasCustomX && hasCustomY) {
+                        sourceIndicator.style.transform = 'translateY(-50%)';
                     }
                 } else {
-                    // Use preset position - clear all custom positioning first
-                    sourceIndicator.style.top = 'auto';
-                    sourceIndicator.style.right = 'auto';
-                    sourceIndicator.style.bottom = 'auto';
-                    sourceIndicator.style.left = 'auto';
-                    sourceIndicator.style.transform = 'none';
-
+                    // Use full preset positioning when no custom coordinates
                     switch(sourcePos) {
                         case 'top-left':
                             sourceIndicator.style.top = '20px';
@@ -1434,34 +1399,57 @@
                     hasCustomY
                 });
 
-                if (hasCustomX || hasCustomY) {
-                    // Use custom positioning - clear preset styles first
-                    clock.style.top = 'auto';
-                    clock.style.right = 'auto';
-                    clock.style.bottom = 'auto';
-                    clock.style.left = 'auto';
-                    clock.style.transform = 'none';
+                // Handle custom positioning independently for X and Y coordinates
+                // Clear all positioning first
+                clock.style.top = 'auto';
+                clock.style.right = 'auto';
+                clock.style.bottom = 'auto';
+                clock.style.left = 'auto';
+                clock.style.transform = 'none';
 
+                if (hasCustomX || hasCustomY) {
+                    // Mixed mode: use custom coordinates where provided, preset fallbacks where not
                     if (hasCustomX) {
-                        // Ensure the value has units - if it's just a number, add 'px'
+                        // Use custom X coordinate
                         const xValue = /^\d+$/.test(config.clockCustomX.trim()) ? config.clockCustomX + 'px' : config.clockCustomX;
                         clock.style.left = xValue;
                         console.log('Applied custom clock X:', xValue, '(original:', config.clockCustomX, ')');
+                    } else {
+                        // Fall back to preset X positioning
+                        if (clockPos.includes('left')) {
+                            clock.style.left = '20px';
+                        } else if (clockPos.includes('right')) {
+                            clock.style.right = '20px';
+                        } else if (clockPos === 'center') {
+                            clock.style.left = '50%';
+                        }
                     }
+
                     if (hasCustomY) {
-                        // Ensure the value has units - if it's just a number, add 'px'
+                        // Use custom Y coordinate
                         const yValue = /^\d+$/.test(config.clockCustomY.trim()) ? config.clockCustomY + 'px' : config.clockCustomY;
                         clock.style.top = yValue;
                         console.log('Applied custom clock Y:', yValue, '(original:', config.clockCustomY, ')');
+                    } else {
+                        // Fall back to preset Y positioning
+                        if (clockPos.includes('top')) {
+                            clock.style.top = '20px';
+                        } else if (clockPos.includes('bottom')) {
+                            clock.style.bottom = '20px';
+                        } else if (clockPos === 'center') {
+                            clock.style.top = '50%';
+                            clock.style.transform = 'translate(-50%, -50%)';
+                        }
+                    }
+
+                    // Handle center transform when only one custom coordinate is set
+                    if (clockPos === 'center' && hasCustomX && !hasCustomY) {
+                        clock.style.transform = 'translateX(-50%)';
+                    } else if (clockPos === 'center' && !hasCustomX && hasCustomY) {
+                        clock.style.transform = 'translateY(-50%)';
                     }
                 } else {
-                    // Use preset position - clear all custom positioning first
-                    clock.style.top = 'auto';
-                    clock.style.right = 'auto';
-                    clock.style.bottom = 'auto';
-                    clock.style.left = 'auto';
-                    clock.style.transform = 'none';
-
+                    // Use full preset positioning when no custom coordinates
                     switch(clockPos) {
                         case 'top-left':
                             clock.style.top = '20px';
@@ -1560,35 +1548,51 @@
                 date.style.transform = 'none';
 
                 // Check if custom coordinates are provided
-                const hasCustomX = config.dateCustomX && config.dateCustomX.trim() !== '';
-                const hasCustomY = config.dateCustomY && config.dateCustomY.trim() !== '';
+                const hasCustomX = config.dateCustomX && config.dateCustomX.toString().trim() !== '';
+                const hasCustomY = config.dateCustomY && config.dateCustomY.toString().trim() !== '';
 
+                // Handle custom positioning independently for X and Y coordinates
                 if (hasCustomX || hasCustomY) {
-                    // Use custom positioning - clear preset styles first
-                    date.style.top = 'auto';
-                    date.style.right = 'auto';
-                    date.style.bottom = 'auto';
-                    date.style.left = 'auto';
-                    date.style.transform = 'none';
-
+                    // Mixed mode: use custom coordinates where provided, preset fallbacks where not
                     if (hasCustomX) {
-                        // Ensure the value has units - if it's just a number, add 'px'
-                        const xValue = /^\d+$/.test(config.dateCustomX.trim()) ? config.dateCustomX + 'px' : config.dateCustomX;
+                        // Use custom X coordinate
+                        const xValue = /^\d+$/.test(config.dateCustomX.toString().trim()) ? config.dateCustomX + 'px' : config.dateCustomX;
                         date.style.left = xValue;
+                    } else {
+                        // Fall back to preset X positioning
+                        if (datePos.includes('left')) {
+                            date.style.left = '20px';
+                        } else if (datePos.includes('right')) {
+                            date.style.right = '20px';
+                        } else if (datePos === 'center') {
+                            date.style.left = '50%';
+                        }
                     }
+
                     if (hasCustomY) {
-                        // Ensure the value has units - if it's just a number, add 'px'
-                        const yValue = /^\d+$/.test(config.dateCustomY.trim()) ? config.dateCustomY + 'px' : config.dateCustomY;
+                        // Use custom Y coordinate
+                        const yValue = /^\d+$/.test(config.dateCustomY.toString().trim()) ? config.dateCustomY + 'px' : config.dateCustomY;
                         date.style.top = yValue;
+                    } else {
+                        // Fall back to preset Y positioning
+                        if (datePos.includes('top')) {
+                            date.style.top = '20px';
+                        } else if (datePos.includes('bottom')) {
+                            date.style.bottom = '20px';
+                        } else if (datePos === 'center') {
+                            date.style.top = '50%';
+                            date.style.transform = 'translate(-50%, -50%)';
+                        }
+                    }
+
+                    // Handle center transform when only one custom coordinate is set
+                    if (datePos === 'center' && hasCustomX && !hasCustomY) {
+                        date.style.transform = 'translateX(-50%)';
+                    } else if (datePos === 'center' && !hasCustomX && hasCustomY) {
+                        date.style.transform = 'translateY(-50%)';
                     }
                 } else {
-                    // Use preset position - clear all custom positioning first
-                    date.style.top = 'auto';
-                    date.style.right = 'auto';
-                    date.style.bottom = 'auto';
-                    date.style.left = 'auto';
-                    date.style.transform = 'none';
-
+                    // Use full preset positioning when no custom coordinates
                     switch(datePos) {
                         case 'top-left':
                             date.style.top = '20px';
@@ -1686,35 +1690,60 @@
                 photoCounter.style.transform = 'none';
 
                 // Check if custom coordinates are provided
-                const hasCustomX = config.counterCustomX && config.counterCustomX.trim() !== '';
-                const hasCustomY = config.counterCustomY && config.counterCustomY.trim() !== '';
+                const hasCustomX = config.counterCustomX && config.counterCustomX.toString().trim() !== '';
+                const hasCustomY = config.counterCustomY && config.counterCustomY.toString().trim() !== '';
 
+                console.log('Counter positioning debug:', {
+                    counterCustomX: config.counterCustomX,
+                    counterCustomY: config.counterCustomY,
+                    hasCustomX,
+                    hasCustomY
+                });
+
+                // Handle custom positioning independently for X and Y coordinates
                 if (hasCustomX || hasCustomY) {
-                    // Use custom positioning - clear preset styles first
-                    photoCounter.style.top = 'auto';
-                    photoCounter.style.right = 'auto';
-                    photoCounter.style.bottom = 'auto';
-                    photoCounter.style.left = 'auto';
-                    photoCounter.style.transform = 'none';
-
+                    // Mixed mode: use custom coordinates where provided, preset fallbacks where not
                     if (hasCustomX) {
-                        // Ensure the value has units - if it's just a number, add 'px'
-                        const xValue = /^\d+$/.test(config.counterCustomX.trim()) ? config.counterCustomX + 'px' : config.counterCustomX;
+                        // Use custom X coordinate
+                        const xValue = /^\d+$/.test(config.counterCustomX.toString().trim()) ? config.counterCustomX + 'px' : config.counterCustomX;
                         photoCounter.style.left = xValue;
+                        console.log('Applied custom counter X:', xValue, '(original:', config.counterCustomX, ')');
+                    } else {
+                        // Fall back to preset X positioning
+                        if (counterPos.includes('left')) {
+                            photoCounter.style.left = '20px';
+                        } else if (counterPos.includes('right')) {
+                            photoCounter.style.right = '20px';
+                        } else if (counterPos === 'center') {
+                            photoCounter.style.left = '50%';
+                        }
                     }
+
                     if (hasCustomY) {
-                        // Ensure the value has units - if it's just a number, add 'px'
-                        const yValue = /^\d+$/.test(config.counterCustomY.trim()) ? config.counterCustomY + 'px' : config.counterCustomY;
+                        // Use custom Y coordinate
+                        const yValue = /^\d+$/.test(config.counterCustomY.toString().trim()) ? config.counterCustomY + 'px' : config.counterCustomY;
                         photoCounter.style.top = yValue;
+                        console.log('Applied custom counter Y:', yValue, '(original:', config.counterCustomY, ')');
+                    } else {
+                        // Fall back to preset Y positioning
+                        if (counterPos.includes('top')) {
+                            photoCounter.style.top = '20px';
+                        } else if (counterPos.includes('bottom')) {
+                            photoCounter.style.bottom = '20px';
+                        } else if (counterPos === 'center') {
+                            photoCounter.style.top = '50%';
+                            photoCounter.style.transform = 'translate(-50%, -50%)';
+                        }
+                    }
+
+                    // Handle center transform when only one custom coordinate is set
+                    if (counterPos === 'center' && hasCustomX && !hasCustomY) {
+                        photoCounter.style.transform = 'translateX(-50%)';
+                    } else if (counterPos === 'center' && !hasCustomX && hasCustomY) {
+                        photoCounter.style.transform = 'translateY(-50%)';
                     }
                 } else {
-                    // Use preset position - clear all custom positioning first
-                    photoCounter.style.top = 'auto';
-                    photoCounter.style.right = 'auto';
-                    photoCounter.style.bottom = 'auto';
-                    photoCounter.style.left = 'auto';
-                    photoCounter.style.transform = 'none';
-
+                    // Use full preset positioning when no custom coordinates
                     switch(counterPos) {
                         case 'top-left':
                             photoCounter.style.top = '20px';

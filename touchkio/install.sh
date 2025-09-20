@@ -297,7 +297,18 @@ if [ -f "$CONFIG_FILE" ]; then
                 "slideshow_date_background_opacity": 70,
                 "slideshow_source_background_opacity": 60,
                 "slideshow_counter_background_opacity": 60,
-                "slideshow_metadata_background_opacity": 70
+                "slideshow_metadata_background_opacity": 70,
+
+                "slideshow_clock_custom_x": "",
+                "slideshow_clock_custom_y": "",
+                "slideshow_date_custom_x": "",
+                "slideshow_date_custom_y": "",
+                "slideshow_source_custom_x": "",
+                "slideshow_source_custom_y": "",
+                "slideshow_counter_custom_x": "",
+                "slideshow_counter_custom_y": "",
+                "slideshow_metadata_custom_x": "",
+                "slideshow_metadata_custom_y": ""
             }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
         elif command -v python3 &> /dev/null; then
             # Fallback to python but preserve existing password encryption
@@ -367,7 +378,18 @@ try:
         'slideshow_date_background_opacity': 70,
         'slideshow_source_background_opacity': 60,
         'slideshow_counter_background_opacity': 60,
-        'slideshow_metadata_background_opacity': 70
+        'slideshow_metadata_background_opacity': 70,
+
+        'slideshow_clock_custom_x': '',
+        'slideshow_clock_custom_y': '',
+        'slideshow_date_custom_x': '',
+        'slideshow_date_custom_y': '',
+        'slideshow_source_custom_x': '',
+        'slideshow_source_custom_y': '',
+        'slideshow_counter_custom_x': '',
+        'slideshow_counter_custom_y': '',
+        'slideshow_metadata_custom_x': '',
+        'slideshow_metadata_custom_y': ''
     }
 
     # Only add defaults that don't exist (preserve ALL user setup choices)
