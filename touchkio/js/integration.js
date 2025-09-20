@@ -996,22 +996,41 @@ const initSlideshow = () => {
   // Clock settings
   initSlideshowShowClock();
   initSlideshowClockPosition();
-  initSlideshowClockSize();
   initSlideshowClockBackground();
   initSlideshowClockOpacity();
   initSlideshowClockColor();
+  initSlideshowClockFontSize();
+  initSlideshowClockBackgroundOpacity();
+
+  // Date settings (independent from clock)
+  initSlideshowShowDate();
+  initSlideshowDatePosition();
+  initSlideshowDateSize();
+  initSlideshowDateBackground();
+  initSlideshowDateOpacity();
+  initSlideshowDateColor();
+  initSlideshowDateFontSize();
+  initSlideshowDateBackgroundOpacity();
 
   // Source indicator settings
   initSlideshowShowSource();
   initSlideshowSourcePosition();
   initSlideshowSourceSize();
   initSlideshowSourceOpacity();
+  initSlideshowSourceBackground();
+  initSlideshowSourceColor();
+  initSlideshowSourceFontSize();
+  initSlideshowSourceBackgroundOpacity();
 
   // Counter settings
   initSlideshowShowCounter();
   initSlideshowCounterPosition();
   initSlideshowCounterSize();
   initSlideshowCounterOpacity();
+  initSlideshowCounterBackground();
+  initSlideshowCounterColor();
+  initSlideshowCounterFontSize();
+  initSlideshowCounterBackgroundOpacity();
 
   // Performance settings
   initSlideshowPreloadBufferSize();
@@ -1033,6 +1052,7 @@ const initSlideshow = () => {
   initSlideshowShowCameraInfo();
   initSlideshowShowLocation();
   initSlideshowMetadataBackground();
+  initSlideshowMetadataColor();
   initSlideshowMetadataFontSize();
   initSlideshowMetadataBackgroundOpacity();
   initSlideshowMetadataTransitionType();
@@ -1445,33 +1465,6 @@ const initSlideshowClockPosition = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow clock size control.
- */
-const initSlideshowClockSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_clock_size`;
-  const config = {
-    name: "Slideshow Clock Size",
-    unique_id: `${INTEGRATION.node}_slideshow_clock_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["small", "medium", "large", "xlarge"],
-    icon: "mdi:format-size",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const clockSize = message.toString();
-        console.log("Set Slideshow Clock Size:", clockSize);
-        updateSlideshowSetting("slideshow_clock_size", clockSize);
-        slideshow.updateConfig({ clockSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow clock background control.
@@ -1786,6 +1779,548 @@ const initSlideshowCounterOpacity = () => {
 };
 
 /**
+ * Initializes the slideshow source background control.
+ */
+const initSlideshowSourceBackground = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_background`;
+  const config = {
+    name: "Slideshow Source Background",
+    unique_id: `${INTEGRATION.node}_slideshow_source_background`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["dark", "light", "blue", "green", "red", "purple", "none"],
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceBackground = message.toString();
+        console.log("Set Slideshow Source Background:", sourceBackground);
+        updateSlideshowSetting("slideshow_source_background", sourceBackground);
+        slideshow.updateConfig({ sourceBackground });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source color control.
+ */
+const initSlideshowSourceColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_color`;
+  const config = {
+    name: "Slideshow Source Color",
+    unique_id: `${INTEGRATION.node}_slideshow_source_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette-outline",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceColor = message.toString();
+        console.log("Set Slideshow Source Color:", sourceColor);
+        updateSlideshowSetting("slideshow_source_color", sourceColor);
+        slideshow.updateConfig({ sourceColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source font size control.
+ */
+const initSlideshowSourceFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_font_size`;
+  const config = {
+    name: "Slideshow Source Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_source_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
+    icon: "mdi:format-font-size-increase",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceFontSize = message.toString();
+        console.log("Set Slideshow Source Font Size:", sourceFontSize);
+        updateSlideshowSetting("slideshow_source_font_size", sourceFontSize);
+        slideshow.updateConfig({ sourceFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source background opacity control.
+ */
+const initSlideshowSourceBackgroundOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_background_opacity`;
+  const config = {
+    name: "Slideshow Source Background Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_source_background_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "slider",
+    min: 0,
+    max: 100,
+    unit_of_measurement: "%",
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceBackgroundOpacity = parseInt(message.toString());
+        console.log("Set Slideshow Source Background Opacity:", sourceBackgroundOpacity);
+        updateSlideshowSetting("slideshow_source_background_opacity", sourceBackgroundOpacity);
+        slideshow.updateConfig({ sourceBackgroundOpacity });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter background control.
+ */
+const initSlideshowCounterBackground = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_background`;
+  const config = {
+    name: "Slideshow Counter Background",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_background`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["dark", "light", "blue", "green", "red", "purple", "none"],
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterBackground = message.toString();
+        console.log("Set Slideshow Counter Background:", counterBackground);
+        updateSlideshowSetting("slideshow_counter_background", counterBackground);
+        slideshow.updateConfig({ counterBackground });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter color control.
+ */
+const initSlideshowCounterColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_color`;
+  const config = {
+    name: "Slideshow Counter Color",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette-outline",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterColor = message.toString();
+        console.log("Set Slideshow Counter Color:", counterColor);
+        updateSlideshowSetting("slideshow_counter_color", counterColor);
+        slideshow.updateConfig({ counterColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter font size control.
+ */
+const initSlideshowCounterFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_font_size`;
+  const config = {
+    name: "Slideshow Counter Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
+    icon: "mdi:format-font-size-increase",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterFontSize = message.toString();
+        console.log("Set Slideshow Counter Font Size:", counterFontSize);
+        updateSlideshowSetting("slideshow_counter_font_size", counterFontSize);
+        slideshow.updateConfig({ counterFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter background opacity control.
+ */
+const initSlideshowCounterBackgroundOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_background_opacity`;
+  const config = {
+    name: "Slideshow Counter Background Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_background_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "slider",
+    min: 0,
+    max: 100,
+    unit_of_measurement: "%",
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterBackgroundOpacity = parseInt(message.toString());
+        console.log("Set Slideshow Counter Background Opacity:", counterBackgroundOpacity);
+        updateSlideshowSetting("slideshow_counter_background_opacity", counterBackgroundOpacity);
+        slideshow.updateConfig({ counterBackgroundOpacity });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock font size control.
+ */
+const initSlideshowClockFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_font_size`;
+  const config = {
+    name: "Slideshow Clock Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
+    icon: "mdi:format-font-size-increase",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockFontSize = message.toString();
+        console.log("Set Slideshow Clock Font Size:", clockFontSize);
+        updateSlideshowSetting("slideshow_clock_font_size", clockFontSize);
+        slideshow.updateConfig({ clockFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date font size control.
+ */
+const initSlideshowDateFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_font_size`;
+  const config = {
+    name: "Slideshow Date Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_date_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
+    icon: "mdi:format-font-size-increase",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateFontSize = message.toString();
+        console.log("Set Slideshow Date Font Size:", dateFontSize);
+        updateSlideshowSetting("slideshow_date_font_size", dateFontSize);
+        slideshow.updateConfig({ dateFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock background opacity control.
+ */
+const initSlideshowClockBackgroundOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_background_opacity`;
+  const config = {
+    name: "Slideshow Clock Background Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_background_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "slider",
+    min: 0,
+    max: 100,
+    unit_of_measurement: "%",
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockBackgroundOpacity = parseInt(message.toString());
+        console.log("Set Slideshow Clock Background Opacity:", clockBackgroundOpacity);
+        updateSlideshowSetting("slideshow_clock_background_opacity", clockBackgroundOpacity);
+        slideshow.updateConfig({ clockBackgroundOpacity });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow show date control.
+ */
+const initSlideshowShowDate = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_date`;
+  const config = {
+    name: "Slideshow Show Date",
+    unique_id: `${INTEGRATION.node}_slideshow_show_date`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:calendar",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const showDate = message.toString() === "ON";
+        console.log("Set Slideshow Show Date:", showDate);
+        updateSlideshowSetting("slideshow_show_date", showDate);
+        slideshow.updateConfig({ showDate });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date position control.
+ */
+const initSlideshowDatePosition = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_position`;
+  const config = {
+    name: "Slideshow Date Position",
+    unique_id: `${INTEGRATION.node}_slideshow_date_position`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["top-left", "top-right", "bottom-left", "bottom-right"],
+    icon: "mdi:calendar-clock",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const datePosition = message.toString();
+        console.log("Set Slideshow Date Position:", datePosition);
+        updateSlideshowSetting("slideshow_date_position", datePosition);
+        slideshow.updateConfig({ datePosition });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date size control.
+ */
+const initSlideshowDateSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_size`;
+  const config = {
+    name: "Slideshow Date Size",
+    unique_id: `${INTEGRATION.node}_slideshow_date_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge", "massive", "giant"],
+    icon: "mdi:format-size",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateSize = message.toString();
+        console.log("Set Slideshow Date Size:", dateSize);
+        updateSlideshowSetting("slideshow_date_size", dateSize);
+        slideshow.updateConfig({ dateSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date background control.
+ */
+const initSlideshowDateBackground = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_background`;
+  const config = {
+    name: "Slideshow Date Background",
+    unique_id: `${INTEGRATION.node}_slideshow_date_background`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["dark", "light", "blue", "green", "red", "purple", "none"],
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateBackground = message.toString();
+        console.log("Set Slideshow Date Background:", dateBackground);
+        updateSlideshowSetting("slideshow_date_background", dateBackground);
+        slideshow.updateConfig({ dateBackground });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date opacity control.
+ */
+const initSlideshowDateOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_opacity`;
+  const config = {
+    name: "Slideshow Date Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_date_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | float }}",
+    mode: "slider",
+    min: 0.1,
+    max: 1.0,
+    step: 0.1,
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateOpacity = parseFloat(message.toString());
+        console.log("Set Slideshow Date Opacity:", dateOpacity);
+        updateSlideshowSetting("slideshow_date_opacity", dateOpacity);
+        slideshow.updateConfig({ dateOpacity });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date color control.
+ */
+const initSlideshowDateColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_color`;
+  const config = {
+    name: "Slideshow Date Color",
+    unique_id: `${INTEGRATION.node}_slideshow_date_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette-outline",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateColor = message.toString();
+        console.log("Set Slideshow Date Color:", dateColor);
+        updateSlideshowSetting("slideshow_date_color", dateColor);
+        slideshow.updateConfig({ dateColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date background opacity control.
+ */
+const initSlideshowDateBackgroundOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_background_opacity`;
+  const config = {
+    name: "Slideshow Date Background Opacity",
+    unique_id: `${INTEGRATION.node}_slideshow_date_background_opacity`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value | int }}",
+    mode: "slider",
+    min: 0,
+    max: 100,
+    unit_of_measurement: "%",
+    icon: "mdi:opacity",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateBackgroundOpacity = parseInt(message.toString());
+        console.log("Set Slideshow Date Background Opacity:", dateBackgroundOpacity);
+        updateSlideshowSetting("slideshow_date_background_opacity", dateBackgroundOpacity);
+        slideshow.updateConfig({ dateBackgroundOpacity });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata color control.
+ */
+const initSlideshowMetadataColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_color`;
+  const config = {
+    name: "Slideshow Metadata Color",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette-outline",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataColor = message.toString();
+        console.log("Set Slideshow Metadata Color:", metadataColor);
+        updateSlideshowSetting("slideshow_metadata_color", metadataColor);
+        slideshow.updateConfig({ metadataColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
  * Updates a slideshow setting in ARGS and persists to Arguments.json safely.
  * Uses the same approach as install.sh to preserve TouchKio's encryption system.
  */
@@ -1894,9 +2429,6 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_clock_position":
         slideshow.updateConfig({ clockPosition: value });
         break;
-      case "slideshow_clock_size":
-        slideshow.updateConfig({ clockSize: value });
-        break;
       case "slideshow_clock_background":
         slideshow.updateConfig({ clockBackground: value });
         break;
@@ -1905,6 +2437,38 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_clock_color":
         slideshow.updateConfig({ clockColor: value });
+        break;
+      case "slideshow_clock_font_size":
+        slideshow.updateConfig({ clockFontSize: value });
+        break;
+      case "slideshow_clock_background_opacity":
+        slideshow.updateConfig({ clockBackgroundOpacity: parseInt(value) });
+        break;
+      // Date styling
+      case "slideshow_show_date":
+        const showDate = value === "true" || value === true;
+        slideshow.updateConfig({ showDate });
+        break;
+      case "slideshow_date_position":
+        slideshow.updateConfig({ datePosition: value });
+        break;
+      case "slideshow_date_size":
+        slideshow.updateConfig({ dateSize: value });
+        break;
+      case "slideshow_date_background":
+        slideshow.updateConfig({ dateBackground: value });
+        break;
+      case "slideshow_date_opacity":
+        slideshow.updateConfig({ dateOpacity: parseFloat(value) });
+        break;
+      case "slideshow_date_color":
+        slideshow.updateConfig({ dateColor: value });
+        break;
+      case "slideshow_date_font_size":
+        slideshow.updateConfig({ dateFontSize: value });
+        break;
+      case "slideshow_date_background_opacity":
+        slideshow.updateConfig({ dateBackgroundOpacity: parseInt(value) });
         break;
       // Source indicator styling
       case "slideshow_source_position":
@@ -1916,6 +2480,18 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_source_opacity":
         slideshow.updateConfig({ sourceOpacity: parseFloat(value) });
         break;
+      case "slideshow_source_background":
+        slideshow.updateConfig({ sourceBackground: value });
+        break;
+      case "slideshow_source_color":
+        slideshow.updateConfig({ sourceColor: value });
+        break;
+      case "slideshow_source_font_size":
+        slideshow.updateConfig({ sourceFontSize: value });
+        break;
+      case "slideshow_source_background_opacity":
+        slideshow.updateConfig({ sourceBackgroundOpacity: parseInt(value) });
+        break;
       // Counter styling
       case "slideshow_counter_position":
         slideshow.updateConfig({ counterPosition: value });
@@ -1925,6 +2501,18 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_counter_opacity":
         slideshow.updateConfig({ counterOpacity: parseFloat(value) });
+        break;
+      case "slideshow_counter_background":
+        slideshow.updateConfig({ counterBackground: value });
+        break;
+      case "slideshow_counter_color":
+        slideshow.updateConfig({ counterColor: value });
+        break;
+      case "slideshow_counter_font_size":
+        slideshow.updateConfig({ counterFontSize: value });
+        break;
+      case "slideshow_counter_background_opacity":
+        slideshow.updateConfig({ counterBackgroundOpacity: parseInt(value) });
         break;
       // Performance settings
       case "slideshow_preload_buffer_size":
@@ -1986,6 +2574,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_metadata_background":
         slideshow.updateConfig({ metadataBackground: value });
         break;
+      case "slideshow_metadata_color":
+        slideshow.updateConfig({ metadataColor: value });
+        break;
     }
     console.log(`Synced ${key} to slideshow runtime config:`, value);
   } catch (error) {
@@ -2034,7 +2625,6 @@ const updateSlideshow = async () => {
   // Clock settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_clock", status.config.showClock ? "ON" : "OFF");
   publishState("slideshow_clock_position", status.config.clockPosition || ARGS.slideshow_clock_position || "top-right");
-  publishState("slideshow_clock_size", status.config.clockSize || ARGS.slideshow_clock_size || "medium");
 
   // Debug clock background value resolution
   const clockBg = status.config.clockBackground || ARGS.slideshow_clock_background || "dark";
@@ -2043,18 +2633,38 @@ const updateSlideshow = async () => {
 
   publishState("slideshow_clock_opacity", status.config.clockOpacity || ARGS.slideshow_clock_opacity || 0.8);
   publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
+  publishState("slideshow_clock_font_size", status.config.clockFontSize || ARGS.slideshow_clock_font_size || "medium");
+  publishState("slideshow_clock_background_opacity", status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70);
+
+  // Date settings - independent from clock
+  publishState("slideshow_show_date", status.config.showDate ? "ON" : "OFF");
+  publishState("slideshow_date_position", status.config.datePosition || ARGS.slideshow_date_position || "bottom-left");
+  publishState("slideshow_date_size", status.config.dateSize || ARGS.slideshow_date_size || "medium");
+  publishState("slideshow_date_background", status.config.dateBackground || ARGS.slideshow_date_background || "dark");
+  publishState("slideshow_date_opacity", status.config.dateOpacity || ARGS.slideshow_date_opacity || 0.8);
+  publishState("slideshow_date_color", status.config.dateColor || ARGS.slideshow_date_color || "#ffffff");
+  publishState("slideshow_date_font_size", status.config.dateFontSize || ARGS.slideshow_date_font_size || "medium");
+  publishState("slideshow_date_background_opacity", status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity || 70);
 
   // Source indicator settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_source", status.config.showSourceIndicator ? "ON" : "OFF");
   publishState("slideshow_source_position", status.config.sourcePosition || ARGS.slideshow_source_position || "bottom-left");
   publishState("slideshow_source_size", status.config.sourceSize || ARGS.slideshow_source_size || "small");
   publishState("slideshow_source_opacity", status.config.sourceOpacity || ARGS.slideshow_source_opacity || 0.7);
+  publishState("slideshow_source_background", status.config.sourceBackground || ARGS.slideshow_source_background || "dark");
+  publishState("slideshow_source_color", status.config.sourceColor || ARGS.slideshow_source_color || "#ffffff");
+  publishState("slideshow_source_font_size", status.config.sourceFontSize || ARGS.slideshow_source_font_size || "medium");
+  publishState("slideshow_source_background_opacity", status.config.sourceBackgroundOpacity || ARGS.slideshow_source_background_opacity || 70);
 
   // Counter settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_counter", status.config.showPhotoCounter ? "ON" : "OFF");
   publishState("slideshow_counter_position", status.config.counterPosition || ARGS.slideshow_counter_position || "bottom-right");
   publishState("slideshow_counter_size", status.config.counterSize || ARGS.slideshow_counter_size || "small");
   publishState("slideshow_counter_opacity", status.config.counterOpacity || ARGS.slideshow_counter_opacity || 0.7);
+  publishState("slideshow_counter_background", status.config.counterBackground || ARGS.slideshow_counter_background || "dark");
+  publishState("slideshow_counter_color", status.config.counterColor || ARGS.slideshow_counter_color || "#ffffff");
+  publishState("slideshow_counter_font_size", status.config.counterFontSize || ARGS.slideshow_counter_font_size || "medium");
+  publishState("slideshow_counter_background_opacity", status.config.counterBackgroundOpacity || ARGS.slideshow_counter_background_opacity || 70);
 
   // Performance settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_preload_buffer_size", status.config.preloadBufferSize || ARGS.slideshow_preload_buffer_size || 20);
@@ -2079,6 +2689,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_show_camera_info", status.config.showCameraInfo ? "ON" : "OFF");
   publishState("slideshow_show_location", status.config.showLocation ? "ON" : "OFF");
   publishState("slideshow_metadata_background", status.config.metadataBackground || ARGS.slideshow_metadata_background || "dark");
+  publishState("slideshow_metadata_color", status.config.metadataColor || ARGS.slideshow_metadata_color || "#ffffff");
 };
 
 /**

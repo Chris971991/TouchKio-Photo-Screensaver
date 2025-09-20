@@ -213,15 +213,6 @@
             bottom: auto;
         }
 
-        /* Size classes for clock */
-        .clock.size-tiny { font-size: 1rem !important; }
-        .clock.size-small { font-size: 1.5rem !important; }
-        .clock.size-medium { font-size: 2rem !important; }
-        .clock.size-large { font-size: 2.5rem !important; }
-        .clock.size-xlarge { font-size: 4rem !important; }
-        .clock.size-xxlarge { font-size: 6rem !important; }
-        .clock.size-massive { font-size: 8rem !important; }
-        .clock.size-giant { font-size: 12rem !important; }
 
         .date.size-tiny { font-size: 0.6rem !important; }
         .date.size-small { font-size: 0.8rem !important; }
@@ -247,17 +238,26 @@
         }
 
         .clock {
+            position: absolute;
             font-weight: 300;
             letter-spacing: 2px;
             line-height: 1;
             margin: 0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
         }
 
         .date {
+            position: absolute;
             opacity: 0.8;
             line-height: 1;
             margin: 0;
-            margin-top: -0.1em;
+            padding: 15px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
         }
 
         .source-indicator {
@@ -332,7 +332,54 @@
             padding: 12px 18px !important;
         }
 
-        /* Source indicator positioning - uses general .pos- classes */
+        /* Source indicator background colors */
+        .source-indicator.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
+        .source-indicator.background-light { background: rgba(255, 255, 255, 0.8) !important; color: #333; }
+        .source-indicator.background-blue { background: rgba(52, 152, 219, 0.7) !important; color: white; }
+        .source-indicator.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
+        .source-indicator.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
+        .source-indicator.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
+        .source-indicator.background-none { background: transparent !important; }
+
+        /* Photo counter background colors */
+        .photo-counter.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
+        .photo-counter.background-light { background: rgba(255, 255, 255, 0.8) !important; color: #333; }
+        .photo-counter.background-blue { background: rgba(52, 152, 219, 0.7) !important; color: white; }
+        .photo-counter.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
+        .photo-counter.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
+        .photo-counter.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
+        .photo-counter.background-none { background: transparent !important; }
+
+        /* Background classes for clock and date */
+        .clock.background-dark, .date.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
+        .clock.background-light, .date.background-light { background: rgba(255, 255, 255, 0.8) !important; color: #333; }
+        .clock.background-blue, .date.background-blue { background: rgba(52, 152, 219, 0.7) !important; color: white; }
+        .clock.background-green, .date.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
+        .clock.background-red, .date.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
+        .clock.background-purple, .date.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
+        .clock.background-none, .date.background-none { background: transparent !important; }
+
+        /* Font size classes for all elements - high specificity to override size classes */
+        .clock.font-size-tiny, .date.font-size-tiny { font-size: 0.6rem !important; }
+        .clock.font-size-small, .date.font-size-small { font-size: 0.8rem !important; }
+        .clock.font-size-medium, .date.font-size-medium { font-size: 1.0rem !important; }
+        .clock.font-size-large, .date.font-size-large { font-size: 1.2rem !important; }
+        .clock.font-size-xlarge, .date.font-size-xlarge { font-size: 1.4rem !important; }
+        .clock.font-size-xxlarge, .date.font-size-xxlarge { font-size: 1.6rem !important; }
+
+        .source-indicator.font-size-tiny { font-size: 0.6rem !important; }
+        .source-indicator.font-size-small { font-size: 0.8rem !important; }
+        .source-indicator.font-size-medium { font-size: 1.0rem !important; }
+        .source-indicator.font-size-large { font-size: 1.2rem !important; }
+        .source-indicator.font-size-xlarge { font-size: 1.4rem !important; }
+        .source-indicator.font-size-xxlarge { font-size: 1.6rem !important; }
+
+        .photo-counter.font-size-tiny { font-size: 0.6rem !important; }
+        .photo-counter.font-size-small { font-size: 0.8rem !important; }
+        .photo-counter.font-size-medium { font-size: 1.0rem !important; }
+        .photo-counter.font-size-large { font-size: 1.2rem !important; }
+        .photo-counter.font-size-xlarge { font-size: 1.4rem !important; }
+        .photo-counter.font-size-xxlarge { font-size: 1.6rem !important; }
 
         .metadata-overlay {
             position: absolute;
@@ -605,10 +652,8 @@
             <div class="metadata-line metadata-location" id="metadataLocation"></div>
         </div>
 
-        <div class="overlay" id="clockOverlay">
-            <div class="clock" id="clock">00:00</div>
-            <div class="date" id="date">Loading...</div>
-        </div>
+        <div class="clock pos-bottom-right size-large background-dark" id="clock">00:00</div>
+        <div class="date pos-bottom-left size-medium background-dark" id="date">Loading...</div>
 
         <div class="loading-indicator" id="loadingIndicator">
             <div class="spinner"></div>
@@ -648,7 +693,6 @@
             metadataCamera: document.getElementById('metadataCamera'),
             metadataExposure: document.getElementById('metadataExposure'),
             metadataLocation: document.getElementById('metadataLocation'),
-            clockOverlay: document.getElementById('clockOverlay'),
             clock: document.getElementById('clock'),
             date: document.getElementById('date'),
             loadingIndicator: document.getElementById('loadingIndicator'),
@@ -861,6 +905,11 @@
                     overlay.style.backgroundColor = `rgba(155, 89, 182, ${opacity})`;
                 }
             }
+
+            // Apply custom color if specified
+            if (config.metadataColor) {
+                overlay.style.color = config.metadataColor;
+            }
         }
 
         function showLoading() {
@@ -973,24 +1022,10 @@
             if (data.config) {
                 config = data.config;
 
-                // Clock configuration
-                elements.clockOverlay.style.display = config.showClock ? 'flex' : 'none';
-                if (config.showClock) {
-                    const clockClasses = [
-                        'overlay',
-                        `background-${config.clockBackground || 'dark'}`,
-                        `pos-${config.clockPosition || 'bottom-right'}`
-                    ];
-                    elements.clockOverlay.className = clockClasses.join(' ');
-                    elements.clockOverlay.style.opacity = config.clockOpacity || 0.7;
-
-                    elements.clock.className = `clock size-${config.clockSize || 'large'}`;
-                    elements.date.className = `date size-${config.clockSize || 'large'}`;
-                    elements.clock.style.color = config.clockColor || '#ffffff';
-                    elements.date.style.color = config.clockColor || '#ffffff';
-
-                    initializeClock();
-                }
+                // Clock and date configuration
+                applyClock();
+                applyDate();
+                initializeClock();
 
                 // Source indicator configuration
                 const sourceIndicator = document.querySelector('.source-indicator');
@@ -1179,13 +1214,18 @@
             }
         });
 
-        // Create function to apply source indicator positioning
+        // Create function to apply source indicator styling
         function applySourceIndicatorPosition() {
             const sourceIndicator = document.querySelector('.source-indicator');
             if (config.showSourceIndicator && sourceIndicator) {
                 sourceIndicator.style.display = 'flex';
                 const sourcePos = config.sourcePosition || 'top-left';
-                sourceIndicator.className = `source-indicator size-${config.sourceSize || 'medium'}`;
+                const sourceBackground = config.sourceBackground || 'dark';
+                const sourceFontSize = config.sourceFontSize || 'medium';
+
+                // Apply classes for size, background, and font size
+                sourceIndicator.className = `source-indicator size-${config.sourceSize || 'medium'} background-${sourceBackground} font-size-${sourceFontSize}`;
+
                 sourceIndicator.style.position = 'absolute';
                 sourceIndicator.style.zIndex = '10';
                 sourceIndicator.style.top = 'auto';
@@ -1193,6 +1233,7 @@
                 sourceIndicator.style.bottom = 'auto';
                 sourceIndicator.style.left = 'auto';
 
+                // Apply positioning
                 switch(sourcePos) {
                     case 'top-left':
                         sourceIndicator.style.top = '20px';
@@ -1212,19 +1253,186 @@
                         break;
                 }
 
+                // Apply custom color if specified
+                if (config.sourceColor) {
+                    sourceIndicator.style.color = config.sourceColor;
+                }
+
+                // Apply background opacity if background is not 'none'
+                if (sourceBackground !== 'none' && config.sourceBackgroundOpacity !== undefined) {
+                    const currentBg = window.getComputedStyle(sourceIndicator).backgroundColor;
+                    if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
+                        // Extract RGB values and apply new opacity
+                        const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (rgbMatch) {
+                            const [, r, g, b] = rgbMatch;
+                            const opacity = config.sourceBackgroundOpacity / 100;
+                            sourceIndicator.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                        }
+                    }
+                }
+
+                // Apply general opacity
                 sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
             } else if (sourceIndicator) {
                 sourceIndicator.style.display = 'none';
             }
         }
 
-        // Create function to apply photo counter positioning
+        // Create function to apply clock styling
+        function applyClock() {
+            const clock = elements.clock;
+            if (config.showClock && clock) {
+                clock.style.display = 'block';
+                const clockPos = config.clockPosition || 'bottom-right';
+                const clockBackground = config.clockBackground || 'dark';
+                const clockFontSize = config.clockFontSize || 'medium';
+
+                // Apply classes for background and font size
+                clock.className = `clock background-${clockBackground} font-size-${clockFontSize} pos-${clockPos}`;
+
+                // Apply positioning directly
+                clock.style.position = 'absolute';
+                clock.style.zIndex = '10';
+                clock.style.top = 'auto';
+                clock.style.right = 'auto';
+                clock.style.bottom = 'auto';
+                clock.style.left = 'auto';
+
+                // Apply specific position
+                switch(clockPos) {
+                    case 'top-left':
+                        clock.style.top = '20px';
+                        clock.style.left = '20px';
+                        break;
+                    case 'top-right':
+                        clock.style.top = '20px';
+                        clock.style.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        clock.style.bottom = '20px';
+                        clock.style.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        clock.style.bottom = '20px';
+                        clock.style.right = '20px';
+                        break;
+                    case 'center':
+                        clock.style.top = '50%';
+                        clock.style.left = '50%';
+                        clock.style.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+
+                // Apply custom color if specified
+                if (config.clockColor) {
+                    clock.style.color = config.clockColor;
+                }
+
+                // Apply background opacity if background is not 'none'
+                if (clockBackground !== 'none' && config.clockBackgroundOpacity !== undefined) {
+                    const currentBg = window.getComputedStyle(clock).backgroundColor;
+                    if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
+                        // Extract RGB values and apply new opacity
+                        const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (rgbMatch) {
+                            const [, r, g, b] = rgbMatch;
+                            const opacity = config.clockBackgroundOpacity / 100;
+                            clock.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                        }
+                    }
+                }
+
+                // Apply general opacity
+                clock.style.opacity = config.clockOpacity || 1.0;
+            } else if (clock) {
+                clock.style.display = 'none';
+            }
+        }
+
+        // Create function to apply date styling
+        function applyDate() {
+            const date = elements.date;
+            if (config.showDate && date) {
+                date.style.display = 'block';
+                const datePos = config.datePosition || 'bottom-left';
+                const dateBackground = config.dateBackground || 'dark';
+                const dateFontSize = config.dateFontSize || 'medium';
+
+                // Apply classes for size, background, and font size
+                date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} font-size-${dateFontSize} pos-${datePos}`;
+
+                // Apply positioning directly
+                date.style.position = 'absolute';
+                date.style.zIndex = '10';
+                date.style.top = 'auto';
+                date.style.right = 'auto';
+                date.style.bottom = 'auto';
+                date.style.left = 'auto';
+
+                // Apply specific position
+                switch(datePos) {
+                    case 'top-left':
+                        date.style.top = '20px';
+                        date.style.left = '20px';
+                        break;
+                    case 'top-right':
+                        date.style.top = '20px';
+                        date.style.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        date.style.bottom = '20px';
+                        date.style.left = '20px';
+                        break;
+                    case 'bottom-right':
+                        date.style.bottom = '20px';
+                        date.style.right = '20px';
+                        break;
+                    case 'center':
+                        date.style.top = '50%';
+                        date.style.left = '50%';
+                        date.style.transform = 'translate(-50%, -50%)';
+                        break;
+                }
+
+                // Apply custom color if specified
+                if (config.dateColor) {
+                    date.style.color = config.dateColor;
+                }
+
+                // Apply background opacity if background is not 'none'
+                if (dateBackground !== 'none' && config.dateBackgroundOpacity !== undefined) {
+                    const currentBg = window.getComputedStyle(date).backgroundColor;
+                    if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
+                        // Extract RGB values and apply new opacity
+                        const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (rgbMatch) {
+                            const [, r, g, b] = rgbMatch;
+                            const opacity = config.dateBackgroundOpacity / 100;
+                            date.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                        }
+                    }
+                }
+
+                // Apply general opacity
+                date.style.opacity = config.dateOpacity || 0.8;
+            } else if (date) {
+                date.style.display = 'none';
+            }
+        }
+
+        // Create function to apply photo counter styling
         function applyPhotoCounterPosition() {
             const photoCounter = document.querySelector('.photo-counter');
             if (config.showPhotoCounter && photoCounter) {
                 photoCounter.style.display = 'flex';
                 const counterPos = config.counterPosition || 'bottom-left';
-                photoCounter.className = `photo-counter size-${config.counterSize || 'medium'}`;
+                const counterBackground = config.counterBackground || 'dark';
+                const counterFontSize = config.counterFontSize || 'medium';
+
+                // Apply classes for size, background, and font size
+                photoCounter.className = `photo-counter size-${config.counterSize || 'medium'} background-${counterBackground} font-size-${counterFontSize}`;
+
                 photoCounter.style.position = 'absolute';
                 photoCounter.style.zIndex = '10';
                 photoCounter.style.top = 'auto';
@@ -1232,6 +1440,7 @@
                 photoCounter.style.bottom = 'auto';
                 photoCounter.style.left = 'auto';
 
+                // Apply positioning
                 switch(counterPos) {
                     case 'top-left':
                         photoCounter.style.top = '20px';
@@ -1251,6 +1460,26 @@
                         break;
                 }
 
+                // Apply custom color if specified
+                if (config.counterColor) {
+                    photoCounter.style.color = config.counterColor;
+                }
+
+                // Apply background opacity if background is not 'none'
+                if (counterBackground !== 'none' && config.counterBackgroundOpacity !== undefined) {
+                    const currentBg = window.getComputedStyle(photoCounter).backgroundColor;
+                    if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
+                        // Extract RGB values and apply new opacity
+                        const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (rgbMatch) {
+                            const [, r, g, b] = rgbMatch;
+                            const opacity = config.counterBackgroundOpacity / 100;
+                            photoCounter.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                        }
+                    }
+                }
+
+                // Apply general opacity
                 photoCounter.style.opacity = config.counterOpacity || 0.8;
             } else if (photoCounter) {
                 photoCounter.style.display = 'none';
@@ -1262,14 +1491,33 @@
             // Merge new config with existing config
             Object.assign(config, newConfig);
 
-            // Re-apply source indicator positioning if position changed
-            if (newConfig.sourcePosition && currentPhotoIndex !== -1) {
+            // Re-apply source indicator styling if any source option changed
+            if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
+                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity)) {
                 applySourceIndicatorPosition();
             }
 
-            // Re-apply counter positioning if position changed
-            if (newConfig.counterPosition && currentPhotoIndex !== -1) {
+            // Re-apply counter styling if any counter option changed
+            if (currentPhotoIndex !== -1 && (newConfig.counterPosition || newConfig.counterBackground ||
+                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity)) {
                 applyPhotoCounterPosition();
+            }
+
+            // Re-apply clock styling if any clock option changed
+            if (newConfig.clockFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.showClock !== undefined) {
+                applyClock();
+            }
+
+            // Re-apply date styling if any date option changed
+            if (newConfig.dateFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.showDate !== undefined) {
+                applyDate();
+            }
+
+            // Re-apply metadata styling if any metadata option changed
+            if (newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataBackgroundOpacity) {
+                if (currentPhotoIndex !== -1) {
+                    updateMetadataOverlay();
+                }
             }
         };
 
