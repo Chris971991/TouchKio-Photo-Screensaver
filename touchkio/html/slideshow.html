@@ -921,6 +921,25 @@
             if (config.metadataColor) {
                 overlay.style.color = config.metadataColor;
             }
+
+            // Apply advanced styling options
+            if (config.metadataBorderRadius && config.metadataBorderRadius.trim() !== '') {
+                overlay.style.borderRadius = config.metadataBorderRadius;
+            } else {
+                overlay.style.borderRadius = ''; // Clear custom border radius
+            }
+
+            if (config.metadataPadding && config.metadataPadding.trim() !== '') {
+                overlay.style.padding = config.metadataPadding;
+            } else {
+                overlay.style.padding = ''; // Clear custom padding
+            }
+
+            if (config.metadataShadow && config.metadataShadow.trim() !== '') {
+                overlay.style.boxShadow = config.metadataShadow;
+            } else {
+                overlay.style.boxShadow = ''; // Clear custom shadow
+            }
         }
 
         function showLoading() {
@@ -1291,6 +1310,25 @@
 
                 // Apply general opacity
                 sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
+
+                // Apply advanced styling options
+                if (config.sourceBorderRadius && config.sourceBorderRadius.trim() !== '') {
+                    sourceIndicator.style.borderRadius = config.sourceBorderRadius;
+                } else {
+                    sourceIndicator.style.borderRadius = ''; // Clear custom border radius
+                }
+
+                if (config.sourcePadding && config.sourcePadding.trim() !== '') {
+                    sourceIndicator.style.padding = config.sourcePadding;
+                } else {
+                    sourceIndicator.style.padding = ''; // Clear custom padding
+                }
+
+                if (config.sourceShadow && config.sourceShadow.trim() !== '') {
+                    sourceIndicator.style.boxShadow = config.sourceShadow;
+                } else {
+                    sourceIndicator.style.boxShadow = ''; // Clear custom shadow
+                }
             } else if (sourceIndicator) {
                 sourceIndicator.style.display = 'none';
             }
@@ -1367,6 +1405,25 @@
 
                 // Apply general opacity
                 clock.style.opacity = config.clockOpacity || 1.0;
+
+                // Apply advanced styling options
+                if (config.clockBorderRadius && config.clockBorderRadius.trim() !== '') {
+                    clock.style.borderRadius = config.clockBorderRadius;
+                } else {
+                    clock.style.borderRadius = ''; // Clear custom border radius
+                }
+
+                if (config.clockPadding && config.clockPadding.trim() !== '') {
+                    clock.style.padding = config.clockPadding;
+                } else {
+                    clock.style.padding = ''; // Clear custom padding
+                }
+
+                if (config.clockShadow && config.clockShadow.trim() !== '') {
+                    clock.style.boxShadow = config.clockShadow;
+                } else {
+                    clock.style.boxShadow = ''; // Clear custom shadow
+                }
             } else if (clock) {
                 clock.style.display = 'none';
             }
@@ -1444,6 +1501,25 @@
 
                 // Apply general opacity
                 date.style.opacity = config.dateOpacity || 0.8;
+
+                // Apply advanced styling options
+                if (config.dateBorderRadius && config.dateBorderRadius.trim() !== '') {
+                    date.style.borderRadius = config.dateBorderRadius;
+                } else {
+                    date.style.borderRadius = ''; // Clear custom border radius
+                }
+
+                if (config.datePadding && config.datePadding.trim() !== '') {
+                    date.style.padding = config.datePadding;
+                } else {
+                    date.style.padding = ''; // Clear custom padding
+                }
+
+                if (config.dateShadow && config.dateShadow.trim() !== '') {
+                    date.style.boxShadow = config.dateShadow;
+                } else {
+                    date.style.boxShadow = ''; // Clear custom shadow
+                }
             } else if (date) {
                 date.style.display = 'none';
             }
@@ -1515,6 +1591,25 @@
 
                 // Apply general opacity
                 photoCounter.style.opacity = config.counterOpacity || 0.8;
+
+                // Apply advanced styling options
+                if (config.counterBorderRadius && config.counterBorderRadius.trim() !== '') {
+                    photoCounter.style.borderRadius = config.counterBorderRadius;
+                } else {
+                    photoCounter.style.borderRadius = ''; // Clear custom border radius
+                }
+
+                if (config.counterPadding && config.counterPadding.trim() !== '') {
+                    photoCounter.style.padding = config.counterPadding;
+                } else {
+                    photoCounter.style.padding = ''; // Clear custom padding
+                }
+
+                if (config.counterShadow && config.counterShadow.trim() !== '') {
+                    photoCounter.style.boxShadow = config.counterShadow;
+                } else {
+                    photoCounter.style.boxShadow = ''; // Clear custom shadow
+                }
             } else if (photoCounter) {
                 photoCounter.style.display = 'none';
             }
@@ -1527,28 +1622,28 @@
 
             // Re-apply source indicator styling if any source option changed
             if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
-                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity)) {
+                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow)) {
                 applySourceIndicatorPosition();
             }
 
             // Re-apply counter styling if any counter option changed
             if (currentPhotoIndex !== -1 && (newConfig.counterPosition || newConfig.counterBackground ||
-                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity)) {
+                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity || newConfig.counterBorderRadius || newConfig.counterPadding || newConfig.counterShadow)) {
                 applyPhotoCounterPosition();
             }
 
             // Re-apply clock styling if any clock option changed
-            if (newConfig.clockFontSize || newConfig.clockCustomFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.showClock !== undefined) {
+            if (newConfig.clockFontSize || newConfig.clockCustomFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.clockBorderRadius || newConfig.clockPadding || newConfig.clockShadow || newConfig.showClock !== undefined) {
                 applyClock();
             }
 
             // Re-apply date styling if any date option changed
-            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.showDate !== undefined) {
+            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.dateBorderRadius || newConfig.datePadding || newConfig.dateShadow || newConfig.showDate !== undefined) {
                 applyDate();
             }
 
             // Re-apply metadata styling if any metadata option changed
-            if (newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataBackgroundOpacity) {
+            if (newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataBackgroundOpacity || newConfig.metadataBorderRadius || newConfig.metadataPadding || newConfig.metadataShadow) {
                 if (currentPhotoIndex !== -1) {
                     updateMetadataOverlay();
                 }

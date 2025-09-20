@@ -995,6 +995,9 @@ const initSlideshow = () => {
   initSlideshowClockBackground();
   initSlideshowClockOpacity();
   initSlideshowClockBackgroundOpacity();
+  initSlideshowClockBorderRadius();
+  initSlideshowClockPadding();
+  initSlideshowClockShadow();
 
   // === DATE ELEMENT ===
   initSlideshowShowDate();
@@ -1004,6 +1007,9 @@ const initSlideshow = () => {
   initSlideshowDateBackground();
   initSlideshowDateOpacity();
   initSlideshowDateBackgroundOpacity();
+  initSlideshowDateBorderRadius();
+  initSlideshowDatePadding();
+  initSlideshowDateShadow();
 
   // === SOURCE INDICATOR ===
   initSlideshowShowSource();
@@ -1013,6 +1019,9 @@ const initSlideshow = () => {
   initSlideshowSourceBackground();
   initSlideshowSourceOpacity();
   initSlideshowSourceBackgroundOpacity();
+  initSlideshowSourceBorderRadius();
+  initSlideshowSourcePadding();
+  initSlideshowSourceShadow();
 
   // === PHOTO COUNTER ===
   initSlideshowShowCounter();
@@ -1022,6 +1031,9 @@ const initSlideshow = () => {
   initSlideshowCounterBackground();
   initSlideshowCounterOpacity();
   initSlideshowCounterBackgroundOpacity();
+  initSlideshowCounterBorderRadius();
+  initSlideshowCounterPadding();
+  initSlideshowCounterShadow();
 
   // === METADATA OVERLAY ===
   initSlideshowShowMetadata();
@@ -1031,6 +1043,9 @@ const initSlideshow = () => {
   initSlideshowMetadataBackground();
   initSlideshowMetadataOpacity();
   initSlideshowMetadataBackgroundOpacity();
+  initSlideshowMetadataBorderRadius();
+  initSlideshowMetadataPadding();
+  initSlideshowMetadataShadow();
   initSlideshowMetadataTransitionType();
   initSlideshowShowFilename();
   initSlideshowShowDateTaken();
@@ -3140,6 +3155,396 @@ const initSlideshowMetadataCustomFontSize = () => {
         console.log("Set Slideshow Metadata Custom Font Size:", metadataCustomFontSize);
         updateSlideshowSetting("slideshow_metadata_custom_font_size", metadataCustomFontSize);
         slideshow.updateConfig({ metadataCustomFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock border radius control.
+ */
+const initSlideshowClockBorderRadius = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_border_radius`;
+  const config = {
+    name: "Slideshow Clock Border Radius",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_border_radius`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:border-radius",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockBorderRadius = message.toString();
+        console.log("Set Slideshow Clock Border Radius:", clockBorderRadius);
+        updateSlideshowSetting("slideshow_clock_border_radius", clockBorderRadius);
+        slideshow.updateConfig({ clockBorderRadius });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock padding control.
+ */
+const initSlideshowClockPadding = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_padding`;
+  const config = {
+    name: "Slideshow Clock Padding",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_padding`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-center",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockPadding = message.toString();
+        console.log("Set Slideshow Clock Padding:", clockPadding);
+        updateSlideshowSetting("slideshow_clock_padding", clockPadding);
+        slideshow.updateConfig({ clockPadding });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock shadow control.
+ */
+const initSlideshowClockShadow = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_shadow`;
+  const config = {
+    name: "Slideshow Clock Shadow",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_shadow`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:blur",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockShadow = message.toString();
+        console.log("Set Slideshow Clock Shadow:", clockShadow);
+        updateSlideshowSetting("slideshow_clock_shadow", clockShadow);
+        slideshow.updateConfig({ clockShadow });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date border radius control.
+ */
+const initSlideshowDateBorderRadius = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_border_radius`;
+  const config = {
+    name: "Slideshow Date Border Radius",
+    unique_id: `${INTEGRATION.node}_slideshow_date_border_radius`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:border-radius",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateBorderRadius = message.toString();
+        console.log("Set Slideshow Date Border Radius:", dateBorderRadius);
+        updateSlideshowSetting("slideshow_date_border_radius", dateBorderRadius);
+        slideshow.updateConfig({ dateBorderRadius });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date padding control.
+ */
+const initSlideshowDatePadding = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_padding`;
+  const config = {
+    name: "Slideshow Date Padding",
+    unique_id: `${INTEGRATION.node}_slideshow_date_padding`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-center",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const datePadding = message.toString();
+        console.log("Set Slideshow Date Padding:", datePadding);
+        updateSlideshowSetting("slideshow_date_padding", datePadding);
+        slideshow.updateConfig({ datePadding });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date shadow control.
+ */
+const initSlideshowDateShadow = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_shadow`;
+  const config = {
+    name: "Slideshow Date Shadow",
+    unique_id: `${INTEGRATION.node}_slideshow_date_shadow`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:blur",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateShadow = message.toString();
+        console.log("Set Slideshow Date Shadow:", dateShadow);
+        updateSlideshowSetting("slideshow_date_shadow", dateShadow);
+        slideshow.updateConfig({ dateShadow });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source border radius control.
+ */
+const initSlideshowSourceBorderRadius = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_border_radius`;
+  const config = {
+    name: "Slideshow Source Border Radius",
+    unique_id: `${INTEGRATION.node}_slideshow_source_border_radius`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:border-radius",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceBorderRadius = message.toString();
+        console.log("Set Slideshow Source Border Radius:", sourceBorderRadius);
+        updateSlideshowSetting("slideshow_source_border_radius", sourceBorderRadius);
+        slideshow.updateConfig({ sourceBorderRadius });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source padding control.
+ */
+const initSlideshowSourcePadding = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_padding`;
+  const config = {
+    name: "Slideshow Source Padding",
+    unique_id: `${INTEGRATION.node}_slideshow_source_padding`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-center",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourcePadding = message.toString();
+        console.log("Set Slideshow Source Padding:", sourcePadding);
+        updateSlideshowSetting("slideshow_source_padding", sourcePadding);
+        slideshow.updateConfig({ sourcePadding });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source shadow control.
+ */
+const initSlideshowSourceShadow = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_shadow`;
+  const config = {
+    name: "Slideshow Source Shadow",
+    unique_id: `${INTEGRATION.node}_slideshow_source_shadow`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:blur",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceShadow = message.toString();
+        console.log("Set Slideshow Source Shadow:", sourceShadow);
+        updateSlideshowSetting("slideshow_source_shadow", sourceShadow);
+        slideshow.updateConfig({ sourceShadow });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter border radius control.
+ */
+const initSlideshowCounterBorderRadius = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_border_radius`;
+  const config = {
+    name: "Slideshow Counter Border Radius",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_border_radius`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:border-radius",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterBorderRadius = message.toString();
+        console.log("Set Slideshow Counter Border Radius:", counterBorderRadius);
+        updateSlideshowSetting("slideshow_counter_border_radius", counterBorderRadius);
+        slideshow.updateConfig({ counterBorderRadius });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter padding control.
+ */
+const initSlideshowCounterPadding = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_padding`;
+  const config = {
+    name: "Slideshow Counter Padding",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_padding`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-center",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterPadding = message.toString();
+        console.log("Set Slideshow Counter Padding:", counterPadding);
+        updateSlideshowSetting("slideshow_counter_padding", counterPadding);
+        slideshow.updateConfig({ counterPadding });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter shadow control.
+ */
+const initSlideshowCounterShadow = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_shadow`;
+  const config = {
+    name: "Slideshow Counter Shadow",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_shadow`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:blur",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterShadow = message.toString();
+        console.log("Set Slideshow Counter Shadow:", counterShadow);
+        updateSlideshowSetting("slideshow_counter_shadow", counterShadow);
+        slideshow.updateConfig({ counterShadow });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata border radius control.
+ */
+const initSlideshowMetadataBorderRadius = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_border_radius`;
+  const config = {
+    name: "Slideshow Metadata Border Radius",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_border_radius`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:border-radius",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataBorderRadius = message.toString();
+        console.log("Set Slideshow Metadata Border Radius:", metadataBorderRadius);
+        updateSlideshowSetting("slideshow_metadata_border_radius", metadataBorderRadius);
+        slideshow.updateConfig({ metadataBorderRadius });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata padding control.
+ */
+const initSlideshowMetadataPadding = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_padding`;
+  const config = {
+    name: "Slideshow Metadata Padding",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_padding`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-center",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataPadding = message.toString();
+        console.log("Set Slideshow Metadata Padding:", metadataPadding);
+        updateSlideshowSetting("slideshow_metadata_padding", metadataPadding);
+        slideshow.updateConfig({ metadataPadding });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata shadow control.
+ */
+const initSlideshowMetadataShadow = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_shadow`;
+  const config = {
+    name: "Slideshow Metadata Shadow",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_shadow`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:blur",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataShadow = message.toString();
+        console.log("Set Slideshow Metadata Shadow:", metadataShadow);
+        updateSlideshowSetting("slideshow_metadata_shadow", metadataShadow);
+        slideshow.updateConfig({ metadataShadow });
       }
     })
     .subscribe(config.command_topic);
