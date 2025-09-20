@@ -23,6 +23,8 @@
             left: 0;
             right: 0;
             bottom: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
         }
 
         .slideshow-container {
@@ -35,6 +37,12 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            background: transparent;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .slideshow-container.transitioning {
+            background: rgba(0, 0, 0, 0.95); /* Semi-transparent black only during photo transitions */
         }
 
         .photo-container {
@@ -1046,18 +1054,35 @@
                 nextPhoto.src = photoUrl;
                 nextBg.src = photoUrl;
 
-                // Start transition: fade in new photo and background
+                // Add transitioning background during photo change
+                const container = document.querySelector('.slideshow-container');
+                container.classList.add('transitioning');
+
+                // Start transition: fade in new photo while keeping current at full opacity
                 setTimeout(() => {
                     nextPhoto.classList.add('visible');
                     nextBg.classList.add('visible');
+                    // Don't fade out current photo yet - wait for transition to complete
+                }, 50); // Small delay to ensure src is set
+
+                // Get actual transition duration from config
+                const transitionDuration = config.transitionDuration || 2000;
+
+                // Only fade out old photo after new photo is fully visible
+                setTimeout(() => {
                     currentPhoto.classList.remove('visible');
                     currentBg.classList.remove('visible');
-                }, 50); // Small delay to ensure src is set
+                }, transitionDuration / 2 + 50); // Halfway through transition + delay
+
+                // Remove transitioning background after transition completes
+                setTimeout(() => {
+                    container.classList.remove('transitioning');
+                }, transitionDuration + 100); // After full transition completes
 
                 // Update which element is current after transition completes
                 setTimeout(() => {
                     currentPhotoElement = nextPhotoElement;
-                }, 2000); // Match transition duration
+                }, transitionDuration); // Match actual transition duration
 
                 preloadNextPhoto(index);
             };
@@ -1794,6 +1819,12 @@
                 }
             }
         };
+
+        // Listen for slideshow ready event to show the body
+        ipcRenderer.on('slideshow-ready', () => {
+            document.body.style.opacity = '1';
+            console.log('Slideshow entrance animation started');
+        });
 
         console.log('Slideshow HTML loaded and ready');
     </script>
