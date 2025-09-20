@@ -1417,6 +1417,20 @@ const resetIdleTimer = () => {
   }, SLIDESHOW.config.idleTimeout);
 };
 
+// Helper function to calculate animation duration from speed setting
+const getAnimationDuration = () => {
+  const animationSpeed = parseFloat(ARGS.slideshow_animation_speed) || 1.0;
+  const animationEnabled = ARGS.slideshow_animation_enabled !== "false";
+
+  if (!animationEnabled) {
+    return 0; // No animation
+  }
+
+  // Base duration of 400ms, inversely proportional to speed
+  // Speed 1.0 = 400ms, Speed 2.0 = 200ms, Speed 0.5 = 800ms
+  return Math.round(400 / animationSpeed);
+};
+
 const showSlideshow = async () => {
   // Check if photos are available (Google Photos or local)
   const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
@@ -1446,6 +1460,13 @@ const showSlideshow = async () => {
   }
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
   SLIDESHOW.view.setVisible(true);
+
+  // Trigger entrance animation with configured duration
+  const animationDuration = getAnimationDuration();
+  if (animationDuration > 0) {
+    console.log(`Triggering slideshow entrance animation (${animationDuration}ms)`);
+    SLIDESHOW.view.webContents.send('apply-entrance-animation', animationDuration);
+  }
 
   const windowBounds = WEBVIEW.window.getBounds();
 
@@ -1519,11 +1540,31 @@ const hideSlideshowSafely = () => {
   }
 
   if (SLIDESHOW.view) {
-    SLIDESHOW.view.setVisible(false);
-    try {
-      WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
-    } catch (error) {
-      console.warn("Failed to remove slideshow view:", error.message);
+    // Trigger exit animation with configured duration
+    const animationDuration = getAnimationDuration();
+    if (animationDuration > 0) {
+      console.log(`Triggering slideshow exit animation (${animationDuration}ms)`);
+      SLIDESHOW.view.webContents.send('apply-exit-animation', animationDuration);
+
+      // Hide the view after animation completes
+      setTimeout(() => {
+        if (SLIDESHOW.view && !SLIDESHOW.active) { // Double-check we're still supposed to hide
+          SLIDESHOW.view.setVisible(false);
+          try {
+            WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+          } catch (error) {
+            console.warn("Failed to remove slideshow view:", error.message);
+          }
+        }
+      }, animationDuration);
+    } else {
+      // No animation, hide immediately
+      SLIDESHOW.view.setVisible(false);
+      try {
+        WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+      } catch (error) {
+        console.warn("Failed to remove slideshow view:", error.message);
+      }
     }
   }
 

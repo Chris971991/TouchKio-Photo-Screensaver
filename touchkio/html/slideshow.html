@@ -577,36 +577,32 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Elegant animation keyframes */
+        /* Elegant animation keyframes - fade only */
         @keyframes elegantIn {
             0% {
                 opacity: 0;
-                transform: scale(1.05);
             }
             100% {
                 opacity: 1;
-                transform: scale(1);
             }
         }
 
         @keyframes elegantOut {
             0% {
                 opacity: 1;
-                transform: scale(1);
             }
             100% {
                 opacity: 0;
-                transform: scale(0.95);
             }
         }
 
-        /* Animation classes */
+        /* Animation classes - timing will be set dynamically */
         .animate-elegant-in {
-            animation: elegantIn 0.4s ease-out forwards;
+            animation: elegantIn var(--animation-duration, 0.4s) ease-out forwards;
         }
 
         .animate-elegant-out {
-            animation: elegantOut 0.4s ease-out forwards;
+            animation: elegantOut var(--animation-duration, 0.4s) ease-out forwards;
         }
 
         .error-message {
@@ -1856,35 +1852,43 @@
         });
 
         // Animation functions
-        function applySlideshowEntranceAnimation() {
-            console.log('Applying elegant entrance animation');
+        function applySlideshowEntranceAnimation(duration = 400) {
+            console.log('Applying elegant entrance animation with duration:', duration + 'ms');
+
+            // Set animation duration via CSS custom property
+            document.documentElement.style.setProperty('--animation-duration', duration + 'ms');
+
             document.body.classList.add('animate-elegant-in');
             document.body.classList.remove('animate-elegant-out');
 
             // Remove the animation class after it completes
             setTimeout(() => {
                 document.body.classList.remove('animate-elegant-in');
-            }, 400);
+            }, duration);
         }
 
-        function applySlideshowExitAnimation() {
-            console.log('Applying elegant exit animation');
+        function applySlideshowExitAnimation(duration = 400) {
+            console.log('Applying elegant exit animation with duration:', duration + 'ms');
+
+            // Set animation duration via CSS custom property
+            document.documentElement.style.setProperty('--animation-duration', duration + 'ms');
+
             document.body.classList.add('animate-elegant-out');
             document.body.classList.remove('animate-elegant-in');
 
             // Remove the animation class after it completes
             setTimeout(() => {
                 document.body.classList.remove('animate-elegant-out');
-            }, 400);
+            }, duration);
         }
 
         // Listen for animation events from backend
-        ipcRenderer.on('apply-entrance-animation', () => {
-            applySlideshowEntranceAnimation();
+        ipcRenderer.on('apply-entrance-animation', (event, duration) => {
+            applySlideshowEntranceAnimation(duration);
         });
 
-        ipcRenderer.on('apply-exit-animation', () => {
-            applySlideshowExitAnimation();
+        ipcRenderer.on('apply-exit-animation', (event, duration) => {
+            applySlideshowExitAnimation(duration);
         });
 
         console.log('Slideshow HTML loaded and ready');
