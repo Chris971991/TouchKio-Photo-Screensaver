@@ -197,6 +197,7 @@
 
         .overlay.background-none {
             background: none;
+            backdrop-filter: none !important;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
@@ -343,7 +344,7 @@
         .source-indicator.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
         .source-indicator.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
         .source-indicator.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
-        .source-indicator.background-none { background: transparent !important; }
+        .source-indicator.background-none { background: transparent !important; backdrop-filter: none !important; }
 
         /* Photo counter background colors */
         .photo-counter.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
@@ -352,7 +353,7 @@
         .photo-counter.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
         .photo-counter.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
         .photo-counter.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
-        .photo-counter.background-none { background: transparent !important; }
+        .photo-counter.background-none { background: transparent !important; backdrop-filter: none !important; }
 
         /* Background classes for clock and date */
         .clock.background-dark, .date.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
@@ -361,7 +362,7 @@
         .clock.background-green, .date.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
         .clock.background-red, .date.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
         .clock.background-purple, .date.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
-        .clock.background-none, .date.background-none { background: transparent !important; }
+        .clock.background-none, .date.background-none { background: transparent !important; backdrop-filter: none !important; }
 
         /* Font size classes for all elements - high specificity to override size classes */
         .clock.font-size-tiny, .date.font-size-tiny { font-size: 0.6rem !important; }
@@ -435,6 +436,7 @@
 
         .metadata-overlay.background-none {
             background: none !important;
+            backdrop-filter: none !important;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
@@ -882,11 +884,15 @@
             // Apply position
             overlay.classList.add(`pos-${config.metadataPosition || 'bottom-center'}`);
 
-            // Apply font size
-            overlay.classList.add(`font-${config.metadataFontSize || 'small'}`);
-
             // Apply background
             overlay.classList.add(`background-${config.metadataBackground || 'dark'}`);
+
+            // Apply custom font size if specified
+            if (config.metadataCustomFontSize && config.metadataCustomFontSize.trim() !== '') {
+                overlay.style.fontSize = config.metadataCustomFontSize;
+            } else {
+                overlay.style.fontSize = ''; // Clear custom font size
+            }
 
             // Restore visible state if it was visible
             if (wasVisible) {
@@ -1038,8 +1044,8 @@
                     sourceIndicator.style.display = 'flex';
                     const sourcePos = config.sourcePosition || 'top-left';
 
-                    // Apply size class
-                    sourceIndicator.className = `source-indicator size-${config.sourceSize || 'medium'}`;
+                    // Apply proper styling via the dedicated function
+                    applySourceIndicatorPosition();
 
                     // Set absolute positioning directly
                     sourceIndicator.style.position = 'absolute';
@@ -1082,8 +1088,8 @@
                     photoCounter.style.display = 'flex';
                     const counterPos = config.counterPosition || 'bottom-left';
 
-                    // Apply size class
-                    photoCounter.className = `photo-counter size-${config.counterSize || 'medium'}`;
+                    // Apply proper styling via the dedicated function
+                    applyPhotoCounterPosition();
 
                     // Set absolute positioning directly
                     photoCounter.style.position = 'absolute';
@@ -1226,10 +1232,16 @@
                 sourceIndicator.style.display = 'flex';
                 const sourcePos = config.sourcePosition || 'top-left';
                 const sourceBackground = config.sourceBackground || 'dark';
-                const sourceFontSize = config.sourceFontSize || 'medium';
 
-                // Apply classes for size, background, and font size
-                sourceIndicator.className = `source-indicator size-${config.sourceSize || 'medium'} background-${sourceBackground} font-size-${sourceFontSize}`;
+                // Apply classes for background only (no size/font-size classes needed)
+                sourceIndicator.className = `source-indicator background-${sourceBackground}`;
+
+                // Apply custom font size if specified
+                if (config.sourceCustomFontSize && config.sourceCustomFontSize.trim() !== '') {
+                    sourceIndicator.style.fontSize = config.sourceCustomFontSize;
+                } else {
+                    sourceIndicator.style.fontSize = ''; // Clear custom font size
+                }
 
                 sourceIndicator.style.position = 'absolute';
                 sourceIndicator.style.zIndex = '10';
@@ -1369,12 +1381,13 @@
                 const dateBackground = config.dateBackground || 'dark';
                 const dateFontSize = config.dateFontSize || 'medium';
 
-                // Apply classes for size, background, and font size (if no custom size)
+                // Apply classes for background and position only
                 if (config.dateCustomFontSize && config.dateCustomFontSize.trim() !== '') {
-                    date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} pos-${datePos}`;
+                    date.className = `date background-${dateBackground} pos-${datePos}`;
                     date.style.fontSize = config.dateCustomFontSize;
                 } else {
-                    date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} font-size-${dateFontSize} pos-${datePos}`;
+                    date.className = `date background-${dateBackground} pos-${datePos}`;
+                    date.style.fontSize = ''; // Clear custom font size
                 }
 
                 // Apply positioning directly
@@ -1443,10 +1456,16 @@
                 photoCounter.style.display = 'flex';
                 const counterPos = config.counterPosition || 'bottom-left';
                 const counterBackground = config.counterBackground || 'dark';
-                const counterFontSize = config.counterFontSize || 'medium';
 
-                // Apply classes for size, background, and font size
-                photoCounter.className = `photo-counter size-${config.counterSize || 'medium'} background-${counterBackground} font-size-${counterFontSize}`;
+                // Apply classes for background only (no size/font-size classes needed)
+                photoCounter.className = `photo-counter background-${counterBackground}`;
+
+                // Apply custom font size if specified
+                if (config.counterCustomFontSize && config.counterCustomFontSize.trim() !== '') {
+                    photoCounter.style.fontSize = config.counterCustomFontSize;
+                } else {
+                    photoCounter.style.fontSize = ''; // Clear custom font size
+                }
 
                 photoCounter.style.position = 'absolute';
                 photoCounter.style.zIndex = '10';
