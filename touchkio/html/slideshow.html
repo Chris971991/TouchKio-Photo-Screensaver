@@ -577,22 +577,34 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Elegant animation keyframes - fade only */
+        /* Elegant animation keyframes - fade with background control */
         @keyframes elegantIn {
             0% {
                 opacity: 0;
+                background-color: transparent;
+            }
+            99% {
+                opacity: 1;
+                background-color: transparent;
             }
             100% {
                 opacity: 1;
+                background-color: black;
             }
         }
 
         @keyframes elegantOut {
             0% {
                 opacity: 1;
+                background-color: black;
+            }
+            1% {
+                opacity: 1;
+                background-color: transparent;
             }
             100% {
                 opacity: 0;
+                background-color: transparent;
             }
         }
 
@@ -1861,9 +1873,12 @@
             document.body.classList.add('animate-elegant-in');
             document.body.classList.remove('animate-elegant-out');
 
-            // Remove the animation class after it completes
+            // Remove the animation class after it completes and ensure background stays black
             setTimeout(() => {
                 document.body.classList.remove('animate-elegant-in');
+                // Ensure background is black for normal slideshow operation (hide image transitions)
+                document.body.style.backgroundColor = 'black';
+                console.log('Entrance animation complete - background set to black for slideshow operation');
             }, duration);
         }
 
@@ -1873,12 +1888,19 @@
             // Set animation duration via CSS custom property
             document.documentElement.style.setProperty('--animation-duration', duration + 'ms');
 
+            // Prepare for exit by making background transparent for smooth fade out
+            console.log('Preparing exit animation - making background transparent for smooth fade');
+            document.body.style.backgroundColor = 'transparent';
+
             document.body.classList.add('animate-elegant-out');
             document.body.classList.remove('animate-elegant-in');
 
-            // Remove the animation class after it completes
+            // Remove the animation class after it completes and ensure background stays transparent
             setTimeout(() => {
                 document.body.classList.remove('animate-elegant-out');
+                // Keep background transparent after exit
+                document.body.style.backgroundColor = 'transparent';
+                console.log('Exit animation complete - background remains transparent');
             }, duration);
         }
 
