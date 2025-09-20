@@ -37,6 +37,11 @@
             z-index: 9999;
             background: transparent;
             transition: background-color 0.3s ease-in-out;
+            /* GPU acceleration */
+            contain: strict;
+            isolation: isolate;
+            will-change: background-color;
+            transform: translateZ(0);
         }
 
         .slideshow-container.transitioning {
@@ -50,6 +55,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            /* GPU acceleration */
+            will-change: transform, opacity;
+            transform: translateZ(0);
+            contain: layout style paint;
         }
 
         .photo-background {
@@ -63,6 +72,10 @@
             transform: scale(1.1);
             opacity: 0;
             transition: opacity 2s ease-in-out;
+            /* GPU acceleration */
+            will-change: opacity, filter, transform;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
         }
 
         .photo {
@@ -72,6 +85,10 @@
             filter: blur(0px);
             transition: all 2s ease-in-out;
             z-index: 1;
+            /* GPU acceleration */
+            will-change: transform, opacity, filter;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
         }
 
         .photo.fit-contain {
@@ -773,7 +790,10 @@
             }
 
             updateClock();
-            clockInterval = setInterval(updateClock, 1000);
+            // Use animation controller instead of setInterval
+            if (window.animationController) {
+                window.animationController.scheduleInterval(updateClock, 1000, 'clock_update');
+            }
         }
 
         function updateSourceIndicator(photo) {
@@ -1083,10 +1103,17 @@
 
             const newPhoto = new Image();
 
+            // Track the preload image for memory management
+            window.memoryManager.trackImage(newPhoto, `preload_${Date.now()}`);
+
             newPhoto.onload = () => {
                 // Set the source on both the foreground and background elements
                 nextPhoto.src = photoUrl;
                 nextBg.src = photoUrl;
+
+                // Track the actual display images for memory management
+                window.memoryManager.trackImage(nextPhoto, `display_photo_${nextPhotoElement}`);
+                window.memoryManager.trackImage(nextBg, `display_bg_${nextPhotoElement}`);
 
                 // Add transitioning background during photo change
                 const container = document.querySelector('.slideshow-container');
@@ -1102,11 +1129,20 @@
                 // Get actual transition duration from config
                 const transitionDuration = config.transitionDuration || 2000;
 
+                // Track transition performance
+                window.performanceMonitor.logTransition(transitionDuration);
+
                 // Only fade out old photo after new photo is fully visible
                 setTimeout(() => {
                     currentPhoto.classList.remove('visible');
                     currentBg.classList.remove('visible');
                 }, transitionDuration / 2 + 50); // Halfway through transition + delay
+
+                // Release old images from memory AFTER fade out transition completes
+                setTimeout(() => {
+                    window.memoryManager.releaseImage(currentPhoto);
+                    window.memoryManager.releaseImage(currentBg);
+                }, transitionDuration + 200); // Wait until fade out is completely done
 
                 // Remove transitioning background after transition completes
                 setTimeout(() => {
@@ -1870,12 +1906,12 @@
             document.body.classList.remove('animate-elegant-out');
 
             // Remove the animation class after it completes and ensure background stays black
-            setTimeout(() => {
+            window.animationController.scheduleTimeout(() => {
                 document.body.classList.remove('animate-elegant-in');
                 // Ensure background is black for normal slideshow operation (hide image transitions)
                 document.body.style.backgroundColor = 'black';
                 console.log('Entrance animation complete - background set to black for slideshow operation');
-            }, duration);
+            }, duration, 'entrance_cleanup');
         }
 
         function applySlideshowExitAnimation(duration = 400) {
@@ -1892,12 +1928,12 @@
             document.body.classList.remove('animate-elegant-in');
 
             // Remove the animation class after it completes and ensure background stays transparent
-            setTimeout(() => {
+            window.animationController.scheduleTimeout(() => {
                 document.body.classList.remove('animate-elegant-out');
                 // Keep background transparent after exit
                 document.body.style.backgroundColor = 'transparent';
                 console.log('Exit animation complete - background remains transparent');
-            }, duration);
+            }, duration, 'exit_cleanup');
         }
 
         // Listen for animation events from backend
@@ -1909,7 +1945,395 @@
             applySlideshowExitAnimation(duration);
         });
 
-        console.log('Slideshow HTML loaded and ready');
+        // Central Animation Controller - replaces scattered setTimeout calls
+        class AnimationController {
+            constructor() {
+                this.activeAnimations = new Map();
+                this.frameId = null;
+                this.timers = new Map();
+                this.isRunning = false;
+            }
+
+            // RequestAnimationFrame-based smooth transitions
+            smoothTransition(element, property, from, to, duration, callback) {
+                const id = `${element.id || 'element'}_${property}_${Date.now()}`;
+                const start = performance.now();
+
+                const animate = (now) => {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const value = from + (to - from) * this.easeOutCubic(progress);
+
+                    element.style[property] = typeof value === 'number' ? value + 'px' : value;
+
+                    if (progress < 1) {
+                        this.activeAnimations.set(id, requestAnimationFrame(animate));
+                    } else {
+                        this.activeAnimations.delete(id);
+                        if (callback) callback();
+                    }
+                };
+
+                this.activeAnimations.set(id, requestAnimationFrame(animate));
+                return id;
+            }
+
+            // Easing function for smooth animations
+            easeOutCubic(t) {
+                return 1 - Math.pow(1 - t, 3);
+            }
+
+            // Replace setTimeout with coordinated timing
+            scheduleTimeout(callback, delay, id = null) {
+                const timerId = id || `timeout_${Date.now()}`;
+                const start = performance.now();
+
+                const checkTimer = (now) => {
+                    if (now - start >= delay) {
+                        this.timers.delete(timerId);
+                        callback();
+                    } else {
+                        this.timers.set(timerId, requestAnimationFrame(checkTimer));
+                    }
+                };
+
+                this.timers.set(timerId, requestAnimationFrame(checkTimer));
+                return timerId;
+            }
+
+            // Replace setInterval with coordinated timing
+            scheduleInterval(callback, interval, id = null) {
+                const intervalId = id || `interval_${Date.now()}`;
+                let lastCall = performance.now();
+
+                const checkInterval = (now) => {
+                    if (now - lastCall >= interval) {
+                        lastCall = now;
+                        callback();
+                    }
+                    this.timers.set(intervalId, requestAnimationFrame(checkInterval));
+                };
+
+                this.timers.set(intervalId, requestAnimationFrame(checkInterval));
+                return intervalId;
+            }
+
+            // Clear timer
+            clearTimer(id) {
+                if (this.timers.has(id)) {
+                    cancelAnimationFrame(this.timers.get(id));
+                    this.timers.delete(id);
+                }
+                if (this.activeAnimations.has(id)) {
+                    cancelAnimationFrame(this.activeAnimations.get(id));
+                    this.activeAnimations.delete(id);
+                }
+            }
+
+            // Clear all animations and timers
+            clearAll() {
+                this.activeAnimations.forEach(id => cancelAnimationFrame(id));
+                this.timers.forEach(id => cancelAnimationFrame(id));
+                this.activeAnimations.clear();
+                this.timers.clear();
+            }
+        }
+
+        // Memory Management System
+        class MemoryManager {
+            constructor() {
+                this.imageReferences = new Set();
+                this.maxImages = 10; // Keep only 10 images in memory
+                this.memoryPressureThreshold = 150 * 1024 * 1024; // 150MB
+                this.cleanupInterval = null;
+                this.isMonitoring = false;
+            }
+
+            // Track image element for cleanup
+            trackImage(imgElement, id = null) {
+                const imageId = id || `img_${Date.now()}_${Math.random()}`;
+                imgElement.dataset.memoryId = imageId;
+                this.imageReferences.add({
+                    id: imageId,
+                    element: imgElement,
+                    timestamp: Date.now()
+                });
+
+                // Auto-cleanup if we exceed max images
+                if (this.imageReferences.size > this.maxImages) {
+                    this.cleanupOldImages();
+                }
+
+                return imageId;
+            }
+
+            // Release specific image from memory
+            releaseImage(imgElement) {
+                if (!imgElement) return;
+
+                const imageId = imgElement.dataset.memoryId;
+
+                // Clear image source and data
+                imgElement.src = '';
+                imgElement.srcset = '';
+                imgElement.removeAttribute('src');
+                imgElement.removeAttribute('srcset');
+
+                // Remove from tracking
+                if (imageId) {
+                    this.imageReferences.forEach(ref => {
+                        if (ref.id === imageId) {
+                            this.imageReferences.delete(ref);
+                        }
+                    });
+                    delete imgElement.dataset.memoryId;
+                }
+
+                console.log(`Released image from memory: ${imageId || 'unknown'}`);
+            }
+
+            // Clean up oldest images when over limit
+            cleanupOldImages() {
+                const sortedImages = Array.from(this.imageReferences)
+                    .sort((a, b) => a.timestamp - b.timestamp);
+
+                const toRemove = sortedImages.slice(0, sortedImages.length - this.maxImages);
+
+                toRemove.forEach(ref => {
+                    this.releaseImage(ref.element);
+                });
+
+                console.log(`Cleaned up ${toRemove.length} old images from memory`);
+            }
+
+            // Force cleanup of all tracked images
+            cleanupAll() {
+                this.imageReferences.forEach(ref => {
+                    this.releaseImage(ref.element);
+                });
+                this.imageReferences.clear();
+                console.log('Released all tracked images from memory');
+            }
+
+            // Start memory pressure monitoring
+            startMonitoring() {
+                if (this.isMonitoring) return;
+
+                this.isMonitoring = true;
+                this.cleanupInterval = window.animationController.scheduleInterval(() => {
+                    // Check memory usage (approximate)
+                    if (performance.memory && performance.memory.usedJSHeapSize > this.memoryPressureThreshold) {
+                        console.log('Memory pressure detected, triggering cleanup');
+                        this.cleanupOldImages();
+
+                        // Force garbage collection if available
+                        if (window.gc) {
+                            window.gc();
+                        }
+                    }
+                }, 30000, 'memory_monitor'); // Check every 30 seconds
+            }
+
+            // Stop monitoring
+            stopMonitoring() {
+                if (this.cleanupInterval) {
+                    window.animationController.clearTimer(this.cleanupInterval);
+                    this.cleanupInterval = null;
+                }
+                this.isMonitoring = false;
+            }
+
+            // Get memory usage info
+            getMemoryInfo() {
+                const info = {
+                    trackedImages: this.imageReferences.size,
+                    maxImages: this.maxImages
+                };
+
+                if (performance.memory) {
+                    info.heapUsed = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+                    info.heapTotal = Math.round(performance.memory.totalJSHeapSize / 1024 / 1024);
+                    info.heapLimit = Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024);
+                }
+
+                return info;
+            }
+        }
+
+        // Global memory manager instance
+        window.memoryManager = new MemoryManager();
+
+        // Performance Monitoring Dashboard
+        class PerformanceMonitor {
+            constructor() {
+                this.metrics = {
+                    frameRate: 0,
+                    frameTimes: [],
+                    maxFrameTime: 16.67, // 60fps target
+                    memoryUsage: 0,
+                    transitionCount: 0,
+                    lastTransitionTime: 0
+                };
+                this.isMonitoring = false;
+                this.monitoringInterval = null;
+                this.frameStartTime = 0;
+                this.debugMode = false;
+            }
+
+            // Start performance monitoring
+            startMonitoring() {
+                if (this.isMonitoring) return;
+
+                this.isMonitoring = true;
+                this.frameStartTime = performance.now();
+
+                // Monitor frame rate using requestAnimationFrame
+                const measureFrameRate = () => {
+                    const now = performance.now();
+                    const frameTime = now - this.frameStartTime;
+
+                    this.metrics.frameTimes.push(frameTime);
+
+                    // Keep only last 60 frame times (1 second at 60fps)
+                    if (this.metrics.frameTimes.length > 60) {
+                        this.metrics.frameTimes.shift();
+                    }
+
+                    // Calculate average frame rate
+                    const avgFrameTime = this.metrics.frameTimes.reduce((a, b) => a + b, 0) / this.metrics.frameTimes.length;
+                    this.metrics.frameRate = Math.round(1000 / avgFrameTime);
+
+                    this.frameStartTime = now;
+
+                    if (this.isMonitoring) {
+                        requestAnimationFrame(measureFrameRate);
+                    }
+                };
+
+                requestAnimationFrame(measureFrameRate);
+
+                // Monitor memory and other metrics every 5 seconds
+                this.monitoringInterval = window.animationController.scheduleInterval(() => {
+                    this.updateMetrics();
+                    if (this.debugMode) {
+                        this.logMetrics();
+                    }
+                }, 5000, 'performance_monitor');
+            }
+
+            // Stop monitoring
+            stopMonitoring() {
+                this.isMonitoring = false;
+                if (this.monitoringInterval) {
+                    window.animationController.clearTimer(this.monitoringInterval);
+                    this.monitoringInterval = null;
+                }
+            }
+
+            // Update performance metrics
+            updateMetrics() {
+                // Memory usage
+                if (performance.memory) {
+                    this.metrics.memoryUsage = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+                }
+
+                // Memory manager stats
+                const memInfo = window.memoryManager.getMemoryInfo();
+                this.metrics.trackedImages = memInfo.trackedImages;
+                this.metrics.heapUsed = memInfo.heapUsed;
+                this.metrics.heapTotal = memInfo.heapTotal;
+            }
+
+            // Log transition timing
+            logTransition(duration) {
+                this.metrics.transitionCount++;
+                this.metrics.lastTransitionTime = duration;
+            }
+
+            // Get current performance metrics
+            getMetrics() {
+                this.updateMetrics();
+                return {
+                    ...this.metrics,
+                    timestamp: Date.now(),
+                    averageFrameTime: this.metrics.frameTimes.length > 0 ?
+                        Math.round(this.metrics.frameTimes.reduce((a, b) => a + b, 0) / this.metrics.frameTimes.length * 100) / 100 : 0
+                };
+            }
+
+            // Log metrics to console
+            logMetrics() {
+                const metrics = this.getMetrics();
+                console.log('📊 Performance Metrics:', {
+                    FPS: metrics.frameRate,
+                    'Avg Frame Time': metrics.averageFrameTime + 'ms',
+                    'Memory (MB)': metrics.memoryUsage,
+                    'Tracked Images': metrics.trackedImages,
+                    'Transitions': metrics.transitionCount
+                });
+            }
+
+            // Enable debug mode with detailed logging
+            enableDebugMode() {
+                this.debugMode = true;
+                console.log('🔍 Performance debug mode enabled');
+            }
+
+            // Disable debug mode
+            disableDebugMode() {
+                this.debugMode = false;
+                console.log('🔍 Performance debug mode disabled');
+            }
+
+            // Generate performance report
+            generateReport() {
+                const metrics = this.getMetrics();
+                const report = {
+                    timestamp: new Date().toISOString(),
+                    performance: {
+                        targetFPS: 60,
+                        currentFPS: metrics.frameRate,
+                        fpsEfficiency: Math.round((metrics.frameRate / 60) * 100) + '%',
+                        averageFrameTime: metrics.averageFrameTime + 'ms',
+                        targetFrameTime: this.maxFrameTime + 'ms'
+                    },
+                    memory: {
+                        currentUsage: metrics.memoryUsage + 'MB',
+                        trackedImages: metrics.trackedImages,
+                        heapUsed: metrics.heapUsed + 'MB',
+                        heapTotal: metrics.heapTotal + 'MB'
+                    },
+                    activity: {
+                        totalTransitions: metrics.transitionCount,
+                        lastTransitionTime: metrics.lastTransitionTime + 'ms'
+                    }
+                };
+
+                console.log('📈 Performance Report:', report);
+                return report;
+            }
+        }
+
+        // Global performance monitor instance
+        window.performanceMonitor = new PerformanceMonitor();
+
+        // Global animation controller instance
+        window.animationController = new AnimationController();
+
+        // Replace clock interval with animation controller
+        if (typeof clockInterval !== 'undefined' && clockInterval) {
+            clearInterval(clockInterval);
+        }
+
+        // Use animation controller for clock updates
+        window.animationController.scheduleInterval(updateClock, 1000, 'clock_update');
+
+        // Start memory monitoring
+        window.memoryManager.startMonitoring();
+
+        // Start performance monitoring
+        window.performanceMonitor.startMonitoring();
+
+        console.log('Slideshow HTML loaded with Animation Controller, Memory Manager, and Performance Monitor ready');
     </script>
 </body>
 </html>

@@ -111,6 +111,288 @@ global.SLIDESHOW = global.SLIDESHOW || {
 };
 
 /**
+ * Central Timer Controller - coordinates all backend timing using requestAnimationFrame-like pattern
+ */
+class BackendTimerController {
+  constructor() {
+    this.timers = new Map();
+    this.intervals = new Map();
+    this.isRunning = false;
+    this.frameId = null;
+  }
+
+  // High-precision timer using native setTimeout for accuracy
+  scheduleTimeout(callback, delay, id = null) {
+    const timerId = id || `timeout_${Date.now()}`;
+
+    const timeoutHandle = setTimeout(() => {
+      this.timers.delete(timerId);
+      callback();
+    }, delay);
+
+    this.timers.set(timerId, timeoutHandle);
+    return timerId;
+  }
+
+  // High-precision interval using native setInterval for stability
+  scheduleInterval(callback, interval, id = null) {
+    const intervalId = id || `interval_${Date.now()}`;
+
+    const intervalHandle = setInterval(callback, interval);
+    this.intervals.set(intervalId, intervalHandle);
+    return intervalId;
+  }
+
+  // Clear specific timer
+  clearTimer(id) {
+    if (this.timers.has(id)) {
+      clearTimeout(this.timers.get(id));
+      this.timers.delete(id);
+    }
+    if (this.intervals.has(id)) {
+      clearInterval(this.intervals.get(id));
+      this.intervals.delete(id);
+    }
+  }
+
+  // Clear all timers
+  clearAll() {
+    this.timers.forEach(timer => clearTimeout(timer));
+    this.intervals.forEach(interval => clearInterval(interval));
+    this.timers.clear();
+    this.intervals.clear();
+  }
+}
+
+// Global timer controller instance
+global.timerController = new BackendTimerController();
+
+/**
+ * Backend Memory Management - handles photo cache and preload cleanup
+ */
+class BackendMemoryManager {
+  constructor() {
+    this.maxCacheSize = 50; // Maximum cached photos
+    this.maxPreloadSize = 10; // Maximum preloaded photos
+    this.cleanupInterval = null;
+    this.isMonitoring = false;
+  }
+
+  // Clean up old cache entries
+  cleanupPhotoCache() {
+    const cache = SLIDESHOW.photoCache;
+    if (cache.size <= this.maxCacheSize) return;
+
+    // Convert to array and sort by last access (if available) or insertion order
+    const entries = Array.from(cache.entries());
+    const toRemove = entries.slice(0, entries.length - this.maxCacheSize);
+
+    toRemove.forEach(([key, value]) => {
+      cache.delete(key);
+      // If it's a buffer or binary data, clear it
+      if (value && typeof value === 'object' && value.buffer) {
+        value.buffer = null;
+      }
+    });
+
+    console.log(`Cleaned up ${toRemove.length} old photo cache entries`);
+  }
+
+  // Clean up disk cache
+  cleanupDiskCache() {
+    const diskCache = SLIDESHOW.diskCache;
+    if (diskCache.size <= this.maxCacheSize) return;
+
+    const entries = Array.from(diskCache.entries());
+    const toRemove = entries.slice(0, entries.length - this.maxCacheSize);
+
+    toRemove.forEach(([key, value]) => {
+      diskCache.delete(key);
+      // Clean up file references if any
+      if (value && value.path) {
+        try {
+          require('fs').unlinkSync(value.path);
+        } catch (err) {
+          // File may already be deleted, ignore error
+        }
+      }
+    });
+
+    console.log(`Cleaned up ${toRemove.length} old disk cache entries`);
+  }
+
+  // Clean up preload queue
+  cleanupPreloadQueue() {
+    if (SLIDESHOW.preloadQueue.length <= this.maxPreloadSize) return;
+
+    // Keep only the most recent preload requests
+    const toRemove = SLIDESHOW.preloadQueue.splice(0, SLIDESHOW.preloadQueue.length - this.maxPreloadSize);
+    console.log(`Cleaned up ${toRemove.length} old preload queue entries`);
+  }
+
+  // Force cleanup of all caches
+  cleanupAll() {
+    console.log('Performing full memory cleanup...');
+
+    // Clear photo cache
+    SLIDESHOW.photoCache.clear();
+
+    // Clear disk cache and files
+    SLIDESHOW.diskCache.forEach((value, key) => {
+      if (value && value.path) {
+        try {
+          require('fs').unlinkSync(value.path);
+        } catch (err) {
+          // Ignore errors
+        }
+      }
+    });
+    SLIDESHOW.diskCache.clear();
+
+    // Clear preload queue
+    SLIDESHOW.preloadQueue.length = 0;
+
+    // Clear preloaded next
+    SLIDESHOW.preloadedNext = null;
+
+    console.log('Full memory cleanup completed');
+  }
+
+  // Start memory monitoring
+  startMonitoring() {
+    if (this.isMonitoring) return;
+
+    this.isMonitoring = true;
+    this.cleanupInterval = global.timerController.scheduleInterval(() => {
+      this.cleanupPhotoCache();
+      this.cleanupDiskCache();
+      this.cleanupPreloadQueue();
+
+      // Log memory usage
+      const memInfo = this.getMemoryInfo();
+      console.log('Memory status:', memInfo);
+    }, 60000, 'backend_memory_monitor'); // Check every minute
+  }
+
+  // Stop monitoring
+  stopMonitoring() {
+    if (this.cleanupInterval) {
+      global.timerController.clearTimer(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.isMonitoring = false;
+  }
+
+  // Get memory usage info
+  getMemoryInfo() {
+    const memUsage = process.memoryUsage();
+    return {
+      photoCacheSize: SLIDESHOW.photoCache.size,
+      diskCacheSize: SLIDESHOW.diskCache.size,
+      preloadQueueSize: SLIDESHOW.preloadQueue.length,
+      rss: Math.round(memUsage.rss / 1024 / 1024), // MB
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
+      external: Math.round(memUsage.external / 1024 / 1024) // MB
+    };
+  }
+}
+
+// Global backend memory manager instance
+global.backendMemoryManager = new BackendMemoryManager();
+
+/**
+ * IPC Batching System - reduces frequent webContents.send() calls
+ */
+class IPCBatcher {
+  constructor() {
+    this.updateQueue = [];
+    this.batchTimeout = null;
+    this.batchDelay = 16; // ~60fps batching
+    this.isProcessing = false;
+  }
+
+  // Queue an IPC message for batching
+  queue(channel, data) {
+    this.updateQueue.push({ channel, data, timestamp: Date.now() });
+
+    // Schedule batch processing if not already scheduled
+    if (!this.batchTimeout) {
+      this.batchTimeout = setTimeout(() => {
+        this.processBatch();
+      }, this.batchDelay);
+    }
+  }
+
+  // Process all queued messages in a single batch
+  processBatch() {
+    if (this.isProcessing || this.updateQueue.length === 0) return;
+
+    this.isProcessing = true;
+    this.batchTimeout = null;
+
+    // Group messages by channel
+    const batches = {};
+    this.updateQueue.forEach(msg => {
+      if (!batches[msg.channel]) {
+        batches[msg.channel] = [];
+      }
+      batches[msg.channel].push(msg);
+    });
+
+    // Send batched messages
+    Object.keys(batches).forEach(channel => {
+      const messages = batches[channel];
+
+      if (channel === 'slideshow-config') {
+        // Merge config updates into single message
+        const mergedConfig = {};
+        messages.forEach(msg => {
+          Object.assign(mergedConfig, msg.data);
+        });
+
+        if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
+          SLIDESHOW.view.webContents.send(channel, mergedConfig);
+        }
+      } else {
+        // For non-config messages, send the latest one
+        const latestMessage = messages[messages.length - 1];
+        if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
+          SLIDESHOW.view.webContents.send(channel, latestMessage.data);
+        }
+      }
+    });
+
+    // Clear queue and reset processing flag
+    this.updateQueue.length = 0;
+    this.isProcessing = false;
+
+    console.log(`Processed IPC batch: ${Object.keys(batches).length} channels`);
+  }
+
+  // Force immediate processing of queue
+  flush() {
+    if (this.batchTimeout) {
+      clearTimeout(this.batchTimeout);
+      this.batchTimeout = null;
+    }
+    this.processBatch();
+  }
+
+  // Get batch statistics
+  getStats() {
+    return {
+      queueLength: this.updateQueue.length,
+      isProcessing: this.isProcessing,
+      batchDelay: this.batchDelay
+    };
+  }
+}
+
+// Global IPC batcher instance
+global.ipcBatcher = new IPCBatcher();
+
+/**
  * Combines multiple Google album fields into a single string
  */
 const getGoogleAlbumIds = () => {
@@ -230,6 +512,10 @@ const init = async () => {
     startPreloadManager();
 
     SLIDESHOW.initialized = true;
+
+    // Start backend memory monitoring
+    global.backendMemoryManager.startMonitoring();
+    console.log('Slideshow initialized with memory management');
     console.log("Slideshow initialized successfully");
     return true;
   } catch (error) {
@@ -1403,10 +1689,10 @@ const setupIdleDetection = () => {
 
 const resetIdleTimer = () => {
   if (SLIDESHOW.idleTimer) {
-    clearTimeout(SLIDESHOW.idleTimer);
+    global.timerController.clearTimer(SLIDESHOW.idleTimer);
   }
 
-  SLIDESHOW.idleTimer = setTimeout(() => {
+  SLIDESHOW.idleTimer = global.timerController.scheduleTimeout(() => {
     // Check if photos are available (Google Photos OR local photos)
     const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
 
@@ -1423,7 +1709,7 @@ const resetIdleTimer = () => {
       console.log("Idle timeout reached, starting slideshow");
       showSlideshow();
     }
-  }, SLIDESHOW.config.idleTimeout);
+  }, SLIDESHOW.config.idleTimeout, 'idle_timer');
 };
 
 // Helper function to calculate animation duration from speed setting
@@ -1444,7 +1730,7 @@ const getAnimationDuration = () => {
 const pauseSlideshowTimer = () => {
   if (SLIDESHOW.timer) {
     console.log("Pausing slideshow timer");
-    clearInterval(SLIDESHOW.timer);
+    global.timerController.clearTimer(SLIDESHOW.timer);
     SLIDESHOW.timer = null;
   }
 };
@@ -1522,7 +1808,7 @@ const showSlideshow = async () => {
     }));
   }
 
-  SLIDESHOW.view.webContents.send("slideshow-config", {
+  global.ipcBatcher.queue("slideshow-config", {
     config: SLIDESHOW.config,
     photos: photosToCount,
     googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,
@@ -1648,7 +1934,7 @@ const hideSlideshowSafely = () => {
   publishSlideshowState();
 
   if (SLIDESHOW.timer) {
-    clearInterval(SLIDESHOW.timer);
+    global.timerController.clearTimer(SLIDESHOW.timer);
     SLIDESHOW.timer = null;
   }
 
@@ -1687,7 +1973,7 @@ const hideSlideshowSafely = () => {
 
 const startSlideshowTimer = () => {
   if (SLIDESHOW.timer) {
-    clearInterval(SLIDESHOW.timer);
+    global.timerController.clearTimer(SLIDESHOW.timer);
   }
 
   // Start preloading photos for the slideshow
@@ -1696,7 +1982,7 @@ const startSlideshowTimer = () => {
     queuePreload(SLIDESHOW.googlePhotoIndex);
   }
 
-  SLIDESHOW.timer = setInterval(async () => {
+  SLIDESHOW.timer = global.timerController.scheduleInterval(async () => {
     if (!SLIDESHOW.active) {
       return;
     }
@@ -1744,7 +2030,7 @@ const startSlideshowTimer = () => {
       index: photo.index || SLIDESHOW.currentIndex,
       photo: photo,
     });
-  }, SLIDESHOW.config.interval);
+  }, SLIDESHOW.config.interval, 'main_slideshow_timer');
 };
 
 const updateConfig = (newConfig) => {
@@ -1752,7 +2038,7 @@ const updateConfig = (newConfig) => {
 
   if (SLIDESHOW.active) {
     if (SLIDESHOW.timer) {
-      clearInterval(SLIDESHOW.timer);
+      global.timerController.clearTimer(SLIDESHOW.timer);
       startSlideshowTimer();
     }
   }
@@ -1761,7 +2047,7 @@ const updateConfig = (newConfig) => {
 
   // Send config update to view if it exists
   if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
-    SLIDESHOW.view.webContents.send("slideshow-config", {
+    global.ipcBatcher.queue("slideshow-config", {
       config: SLIDESHOW.config,
     });
   }
@@ -1796,7 +2082,7 @@ const reloadPhotos = async () => {
       }));
     }
 
-    SLIDESHOW.view.webContents.send("slideshow-config", {
+    global.ipcBatcher.queue("slideshow-config", {
       config: SLIDESHOW.config,
       photos: photosToCount,
     });
@@ -1820,12 +2106,12 @@ const getStatus = () => ({
 
 const cleanup = () => {
   if (SLIDESHOW.timer) {
-    clearInterval(SLIDESHOW.timer);
+    global.timerController.clearTimer(SLIDESHOW.timer);
     SLIDESHOW.timer = null;
   }
 
   if (SLIDESHOW.idleTimer) {
-    clearTimeout(SLIDESHOW.idleTimer);
+    global.timerController.clearTimer(SLIDESHOW.idleTimer);
     SLIDESHOW.idleTimer = null;
   }
 
