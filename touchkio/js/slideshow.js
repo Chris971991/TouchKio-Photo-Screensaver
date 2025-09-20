@@ -333,11 +333,11 @@ const initSlideshowView = async () => {
     // Function to start activity grace period after slideshow starts
     SLIDESHOW.startActivityGracePeriod = () => {
       activityGracePeriod = true;
-      console.log("Activity detection disabled for 3 seconds (grace period)");
+      console.log("Activity detection disabled for 1 second (grace period)");
       setTimeout(() => {
         activityGracePeriod = false;
         console.log("Activity detection re-enabled");
-      }, 3000);
+      }, 1000);
     };
   } catch (error) {
     console.warn("Running outside Electron context, slideshow view not initialized");
