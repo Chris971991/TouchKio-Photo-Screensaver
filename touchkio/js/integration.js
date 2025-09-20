@@ -998,6 +998,8 @@ const initSlideshow = () => {
   initSlideshowClockBorderRadius();
   initSlideshowClockPadding();
   initSlideshowClockShadow();
+  initSlideshowClockCustomX();
+  initSlideshowClockCustomY();
 
   // === DATE ELEMENT ===
   initSlideshowShowDate();
@@ -1010,6 +1012,8 @@ const initSlideshow = () => {
   initSlideshowDateBorderRadius();
   initSlideshowDatePadding();
   initSlideshowDateShadow();
+  initSlideshowDateCustomX();
+  initSlideshowDateCustomY();
 
   // === SOURCE INDICATOR ===
   initSlideshowShowSource();
@@ -1022,6 +1026,8 @@ const initSlideshow = () => {
   initSlideshowSourceBorderRadius();
   initSlideshowSourcePadding();
   initSlideshowSourceShadow();
+  initSlideshowSourceCustomX();
+  initSlideshowSourceCustomY();
 
   // === PHOTO COUNTER ===
   initSlideshowShowCounter();
@@ -1034,6 +1040,8 @@ const initSlideshow = () => {
   initSlideshowCounterBorderRadius();
   initSlideshowCounterPadding();
   initSlideshowCounterShadow();
+  initSlideshowCounterCustomX();
+  initSlideshowCounterCustomY();
 
   // === METADATA OVERLAY ===
   initSlideshowShowMetadata();
@@ -1046,6 +1054,8 @@ const initSlideshow = () => {
   initSlideshowMetadataBorderRadius();
   initSlideshowMetadataPadding();
   initSlideshowMetadataShadow();
+  initSlideshowMetadataCustomX();
+  initSlideshowMetadataCustomY();
   initSlideshowMetadataTransitionType();
   initSlideshowShowFilename();
   initSlideshowShowDateTaken();
@@ -2508,6 +2518,53 @@ const updateSlideshow = async () => {
   publishState("slideshow_show_location", status.config.showLocation ? "ON" : "OFF");
   publishState("slideshow_metadata_background", status.config.metadataBackground || ARGS.slideshow_metadata_background || "dark");
   publishState("slideshow_metadata_color", status.config.metadataColor || ARGS.slideshow_metadata_color || "#ffffff");
+
+  // Phase 2: Advanced Background Options (Border Radius, Padding, Shadows)
+  // Clock advanced styling
+  publishState("slideshow_clock_border_radius", status.config.clockBorderRadius || ARGS.slideshow_clock_border_radius || "");
+  publishState("slideshow_clock_padding", status.config.clockPadding || ARGS.slideshow_clock_padding || "");
+  publishState("slideshow_clock_shadow", status.config.clockShadow || ARGS.slideshow_clock_shadow || "");
+
+  // Date advanced styling
+  publishState("slideshow_date_border_radius", status.config.dateBorderRadius || ARGS.slideshow_date_border_radius || "");
+  publishState("slideshow_date_padding", status.config.datePadding || ARGS.slideshow_date_padding || "");
+  publishState("slideshow_date_shadow", status.config.dateShadow || ARGS.slideshow_date_shadow || "");
+
+  // Source advanced styling
+  publishState("slideshow_source_border_radius", status.config.sourceBorderRadius || ARGS.slideshow_source_border_radius || "");
+  publishState("slideshow_source_padding", status.config.sourcePadding || ARGS.slideshow_source_padding || "");
+  publishState("slideshow_source_shadow", status.config.sourceShadow || ARGS.slideshow_source_shadow || "");
+
+  // Counter advanced styling
+  publishState("slideshow_counter_border_radius", status.config.counterBorderRadius || ARGS.slideshow_counter_border_radius || "");
+  publishState("slideshow_counter_padding", status.config.counterPadding || ARGS.slideshow_counter_padding || "");
+  publishState("slideshow_counter_shadow", status.config.counterShadow || ARGS.slideshow_counter_shadow || "");
+
+  // Metadata advanced styling
+  publishState("slideshow_metadata_border_radius", status.config.metadataBorderRadius || ARGS.slideshow_metadata_border_radius || "");
+  publishState("slideshow_metadata_padding", status.config.metadataPadding || ARGS.slideshow_metadata_padding || "");
+  publishState("slideshow_metadata_shadow", status.config.metadataShadow || ARGS.slideshow_metadata_shadow || "");
+
+  // Phase 3: Custom X/Y Coordinate Positioning
+  // Clock custom positioning
+  publishState("slideshow_clock_custom_x", status.config.clockCustomX || ARGS.slideshow_clock_custom_x || "");
+  publishState("slideshow_clock_custom_y", status.config.clockCustomY || ARGS.slideshow_clock_custom_y || "");
+
+  // Date custom positioning
+  publishState("slideshow_date_custom_x", status.config.dateCustomX || ARGS.slideshow_date_custom_x || "");
+  publishState("slideshow_date_custom_y", status.config.dateCustomY || ARGS.slideshow_date_custom_y || "");
+
+  // Source custom positioning
+  publishState("slideshow_source_custom_x", status.config.sourceCustomX || ARGS.slideshow_source_custom_x || "");
+  publishState("slideshow_source_custom_y", status.config.sourceCustomY || ARGS.slideshow_source_custom_y || "");
+
+  // Counter custom positioning
+  publishState("slideshow_counter_custom_x", status.config.counterCustomX || ARGS.slideshow_counter_custom_x || "");
+  publishState("slideshow_counter_custom_y", status.config.counterCustomY || ARGS.slideshow_counter_custom_y || "");
+
+  // Metadata custom positioning
+  publishState("slideshow_metadata_custom_x", status.config.metadataCustomX || ARGS.slideshow_metadata_custom_x || "");
+  publishState("slideshow_metadata_custom_y", status.config.metadataCustomY || ARGS.slideshow_metadata_custom_y || "");
 };
 
 /**
@@ -3545,6 +3602,266 @@ const initSlideshowMetadataShadow = () => {
         console.log("Set Slideshow Metadata Shadow:", metadataShadow);
         updateSlideshowSetting("slideshow_metadata_shadow", metadataShadow);
         slideshow.updateConfig({ metadataShadow });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock custom X position control.
+ */
+const initSlideshowClockCustomX = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_custom_x`;
+  const config = {
+    name: "Slideshow Clock Custom X",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_custom_x`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-x-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockCustomX = message.toString();
+        console.log("Set Slideshow Clock Custom X:", clockCustomX);
+        updateSlideshowSetting("slideshow_clock_custom_x", clockCustomX);
+        slideshow.updateConfig({ clockCustomX });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock custom Y position control.
+ */
+const initSlideshowClockCustomY = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_custom_y`;
+  const config = {
+    name: "Slideshow Clock Custom Y",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_custom_y`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-y-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockCustomY = message.toString();
+        console.log("Set Slideshow Clock Custom Y:", clockCustomY);
+        updateSlideshowSetting("slideshow_clock_custom_y", clockCustomY);
+        slideshow.updateConfig({ clockCustomY });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date custom X position control.
+ */
+const initSlideshowDateCustomX = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_custom_x`;
+  const config = {
+    name: "Slideshow Date Custom X",
+    unique_id: `${INTEGRATION.node}_slideshow_date_custom_x`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-x-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateCustomX = message.toString();
+        console.log("Set Slideshow Date Custom X:", dateCustomX);
+        updateSlideshowSetting("slideshow_date_custom_x", dateCustomX);
+        slideshow.updateConfig({ dateCustomX });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date custom Y position control.
+ */
+const initSlideshowDateCustomY = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_custom_y`;
+  const config = {
+    name: "Slideshow Date Custom Y",
+    unique_id: `${INTEGRATION.node}_slideshow_date_custom_y`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-y-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateCustomY = message.toString();
+        console.log("Set Slideshow Date Custom Y:", dateCustomY);
+        updateSlideshowSetting("slideshow_date_custom_y", dateCustomY);
+        slideshow.updateConfig({ dateCustomY });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source custom X position control.
+ */
+const initSlideshowSourceCustomX = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_custom_x`;
+  const config = {
+    name: "Slideshow Source Custom X",
+    unique_id: `${INTEGRATION.node}_slideshow_source_custom_x`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-x-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceCustomX = message.toString();
+        console.log("Set Slideshow Source Custom X:", sourceCustomX);
+        updateSlideshowSetting("slideshow_source_custom_x", sourceCustomX);
+        slideshow.updateConfig({ sourceCustomX });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source custom Y position control.
+ */
+const initSlideshowSourceCustomY = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_custom_y`;
+  const config = {
+    name: "Slideshow Source Custom Y",
+    unique_id: `${INTEGRATION.node}_slideshow_source_custom_y`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-y-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceCustomY = message.toString();
+        console.log("Set Slideshow Source Custom Y:", sourceCustomY);
+        updateSlideshowSetting("slideshow_source_custom_y", sourceCustomY);
+        slideshow.updateConfig({ sourceCustomY });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter custom X position control.
+ */
+const initSlideshowCounterCustomX = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_custom_x`;
+  const config = {
+    name: "Slideshow Counter Custom X",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_custom_x`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-x-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterCustomX = message.toString();
+        console.log("Set Slideshow Counter Custom X:", counterCustomX);
+        updateSlideshowSetting("slideshow_counter_custom_x", counterCustomX);
+        slideshow.updateConfig({ counterCustomX });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter custom Y position control.
+ */
+const initSlideshowCounterCustomY = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_custom_y`;
+  const config = {
+    name: "Slideshow Counter Custom Y",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_custom_y`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-y-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterCustomY = message.toString();
+        console.log("Set Slideshow Counter Custom Y:", counterCustomY);
+        updateSlideshowSetting("slideshow_counter_custom_y", counterCustomY);
+        slideshow.updateConfig({ counterCustomY });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata custom X position control.
+ */
+const initSlideshowMetadataCustomX = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_custom_x`;
+  const config = {
+    name: "Slideshow Metadata Custom X",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_custom_x`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-x-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataCustomX = message.toString();
+        console.log("Set Slideshow Metadata Custom X:", metadataCustomX);
+        updateSlideshowSetting("slideshow_metadata_custom_x", metadataCustomX);
+        slideshow.updateConfig({ metadataCustomX });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata custom Y position control.
+ */
+const initSlideshowMetadataCustomY = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_custom_y`;
+  const config = {
+    name: "Slideshow Metadata Custom Y",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_custom_y`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:axis-y-arrow",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataCustomY = message.toString();
+        console.log("Set Slideshow Metadata Custom Y:", metadataCustomY);
+        updateSlideshowSetting("slideshow_metadata_custom_y", metadataCustomY);
+        slideshow.updateConfig({ metadataCustomY });
       }
     })
     .subscribe(config.command_topic);

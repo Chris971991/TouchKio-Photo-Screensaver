@@ -881,8 +881,36 @@
             // Clear existing classes
             overlay.className = 'metadata-overlay';
 
-            // Apply position
-            overlay.classList.add(`pos-${config.metadataPosition || 'bottom-center'}`);
+            // Check if custom coordinates are provided
+            const hasCustomX = config.metadataCustomX && config.metadataCustomX.trim() !== '';
+            const hasCustomY = config.metadataCustomY && config.metadataCustomY.trim() !== '';
+
+            if (hasCustomX || hasCustomY) {
+                // Use custom positioning - don't add position class, apply directly
+                overlay.style.position = 'absolute';
+                overlay.style.top = 'auto';
+                overlay.style.right = 'auto';
+                overlay.style.bottom = 'auto';
+                overlay.style.left = 'auto';
+                overlay.style.transform = 'none';
+
+                if (hasCustomX) {
+                    overlay.style.left = config.metadataCustomX;
+                }
+                if (hasCustomY) {
+                    overlay.style.top = config.metadataCustomY;
+                }
+            } else {
+                // Use preset position with CSS classes
+                overlay.classList.add(`pos-${config.metadataPosition || 'bottom-center'}`);
+                // Clear any custom positioning
+                overlay.style.position = '';
+                overlay.style.top = '';
+                overlay.style.right = '';
+                overlay.style.bottom = '';
+                overlay.style.left = '';
+                overlay.style.transform = '';
+            }
 
             // Apply background
             overlay.classList.add(`background-${config.metadataBackground || 'dark'}`);
@@ -1268,25 +1296,52 @@
                 sourceIndicator.style.right = 'auto';
                 sourceIndicator.style.bottom = 'auto';
                 sourceIndicator.style.left = 'auto';
+                sourceIndicator.style.transform = 'none';
 
-                // Apply positioning
-                switch(sourcePos) {
-                    case 'top-left':
-                        sourceIndicator.style.top = '20px';
-                        sourceIndicator.style.left = '20px';
-                        break;
-                    case 'top-right':
-                        sourceIndicator.style.top = '20px';
-                        sourceIndicator.style.right = '20px';
-                        break;
-                    case 'bottom-left':
-                        sourceIndicator.style.bottom = '20px';
-                        sourceIndicator.style.left = '20px';
-                        break;
-                    case 'bottom-right':
-                        sourceIndicator.style.bottom = '20px';
-                        sourceIndicator.style.right = '20px';
-                        break;
+                // Check if custom coordinates are provided
+                const hasCustomX = config.sourceCustomX && config.sourceCustomX.trim() !== '';
+                const hasCustomY = config.sourceCustomY && config.sourceCustomY.trim() !== '';
+
+                if (hasCustomX || hasCustomY) {
+                    // Use custom positioning - clear preset styles first
+                    sourceIndicator.style.top = 'auto';
+                    sourceIndicator.style.right = 'auto';
+                    sourceIndicator.style.bottom = 'auto';
+                    sourceIndicator.style.left = 'auto';
+                    sourceIndicator.style.transform = 'none';
+
+                    if (hasCustomX) {
+                        sourceIndicator.style.left = config.sourceCustomX;
+                    }
+                    if (hasCustomY) {
+                        sourceIndicator.style.top = config.sourceCustomY;
+                    }
+                } else {
+                    // Use preset position - clear all custom positioning first
+                    sourceIndicator.style.top = 'auto';
+                    sourceIndicator.style.right = 'auto';
+                    sourceIndicator.style.bottom = 'auto';
+                    sourceIndicator.style.left = 'auto';
+                    sourceIndicator.style.transform = 'none';
+
+                    switch(sourcePos) {
+                        case 'top-left':
+                            sourceIndicator.style.top = '20px';
+                            sourceIndicator.style.left = '20px';
+                            break;
+                        case 'top-right':
+                            sourceIndicator.style.top = '20px';
+                            sourceIndicator.style.right = '20px';
+                            break;
+                        case 'bottom-left':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.left = '20px';
+                            break;
+                        case 'bottom-right':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.right = '20px';
+                            break;
+                    }
                 }
 
                 // Apply custom color if specified
@@ -1351,37 +1406,73 @@
                     clock.className = `clock background-${clockBackground} font-size-${clockFontSize} pos-${clockPos}`;
                 }
 
-                // Apply positioning directly
+                // Apply positioning - use custom coordinates if provided, otherwise use preset positions
                 clock.style.position = 'absolute';
                 clock.style.zIndex = '10';
                 clock.style.top = 'auto';
                 clock.style.right = 'auto';
                 clock.style.bottom = 'auto';
                 clock.style.left = 'auto';
+                clock.style.transform = 'none';
 
-                // Apply specific position
-                switch(clockPos) {
-                    case 'top-left':
-                        clock.style.top = '20px';
-                        clock.style.left = '20px';
-                        break;
-                    case 'top-right':
-                        clock.style.top = '20px';
-                        clock.style.right = '20px';
-                        break;
-                    case 'bottom-left':
-                        clock.style.bottom = '20px';
-                        clock.style.left = '20px';
-                        break;
-                    case 'bottom-right':
-                        clock.style.bottom = '20px';
-                        clock.style.right = '20px';
-                        break;
-                    case 'center':
-                        clock.style.top = '50%';
-                        clock.style.left = '50%';
-                        clock.style.transform = 'translate(-50%, -50%)';
-                        break;
+                // Check if custom coordinates are provided (handle empty strings and undefined)
+                const hasCustomX = config.clockCustomX && config.clockCustomX.toString().trim() !== '';
+                const hasCustomY = config.clockCustomY && config.clockCustomY.toString().trim() !== '';
+
+                console.log('Clock positioning debug:', {
+                    clockCustomX: config.clockCustomX,
+                    clockCustomY: config.clockCustomY,
+                    hasCustomX,
+                    hasCustomY
+                });
+
+                if (hasCustomX || hasCustomY) {
+                    // Use custom positioning - clear preset styles first
+                    clock.style.top = 'auto';
+                    clock.style.right = 'auto';
+                    clock.style.bottom = 'auto';
+                    clock.style.left = 'auto';
+                    clock.style.transform = 'none';
+
+                    if (hasCustomX) {
+                        clock.style.left = config.clockCustomX;
+                        console.log('Applied custom clock X:', config.clockCustomX);
+                    }
+                    if (hasCustomY) {
+                        clock.style.top = config.clockCustomY;
+                        console.log('Applied custom clock Y:', config.clockCustomY);
+                    }
+                } else {
+                    // Use preset position - clear all custom positioning first
+                    clock.style.top = 'auto';
+                    clock.style.right = 'auto';
+                    clock.style.bottom = 'auto';
+                    clock.style.left = 'auto';
+                    clock.style.transform = 'none';
+
+                    switch(clockPos) {
+                        case 'top-left':
+                            clock.style.top = '20px';
+                            clock.style.left = '20px';
+                            break;
+                        case 'top-right':
+                            clock.style.top = '20px';
+                            clock.style.right = '20px';
+                            break;
+                        case 'bottom-left':
+                            clock.style.bottom = '20px';
+                            clock.style.left = '20px';
+                            break;
+                        case 'bottom-right':
+                            clock.style.bottom = '20px';
+                            clock.style.right = '20px';
+                            break;
+                        case 'center':
+                            clock.style.top = '50%';
+                            clock.style.left = '50%';
+                            clock.style.transform = 'translate(-50%, -50%)';
+                            break;
+                    }
                 }
 
                 // Apply custom color if specified
@@ -1447,37 +1538,64 @@
                     date.style.fontSize = ''; // Clear custom font size
                 }
 
-                // Apply positioning directly
+                // Apply positioning - use custom coordinates if provided, otherwise use preset positions
                 date.style.position = 'absolute';
                 date.style.zIndex = '10';
                 date.style.top = 'auto';
                 date.style.right = 'auto';
                 date.style.bottom = 'auto';
                 date.style.left = 'auto';
+                date.style.transform = 'none';
 
-                // Apply specific position
-                switch(datePos) {
-                    case 'top-left':
-                        date.style.top = '20px';
-                        date.style.left = '20px';
-                        break;
-                    case 'top-right':
-                        date.style.top = '20px';
-                        date.style.right = '20px';
-                        break;
-                    case 'bottom-left':
-                        date.style.bottom = '20px';
-                        date.style.left = '20px';
-                        break;
-                    case 'bottom-right':
-                        date.style.bottom = '20px';
-                        date.style.right = '20px';
-                        break;
-                    case 'center':
-                        date.style.top = '50%';
-                        date.style.left = '50%';
-                        date.style.transform = 'translate(-50%, -50%)';
-                        break;
+                // Check if custom coordinates are provided
+                const hasCustomX = config.dateCustomX && config.dateCustomX.trim() !== '';
+                const hasCustomY = config.dateCustomY && config.dateCustomY.trim() !== '';
+
+                if (hasCustomX || hasCustomY) {
+                    // Use custom positioning - clear preset styles first
+                    date.style.top = 'auto';
+                    date.style.right = 'auto';
+                    date.style.bottom = 'auto';
+                    date.style.left = 'auto';
+                    date.style.transform = 'none';
+
+                    if (hasCustomX) {
+                        date.style.left = config.dateCustomX;
+                    }
+                    if (hasCustomY) {
+                        date.style.top = config.dateCustomY;
+                    }
+                } else {
+                    // Use preset position - clear all custom positioning first
+                    date.style.top = 'auto';
+                    date.style.right = 'auto';
+                    date.style.bottom = 'auto';
+                    date.style.left = 'auto';
+                    date.style.transform = 'none';
+
+                    switch(datePos) {
+                        case 'top-left':
+                            date.style.top = '20px';
+                            date.style.left = '20px';
+                            break;
+                        case 'top-right':
+                            date.style.top = '20px';
+                            date.style.right = '20px';
+                            break;
+                        case 'bottom-left':
+                            date.style.bottom = '20px';
+                            date.style.left = '20px';
+                            break;
+                        case 'bottom-right':
+                            date.style.bottom = '20px';
+                            date.style.right = '20px';
+                            break;
+                        case 'center':
+                            date.style.top = '50%';
+                            date.style.left = '50%';
+                            date.style.transform = 'translate(-50%, -50%)';
+                            break;
+                    }
                 }
 
                 // Apply custom color if specified
@@ -1549,25 +1667,52 @@
                 photoCounter.style.right = 'auto';
                 photoCounter.style.bottom = 'auto';
                 photoCounter.style.left = 'auto';
+                photoCounter.style.transform = 'none';
 
-                // Apply positioning
-                switch(counterPos) {
-                    case 'top-left':
-                        photoCounter.style.top = '20px';
-                        photoCounter.style.left = '20px';
-                        break;
-                    case 'top-right':
-                        photoCounter.style.top = '20px';
-                        photoCounter.style.right = '20px';
-                        break;
-                    case 'bottom-left':
-                        photoCounter.style.bottom = '20px';
-                        photoCounter.style.left = '20px';
-                        break;
-                    case 'bottom-right':
-                        photoCounter.style.bottom = '20px';
-                        photoCounter.style.right = '20px';
-                        break;
+                // Check if custom coordinates are provided
+                const hasCustomX = config.counterCustomX && config.counterCustomX.trim() !== '';
+                const hasCustomY = config.counterCustomY && config.counterCustomY.trim() !== '';
+
+                if (hasCustomX || hasCustomY) {
+                    // Use custom positioning - clear preset styles first
+                    photoCounter.style.top = 'auto';
+                    photoCounter.style.right = 'auto';
+                    photoCounter.style.bottom = 'auto';
+                    photoCounter.style.left = 'auto';
+                    photoCounter.style.transform = 'none';
+
+                    if (hasCustomX) {
+                        photoCounter.style.left = config.counterCustomX;
+                    }
+                    if (hasCustomY) {
+                        photoCounter.style.top = config.counterCustomY;
+                    }
+                } else {
+                    // Use preset position - clear all custom positioning first
+                    photoCounter.style.top = 'auto';
+                    photoCounter.style.right = 'auto';
+                    photoCounter.style.bottom = 'auto';
+                    photoCounter.style.left = 'auto';
+                    photoCounter.style.transform = 'none';
+
+                    switch(counterPos) {
+                        case 'top-left':
+                            photoCounter.style.top = '20px';
+                            photoCounter.style.left = '20px';
+                            break;
+                        case 'top-right':
+                            photoCounter.style.top = '20px';
+                            photoCounter.style.right = '20px';
+                            break;
+                        case 'bottom-left':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.left = '20px';
+                            break;
+                        case 'bottom-right':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.right = '20px';
+                            break;
+                    }
                 }
 
                 // Apply custom color if specified
@@ -1622,28 +1767,28 @@
 
             // Re-apply source indicator styling if any source option changed
             if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
-                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow)) {
+                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow || newConfig.sourceCustomX || newConfig.sourceCustomY)) {
                 applySourceIndicatorPosition();
             }
 
             // Re-apply counter styling if any counter option changed
             if (currentPhotoIndex !== -1 && (newConfig.counterPosition || newConfig.counterBackground ||
-                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity || newConfig.counterBorderRadius || newConfig.counterPadding || newConfig.counterShadow)) {
+                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity || newConfig.counterBorderRadius || newConfig.counterPadding || newConfig.counterShadow || newConfig.counterCustomX || newConfig.counterCustomY)) {
                 applyPhotoCounterPosition();
             }
 
             // Re-apply clock styling if any clock option changed
-            if (newConfig.clockFontSize || newConfig.clockCustomFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.clockBorderRadius || newConfig.clockPadding || newConfig.clockShadow || newConfig.showClock !== undefined) {
+            if (newConfig.clockFontSize || newConfig.clockCustomFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.clockBorderRadius || newConfig.clockPadding || newConfig.clockShadow || newConfig.clockCustomX || newConfig.clockCustomY || newConfig.showClock !== undefined) {
                 applyClock();
             }
 
             // Re-apply date styling if any date option changed
-            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.dateBorderRadius || newConfig.datePadding || newConfig.dateShadow || newConfig.showDate !== undefined) {
+            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.dateBorderRadius || newConfig.datePadding || newConfig.dateShadow || newConfig.dateCustomX || newConfig.dateCustomY || newConfig.showDate !== undefined) {
                 applyDate();
             }
 
             // Re-apply metadata styling if any metadata option changed
-            if (newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataBackgroundOpacity || newConfig.metadataBorderRadius || newConfig.metadataPadding || newConfig.metadataShadow) {
+            if (newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataBackgroundOpacity || newConfig.metadataBorderRadius || newConfig.metadataPadding || newConfig.metadataShadow || newConfig.metadataCustomX || newConfig.metadataCustomY) {
                 if (currentPhotoIndex !== -1) {
                     updateMetadataOverlay();
                 }

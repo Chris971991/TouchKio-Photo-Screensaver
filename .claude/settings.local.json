@@ -34,7 +34,8 @@
       "Read(//c/**)",
       "Bash(chmod:*)",
       "Bash(git reset:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(systemctl:*)"
     ],
     "deny": [],
     "ask": []
