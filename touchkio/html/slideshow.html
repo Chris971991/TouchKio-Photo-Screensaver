@@ -23,8 +23,6 @@
             left: 0;
             right: 0;
             bottom: 0;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
         }
 
         .slideshow-container {
@@ -577,6 +575,38 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Elegant animation keyframes */
+        @keyframes elegantIn {
+            0% {
+                opacity: 0;
+                transform: scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes elegantOut {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+        }
+
+        /* Animation classes */
+        .animate-elegant-in {
+            animation: elegantIn 0.4s ease-out forwards;
+        }
+
+        .animate-elegant-out {
+            animation: elegantOut 0.4s ease-out forwards;
         }
 
         .error-message {
@@ -1820,10 +1850,41 @@
             }
         };
 
-        // Listen for slideshow ready event to show the body
+        // Listen for slideshow ready event - backend handles visibility
         ipcRenderer.on('slideshow-ready', () => {
-            document.body.style.opacity = '1';
-            console.log('Slideshow entrance animation started');
+            console.log('Slideshow content ready - backend will handle elegant animations');
+        });
+
+        // Animation functions
+        function applySlideshowEntranceAnimation() {
+            console.log('Applying elegant entrance animation');
+            document.body.classList.add('animate-elegant-in');
+            document.body.classList.remove('animate-elegant-out');
+
+            // Remove the animation class after it completes
+            setTimeout(() => {
+                document.body.classList.remove('animate-elegant-in');
+            }, 400);
+        }
+
+        function applySlideshowExitAnimation() {
+            console.log('Applying elegant exit animation');
+            document.body.classList.add('animate-elegant-out');
+            document.body.classList.remove('animate-elegant-in');
+
+            // Remove the animation class after it completes
+            setTimeout(() => {
+                document.body.classList.remove('animate-elegant-out');
+            }, 400);
+        }
+
+        // Listen for animation events from backend
+        ipcRenderer.on('apply-entrance-animation', () => {
+            applySlideshowEntranceAnimation();
+        });
+
+        ipcRenderer.on('apply-exit-animation', () => {
+            applySlideshowExitAnimation();
         });
 
         console.log('Slideshow HTML loaded and ready');
