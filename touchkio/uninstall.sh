@@ -26,14 +26,19 @@ echo "✓ Service stopped and removed"
 echo ""
 echo "Step 2: Killing any running TouchKio processes..."
 
-# Kill any running TouchKio processes
+# Kill any running TouchKio processes (multiple patterns)
 pkill -f touchkio || true
 pkill -f TouchKio || true
-sleep 2
+pkill -f /usr/bin/touchkio || true
+pkill -f /usr/lib/touchkio || true
+sleep 3
 
 # Force kill if still running
 pkill -9 -f touchkio || true
 pkill -9 -f TouchKio || true
+pkill -9 -f /usr/bin/touchkio || true
+pkill -9 -f /usr/lib/touchkio || true
+sleep 1
 
 echo "✓ All TouchKio processes terminated"
 
@@ -53,10 +58,14 @@ echo "Step 4: Removing TouchKio configuration..."
 rm -rf ~/.config/touchkio/
 rm -rf ~/.local/share/touchkio/
 rm -rf ~/.cache/touchkio/
+rm -rf ~/.touchkio*
 
 # Remove any TouchKio desktop entries
 rm -f ~/.local/share/applications/touchkio.desktop
 sudo rm -f /usr/share/applications/touchkio.desktop
+
+# Remove any TouchKio systemd user service files
+rm -f ~/.config/systemd/user/touchkio*
 
 echo "✓ Configuration files removed"
 
@@ -67,6 +76,11 @@ echo "Step 5: Removing TouchKio installation directories..."
 sudo rm -rf /usr/lib/touchkio/
 sudo rm -rf /usr/share/touchkio/
 sudo rm -f /usr/bin/touchkio
+sudo rm -rf /var/lib/touchkio/
+sudo rm -rf /etc/touchkio/
+
+# Remove any TouchKio related symlinks
+sudo find /usr/local/bin -name "*touchkio*" -type l -delete 2>/dev/null || true
 
 echo "✓ Installation directories removed"
 
@@ -91,10 +105,19 @@ echo "✓ MQTT entities will be removed automatically from Home Assistant"
 echo ""
 echo "Step 8: Removing any remaining TouchKio files..."
 
-# Find and remove any remaining TouchKio files
+# Find and remove any remaining TouchKio files (more thorough)
 sudo find /usr -name "*touchkio*" -exec rm -rf {} + 2>/dev/null || true
 sudo find /opt -name "*touchkio*" -exec rm -rf {} + 2>/dev/null || true
+sudo find /var -name "*touchkio*" -exec rm -rf {} + 2>/dev/null || true
+sudo find /etc -name "*touchkio*" -exec rm -rf {} + 2>/dev/null || true
 find ~ -name "*touchkio*" -exec rm -rf {} + 2>/dev/null || true
+
+# Remove any TouchKio logs
+sudo rm -rf /var/log/touchkio* 2>/dev/null || true
+rm -rf ~/.local/share/TouchKio* 2>/dev/null || true
+
+# Clear any apt package lists
+sudo rm -f /var/lib/apt/lists/*touchkio* 2>/dev/null || true
 
 echo "✓ Remaining files cleaned up"
 
@@ -108,6 +131,35 @@ if [[ ${disable_linger:-n} == [Yy]* ]]; then
     echo "✓ User lingering disabled"
 else
     echo "✓ User lingering left enabled"
+fi
+
+echo ""
+echo "Step 10: Final system cleanup and verification..."
+
+# Clear systemd failed units
+systemctl --user reset-failed 2>/dev/null || true
+sudo systemctl reset-failed 2>/dev/null || true
+
+# Update package database to remove any TouchKio references
+sudo apt update -qq 2>/dev/null || true
+
+# Verify TouchKio is completely gone
+if command -v touchkio &> /dev/null; then
+    echo "⚠️  WARNING: TouchKio command still found in PATH"
+else
+    echo "✓ TouchKio command removed from PATH"
+fi
+
+if pgrep -f touchkio > /dev/null; then
+    echo "⚠️  WARNING: TouchKio processes still running"
+else
+    echo "✓ No TouchKio processes running"
+fi
+
+if [ -d "/usr/lib/touchkio" ] || [ -f "/usr/bin/touchkio" ] || [ -d "~/.config/touchkio" ]; then
+    echo "⚠️  WARNING: Some TouchKio files may still exist"
+else
+    echo "✓ Main TouchKio directories removed"
 fi
 
 echo ""
