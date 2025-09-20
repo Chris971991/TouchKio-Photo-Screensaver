@@ -1392,7 +1392,7 @@ const setupIdleDetection = () => {
     SLIDESHOW.lastActivity = new Date();
 
     if (SLIDESHOW.active) {
-      hideSlideshowSafely();
+      hideSlideshowOverlay(); // Pause slideshow instead of stopping it completely
     }
 
     resetIdleTimer();
@@ -1410,7 +1410,16 @@ const resetIdleTimer = () => {
     // Check if photos are available (Google Photos OR local photos)
     const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
 
-    if (!SLIDESHOW.active && hasPhotos) {
+    if (!hasPhotos) {
+      return;
+    }
+
+    if (SLIDESHOW.active && !SLIDESHOW.timer) {
+      // Slideshow is active but paused - resume it
+      console.log("Idle timeout reached, resuming paused slideshow");
+      showSlideshowOverlay();
+    } else if (!SLIDESHOW.active) {
+      // Slideshow is not active - start it fresh
       console.log("Idle timeout reached, starting slideshow");
       showSlideshow();
     }
@@ -1429,6 +1438,22 @@ const getAnimationDuration = () => {
   // Base duration of 400ms, inversely proportional to speed
   // Speed 1.0 = 400ms, Speed 2.0 = 200ms, Speed 0.5 = 800ms
   return Math.round(400 / animationSpeed);
+};
+
+// Helper functions to pause/resume slideshow timer
+const pauseSlideshowTimer = () => {
+  if (SLIDESHOW.timer) {
+    console.log("Pausing slideshow timer");
+    clearInterval(SLIDESHOW.timer);
+    SLIDESHOW.timer = null;
+  }
+};
+
+const resumeSlideshowTimer = () => {
+  if (SLIDESHOW.active && !SLIDESHOW.timer) {
+    console.log("Resuming slideshow timer");
+    startSlideshowTimer();
+  }
 };
 
 const showSlideshow = async () => {
@@ -1525,12 +1550,98 @@ const showSlideshow = async () => {
   EVENTS.emit("slideshowStateChanged", true);
 };
 
+// Hide slideshow overlay (pause) without stopping slideshow completely
+const hideSlideshowOverlay = () => {
+  if (!SLIDESHOW.active) {
+    return;
+  }
+
+  console.log("Hiding slideshow overlay (pausing)");
+
+  // Pause the timer but keep slideshow active
+  pauseSlideshowTimer();
+
+  if (SLIDESHOW.view) {
+    // Trigger exit animation with configured duration
+    const animationDuration = getAnimationDuration();
+    if (animationDuration > 0) {
+      console.log(`Triggering slideshow exit animation (${animationDuration}ms)`);
+      SLIDESHOW.view.webContents.send('apply-exit-animation', animationDuration);
+
+      // Hide the view after animation completes
+      setTimeout(() => {
+        if (SLIDESHOW.view && SLIDESHOW.active && !SLIDESHOW.timer) { // Still active but paused
+          SLIDESHOW.view.setVisible(false);
+          try {
+            WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+          } catch (error) {
+            console.warn("Failed to remove slideshow view:", error.message);
+          }
+        }
+      }, animationDuration);
+    } else {
+      // No animation, hide immediately
+      SLIDESHOW.view.setVisible(false);
+      try {
+        WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+      } catch (error) {
+        console.warn("Failed to remove slideshow view:", error.message);
+      }
+    }
+  }
+
+  resetIdleTimer();
+};
+
+// Show slideshow overlay (resume) for already active slideshow
+const showSlideshowOverlay = () => {
+  if (!SLIDESHOW.active) {
+    return;
+  }
+
+  console.log("Showing slideshow overlay (resuming)");
+
+  if (SLIDESHOW.view) {
+    // Remove and re-add to ensure it's on top of all other views
+    try {
+      WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+    } catch (e) {
+      // View might not be added yet
+    }
+    WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
+    SLIDESHOW.view.setVisible(true);
+
+    // Trigger entrance animation with configured duration
+    const animationDuration = getAnimationDuration();
+    if (animationDuration > 0) {
+      console.log(`Triggering slideshow entrance animation (${animationDuration}ms)`);
+      SLIDESHOW.view.webContents.send('apply-entrance-animation', animationDuration);
+    }
+
+    const windowBounds = WEBVIEW.window.getBounds();
+    SLIDESHOW.view.setBounds({
+      x: 0,
+      y: 0,
+      width: windowBounds.width,
+      height: windowBounds.height,
+    });
+
+    // Start activity grace period immediately to prevent false activity detection
+    if (SLIDESHOW.startActivityGracePeriod) {
+      SLIDESHOW.startActivityGracePeriod();
+    }
+
+    // Resume the slideshow timer
+    resumeSlideshowTimer();
+  }
+};
+
 const hideSlideshowSafely = () => {
   if (!SLIDESHOW.active) {
     return;
   }
 
-  console.log("Stopping slideshow");
+  console.log("Stopping slideshow completely");
   SLIDESHOW.active = false;
   publishSlideshowState();
 
@@ -1728,6 +1839,8 @@ module.exports = {
   init,
   showSlideshow,
   hideSlideshow: hideSlideshowSafely,
+  showSlideshowOverlay,
+  hideSlideshowOverlay,
   updateConfig,
   reloadPhotos,
   getStatus,
