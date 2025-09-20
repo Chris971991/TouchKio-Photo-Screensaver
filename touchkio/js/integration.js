@@ -999,7 +999,7 @@ const initSlideshow = () => {
   initSlideshowClockBackground();
   initSlideshowClockOpacity();
   initSlideshowClockColor();
-  initSlideshowClockFontSize();
+  initSlideshowClockCustomFontSize();
   initSlideshowClockBackgroundOpacity();
 
   // Date settings (independent from clock)
@@ -1009,7 +1009,7 @@ const initSlideshow = () => {
   initSlideshowDateBackground();
   initSlideshowDateOpacity();
   initSlideshowDateColor();
-  initSlideshowDateFontSize();
+  initSlideshowDateCustomFontSize();
   initSlideshowDateBackgroundOpacity();
 
   // Source indicator settings
@@ -1019,7 +1019,7 @@ const initSlideshow = () => {
   initSlideshowSourceOpacity();
   initSlideshowSourceBackground();
   initSlideshowSourceColor();
-  initSlideshowSourceFontSize();
+  initSlideshowSourceCustomFontSize();
   initSlideshowSourceBackgroundOpacity();
 
   // Counter settings
@@ -1029,7 +1029,7 @@ const initSlideshow = () => {
   initSlideshowCounterOpacity();
   initSlideshowCounterBackground();
   initSlideshowCounterColor();
-  initSlideshowCounterFontSize();
+  initSlideshowCounterCustomFontSize();
   initSlideshowCounterBackgroundOpacity();
 
   // Performance settings
@@ -1053,7 +1053,7 @@ const initSlideshow = () => {
   initSlideshowShowLocation();
   initSlideshowMetadataBackground();
   initSlideshowMetadataColor();
-  initSlideshowMetadataFontSize();
+  initSlideshowMetadataCustomFontSize();
   initSlideshowMetadataBackgroundOpacity();
   initSlideshowMetadataTransitionType();
 
@@ -1833,33 +1833,6 @@ const initSlideshowSourceColor = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow source font size control.
- */
-const initSlideshowSourceFontSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_source_font_size`;
-  const config = {
-    name: "Slideshow Source Font Size",
-    unique_id: `${INTEGRATION.node}_slideshow_source_font_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
-    icon: "mdi:format-font-size-increase",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const sourceFontSize = message.toString();
-        console.log("Set Slideshow Source Font Size:", sourceFontSize);
-        updateSlideshowSetting("slideshow_source_font_size", sourceFontSize);
-        slideshow.updateConfig({ sourceFontSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow source background opacity control.
@@ -1947,33 +1920,6 @@ const initSlideshowCounterColor = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow counter font size control.
- */
-const initSlideshowCounterFontSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_counter_font_size`;
-  const config = {
-    name: "Slideshow Counter Font Size",
-    unique_id: `${INTEGRATION.node}_slideshow_counter_font_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
-    icon: "mdi:format-font-size-increase",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const counterFontSize = message.toString();
-        console.log("Set Slideshow Counter Font Size:", counterFontSize);
-        updateSlideshowSetting("slideshow_counter_font_size", counterFontSize);
-        slideshow.updateConfig({ counterFontSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow counter background opacity control.
@@ -2006,61 +1952,7 @@ const initSlideshowCounterBackgroundOpacity = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow clock font size control.
- */
-const initSlideshowClockFontSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_clock_font_size`;
-  const config = {
-    name: "Slideshow Clock Font Size",
-    unique_id: `${INTEGRATION.node}_slideshow_clock_font_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
-    icon: "mdi:format-font-size-increase",
-    device: INTEGRATION.device,
-  };
 
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const clockFontSize = message.toString();
-        console.log("Set Slideshow Clock Font Size:", clockFontSize);
-        updateSlideshowSetting("slideshow_clock_font_size", clockFontSize);
-        slideshow.updateConfig({ clockFontSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
-
-/**
- * Initializes the slideshow date font size control.
- */
-const initSlideshowDateFontSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_date_font_size`;
-  const config = {
-    name: "Slideshow Date Font Size",
-    unique_id: `${INTEGRATION.node}_slideshow_date_font_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
-    icon: "mdi:format-font-size-increase",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const dateFontSize = message.toString();
-        console.log("Set Slideshow Date Font Size:", dateFontSize);
-        updateSlideshowSetting("slideshow_date_font_size", dateFontSize);
-        slideshow.updateConfig({ dateFontSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow clock background opacity control.
@@ -2438,8 +2330,8 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_clock_color":
         slideshow.updateConfig({ clockColor: value });
         break;
-      case "slideshow_clock_font_size":
-        slideshow.updateConfig({ clockFontSize: value });
+      case "slideshow_clock_custom_font_size":
+        slideshow.updateConfig({ clockCustomFontSize: value });
         break;
       case "slideshow_clock_background_opacity":
         slideshow.updateConfig({ clockBackgroundOpacity: parseInt(value) });
@@ -2464,8 +2356,8 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_date_color":
         slideshow.updateConfig({ dateColor: value });
         break;
-      case "slideshow_date_font_size":
-        slideshow.updateConfig({ dateFontSize: value });
+      case "slideshow_date_custom_font_size":
+        slideshow.updateConfig({ dateCustomFontSize: value });
         break;
       case "slideshow_date_background_opacity":
         slideshow.updateConfig({ dateBackgroundOpacity: parseInt(value) });
@@ -2486,8 +2378,8 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_source_color":
         slideshow.updateConfig({ sourceColor: value });
         break;
-      case "slideshow_source_font_size":
-        slideshow.updateConfig({ sourceFontSize: value });
+      case "slideshow_source_custom_font_size":
+        slideshow.updateConfig({ sourceCustomFontSize: value });
         break;
       case "slideshow_source_background_opacity":
         slideshow.updateConfig({ sourceBackgroundOpacity: parseInt(value) });
@@ -2508,8 +2400,8 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_counter_color":
         slideshow.updateConfig({ counterColor: value });
         break;
-      case "slideshow_counter_font_size":
-        slideshow.updateConfig({ counterFontSize: value });
+      case "slideshow_counter_custom_font_size":
+        slideshow.updateConfig({ counterCustomFontSize: value });
         break;
       case "slideshow_counter_background_opacity":
         slideshow.updateConfig({ counterBackgroundOpacity: parseInt(value) });
@@ -2577,6 +2469,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_metadata_color":
         slideshow.updateConfig({ metadataColor: value });
         break;
+      case "slideshow_metadata_custom_font_size":
+        slideshow.updateConfig({ metadataCustomFontSize: value });
+        break;
     }
     console.log(`Synced ${key} to slideshow runtime config:`, value);
   } catch (error) {
@@ -2633,7 +2528,7 @@ const updateSlideshow = async () => {
 
   publishState("slideshow_clock_opacity", status.config.clockOpacity || ARGS.slideshow_clock_opacity || 0.8);
   publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
-  publishState("slideshow_clock_font_size", status.config.clockFontSize || ARGS.slideshow_clock_font_size || "medium");
+  publishState("slideshow_clock_custom_font_size", status.config.clockCustomFontSize || ARGS.slideshow_clock_custom_font_size || "");
   publishState("slideshow_clock_background_opacity", status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70);
 
   // Date settings - independent from clock
@@ -2643,7 +2538,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_date_background", status.config.dateBackground || ARGS.slideshow_date_background || "dark");
   publishState("slideshow_date_opacity", status.config.dateOpacity || ARGS.slideshow_date_opacity || 0.8);
   publishState("slideshow_date_color", status.config.dateColor || ARGS.slideshow_date_color || "#ffffff");
-  publishState("slideshow_date_font_size", status.config.dateFontSize || ARGS.slideshow_date_font_size || "medium");
+  publishState("slideshow_date_custom_font_size", status.config.dateCustomFontSize || ARGS.slideshow_date_custom_font_size || "");
   publishState("slideshow_date_background_opacity", status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity || 70);
 
   // Source indicator settings - use runtime values as primary, ARGS as fallback
@@ -2653,7 +2548,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_source_opacity", status.config.sourceOpacity || ARGS.slideshow_source_opacity || 0.7);
   publishState("slideshow_source_background", status.config.sourceBackground || ARGS.slideshow_source_background || "dark");
   publishState("slideshow_source_color", status.config.sourceColor || ARGS.slideshow_source_color || "#ffffff");
-  publishState("slideshow_source_font_size", status.config.sourceFontSize || ARGS.slideshow_source_font_size || "medium");
+  publishState("slideshow_source_custom_font_size", status.config.sourceCustomFontSize || ARGS.slideshow_source_custom_font_size || "");
   publishState("slideshow_source_background_opacity", status.config.sourceBackgroundOpacity || ARGS.slideshow_source_background_opacity || 70);
 
   // Counter settings - use runtime values as primary, ARGS as fallback
@@ -2663,7 +2558,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_counter_opacity", status.config.counterOpacity || ARGS.slideshow_counter_opacity || 0.7);
   publishState("slideshow_counter_background", status.config.counterBackground || ARGS.slideshow_counter_background || "dark");
   publishState("slideshow_counter_color", status.config.counterColor || ARGS.slideshow_counter_color || "#ffffff");
-  publishState("slideshow_counter_font_size", status.config.counterFontSize || ARGS.slideshow_counter_font_size || "medium");
+  publishState("slideshow_counter_custom_font_size", status.config.counterCustomFontSize || ARGS.slideshow_counter_custom_font_size || "");
   publishState("slideshow_counter_background_opacity", status.config.counterBackgroundOpacity || ARGS.slideshow_counter_background_opacity || 70);
 
   // Performance settings - use runtime values as primary, ARGS as fallback
@@ -2681,7 +2576,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_metadata_position", status.config.metadataPosition || ARGS.slideshow_metadata_position || "bottom-center");
   publishState("slideshow_metadata_size", status.config.metadataSize || ARGS.slideshow_metadata_size || "small");
   publishState("slideshow_metadata_opacity", status.config.metadataOpacity || ARGS.slideshow_metadata_opacity || 0.8);
-  publishState("slideshow_metadata_font_size", status.config.metadataFontSize || ARGS.slideshow_metadata_font_size || "small");
+  publishState("slideshow_metadata_custom_font_size", status.config.metadataCustomFontSize || ARGS.slideshow_metadata_custom_font_size || "");
   publishState("slideshow_metadata_background_opacity", status.config.metadataBackgroundOpacity || ARGS.slideshow_metadata_background_opacity || 70);
   publishState("slideshow_metadata_transition_type", status.config.metadataTransitionType || ARGS.slideshow_metadata_transition_type || "fade");
   publishState("slideshow_show_filename", status.config.showFilename ? "ON" : "OFF");
@@ -3177,32 +3072,6 @@ const initSlideshowMetadataBackground = () => {
     .subscribe(config.command_topic);
 };
 
-const initSlideshowMetadataFontSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_metadata_font_size`;
-  const config = {
-    name: "Slideshow Metadata Font Size",
-    unique_id: `${INTEGRATION.node}_slideshow_metadata_font_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge"],
-    icon: "mdi:format-font-size-increase",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const fontSize = message.toString();
-        console.log("Set Slideshow Metadata Font Size:", fontSize);
-        updateSlideshowSetting("slideshow_metadata_font_size", fontSize);
-        slideshow.updateConfig({ metadataFontSize: fontSize });
-        // Publish state back to Home Assistant
-        INTEGRATION.client.publish(config.state_topic, fontSize, { retain: true });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 const initSlideshowMetadataBackgroundOpacity = () => {
   const root = `${INTEGRATION.root}/slideshow_metadata_background_opacity`;
@@ -3256,6 +3125,141 @@ const initSlideshowMetadataTransitionType = () => {
         slideshow.updateConfig({ metadataTransitionType: transitionType });
         // Publish state back to Home Assistant
         INTEGRATION.client.publish(config.state_topic, transitionType, { retain: true });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock custom font size control.
+ */
+const initSlideshowClockCustomFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_custom_font_size`;
+  const config = {
+    name: "Slideshow Clock Custom Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_custom_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:format-font-size-decrease",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockCustomFontSize = message.toString();
+        console.log("Set Slideshow Clock Custom Font Size:", clockCustomFontSize);
+        updateSlideshowSetting("slideshow_clock_custom_font_size", clockCustomFontSize);
+        slideshow.updateConfig({ clockCustomFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date custom font size control.
+ */
+const initSlideshowDateCustomFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_custom_font_size`;
+  const config = {
+    name: "Slideshow Date Custom Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_date_custom_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:format-font-size-decrease",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateCustomFontSize = message.toString();
+        console.log("Set Slideshow Date Custom Font Size:", dateCustomFontSize);
+        updateSlideshowSetting("slideshow_date_custom_font_size", dateCustomFontSize);
+        slideshow.updateConfig({ dateCustomFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source custom font size control.
+ */
+const initSlideshowSourceCustomFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_custom_font_size`;
+  const config = {
+    name: "Slideshow Source Custom Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_source_custom_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:format-font-size-decrease",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceCustomFontSize = message.toString();
+        console.log("Set Slideshow Source Custom Font Size:", sourceCustomFontSize);
+        updateSlideshowSetting("slideshow_source_custom_font_size", sourceCustomFontSize);
+        slideshow.updateConfig({ sourceCustomFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter custom font size control.
+ */
+const initSlideshowCounterCustomFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_custom_font_size`;
+  const config = {
+    name: "Slideshow Counter Custom Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_custom_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:format-font-size-decrease",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterCustomFontSize = message.toString();
+        console.log("Set Slideshow Counter Custom Font Size:", counterCustomFontSize);
+        updateSlideshowSetting("slideshow_counter_custom_font_size", counterCustomFontSize);
+        slideshow.updateConfig({ counterCustomFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata custom font size control.
+ */
+const initSlideshowMetadataCustomFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_custom_font_size`;
+  const config = {
+    name: "Slideshow Metadata Custom Font Size",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_custom_font_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:format-font-size-decrease",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataCustomFontSize = message.toString();
+        console.log("Set Slideshow Metadata Custom Font Size:", metadataCustomFontSize);
+        updateSlideshowSetting("slideshow_metadata_custom_font_size", metadataCustomFontSize);
+        slideshow.updateConfig({ metadataCustomFontSize });
       }
     })
     .subscribe(config.command_topic);

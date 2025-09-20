@@ -1288,8 +1288,13 @@
                 const clockBackground = config.clockBackground || 'dark';
                 const clockFontSize = config.clockFontSize || 'medium';
 
-                // Apply classes for background and font size
-                clock.className = `clock background-${clockBackground} font-size-${clockFontSize} pos-${clockPos}`;
+                // Apply classes for background and font size (if no custom size)
+                if (config.clockCustomFontSize) {
+                    clock.className = `clock background-${clockBackground} pos-${clockPos}`;
+                    clock.style.fontSize = config.clockCustomFontSize;
+                } else {
+                    clock.className = `clock background-${clockBackground} font-size-${clockFontSize} pos-${clockPos}`;
+                }
 
                 // Apply positioning directly
                 clock.style.position = 'absolute';
@@ -1359,8 +1364,13 @@
                 const dateBackground = config.dateBackground || 'dark';
                 const dateFontSize = config.dateFontSize || 'medium';
 
-                // Apply classes for size, background, and font size
-                date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} font-size-${dateFontSize} pos-${datePos}`;
+                // Apply classes for size, background, and font size (if no custom size)
+                if (config.dateCustomFontSize) {
+                    date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} pos-${datePos}`;
+                    date.style.fontSize = config.dateCustomFontSize;
+                } else {
+                    date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} font-size-${dateFontSize} pos-${datePos}`;
+                }
 
                 // Apply positioning directly
                 date.style.position = 'absolute';
@@ -1504,12 +1514,12 @@
             }
 
             // Re-apply clock styling if any clock option changed
-            if (newConfig.clockFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.showClock !== undefined) {
+            if (newConfig.clockFontSize || newConfig.clockCustomFontSize || newConfig.clockColor || newConfig.clockBackground || newConfig.clockOpacity || newConfig.clockPosition || newConfig.clockBackgroundOpacity || newConfig.showClock !== undefined) {
                 applyClock();
             }
 
             // Re-apply date styling if any date option changed
-            if (newConfig.dateFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.showDate !== undefined) {
+            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.showDate !== undefined) {
                 applyDate();
             }
 
