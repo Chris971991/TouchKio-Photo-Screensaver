@@ -1484,6 +1484,7 @@ const showSlideshow = async () => {
     // View might not be added yet
   }
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
+
   SLIDESHOW.view.setVisible(true);
 
   // Trigger entrance animation with configured duration
@@ -1609,6 +1610,7 @@ const showSlideshowOverlay = () => {
       // View might not be added yet
     }
     WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
+
     SLIDESHOW.view.setVisible(true);
 
     // Trigger entrance animation with configured duration
