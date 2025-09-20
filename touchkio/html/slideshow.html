@@ -1365,7 +1365,7 @@
                 const dateFontSize = config.dateFontSize || 'medium';
 
                 // Apply classes for size, background, and font size (if no custom size)
-                if (config.dateCustomFontSize) {
+                if (config.dateCustomFontSize && config.dateCustomFontSize.trim() !== '') {
                     date.className = `date size-${config.dateSize || 'medium'} background-${dateBackground} pos-${datePos}`;
                     date.style.fontSize = config.dateCustomFontSize;
                 } else {
