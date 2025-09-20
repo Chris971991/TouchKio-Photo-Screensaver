@@ -244,12 +244,60 @@ if [ -f "$CONFIG_FILE" ]; then
 
         # Add slideshow settings using jq, preserving user-configured values
         if command -v jq &> /dev/null; then
-            # Read user's configured values and only add missing slideshow UI settings
+            # Read user's configured values and add comprehensive slideshow defaults
             jq '. + {
                 "slideshow_clock_enabled": (if .slideshow_show_clock then (.slideshow_show_clock | test("true|ON"; "i")) else true end),
                 "slideshow_date_enabled": true,
                 "slideshow_source_indicator_enabled": (if .slideshow_show_source then (.slideshow_show_source | test("true|ON"; "i")) else true end),
-                "slideshow_photo_counter_enabled": (if .slideshow_show_counter then (.slideshow_show_counter | test("true|ON"; "i")) else true end)
+                "slideshow_photo_counter_enabled": (if .slideshow_show_counter then (.slideshow_show_counter | test("true|ON"; "i")) else true end),
+
+                "slideshow_clock_position": "bottom-right",
+                "slideshow_date_position": "bottom-left",
+                "slideshow_source_position": "top-left",
+                "slideshow_counter_position": "top-right",
+                "slideshow_metadata_position": "bottom-center",
+
+                "slideshow_clock_background": "dark",
+                "slideshow_date_background": "dark",
+                "slideshow_source_background": "dark",
+                "slideshow_counter_background": "dark",
+                "slideshow_metadata_background": "dark",
+
+                "slideshow_clock_custom_font_size": "2rem",
+                "slideshow_date_custom_font_size": "1.2rem",
+                "slideshow_source_custom_font_size": "0.9rem",
+                "slideshow_counter_custom_font_size": "0.9rem",
+                "slideshow_metadata_custom_font_size": "0.8rem",
+
+                "slideshow_clock_border_radius": "8px",
+                "slideshow_date_border_radius": "8px",
+                "slideshow_source_border_radius": "8px",
+                "slideshow_counter_border_radius": "8px",
+                "slideshow_metadata_border_radius": "8px",
+
+                "slideshow_clock_padding": "10px 15px",
+                "slideshow_date_padding": "8px 12px",
+                "slideshow_source_padding": "6px 10px",
+                "slideshow_counter_padding": "6px 10px",
+                "slideshow_metadata_padding": "10px 15px",
+
+                "slideshow_clock_shadow": "0 2px 8px rgba(0,0,0,0.3)",
+                "slideshow_date_shadow": "0 2px 8px rgba(0,0,0,0.3)",
+                "slideshow_source_shadow": "0 2px 6px rgba(0,0,0,0.2)",
+                "slideshow_counter_shadow": "0 2px 6px rgba(0,0,0,0.2)",
+                "slideshow_metadata_shadow": "0 2px 8px rgba(0,0,0,0.3)",
+
+                "slideshow_clock_opacity": 1.0,
+                "slideshow_date_opacity": 0.9,
+                "slideshow_source_opacity": 0.8,
+                "slideshow_counter_opacity": 0.8,
+                "slideshow_metadata_opacity": 0.9,
+
+                "slideshow_clock_background_opacity": 70,
+                "slideshow_date_background_opacity": 70,
+                "slideshow_source_background_opacity": 60,
+                "slideshow_counter_background_opacity": 60,
+                "slideshow_metadata_background_opacity": 70
             }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
         elif command -v python3 &> /dev/null; then
             # Fallback to python but preserve existing password encryption
@@ -266,16 +314,64 @@ try:
     # Parse JSON
     config = json.loads(content)
 
-    # Add only missing slideshow UI settings (preserve user's configured values)
-    slideshow_ui_settings = {
+    # Add comprehensive slideshow defaults (preserve user's configured values)
+    slideshow_defaults = {
         'slideshow_clock_enabled': config.get('slideshow_show_clock', 'true').lower() in ['true', 'on', '1'],
         'slideshow_date_enabled': True,
         'slideshow_source_indicator_enabled': config.get('slideshow_show_source', 'true').lower() in ['true', 'on', '1'],
-        'slideshow_photo_counter_enabled': config.get('slideshow_show_counter', 'true').lower() in ['true', 'on', '1']
+        'slideshow_photo_counter_enabled': config.get('slideshow_show_counter', 'true').lower() in ['true', 'on', '1'],
+
+        'slideshow_clock_position': 'bottom-right',
+        'slideshow_date_position': 'bottom-left',
+        'slideshow_source_position': 'top-left',
+        'slideshow_counter_position': 'top-right',
+        'slideshow_metadata_position': 'bottom-center',
+
+        'slideshow_clock_background': 'dark',
+        'slideshow_date_background': 'dark',
+        'slideshow_source_background': 'dark',
+        'slideshow_counter_background': 'dark',
+        'slideshow_metadata_background': 'dark',
+
+        'slideshow_clock_custom_font_size': '2rem',
+        'slideshow_date_custom_font_size': '1.2rem',
+        'slideshow_source_custom_font_size': '0.9rem',
+        'slideshow_counter_custom_font_size': '0.9rem',
+        'slideshow_metadata_custom_font_size': '0.8rem',
+
+        'slideshow_clock_border_radius': '8px',
+        'slideshow_date_border_radius': '8px',
+        'slideshow_source_border_radius': '8px',
+        'slideshow_counter_border_radius': '8px',
+        'slideshow_metadata_border_radius': '8px',
+
+        'slideshow_clock_padding': '10px 15px',
+        'slideshow_date_padding': '8px 12px',
+        'slideshow_source_padding': '6px 10px',
+        'slideshow_counter_padding': '6px 10px',
+        'slideshow_metadata_padding': '10px 15px',
+
+        'slideshow_clock_shadow': '0 2px 8px rgba(0,0,0,0.3)',
+        'slideshow_date_shadow': '0 2px 8px rgba(0,0,0,0.3)',
+        'slideshow_source_shadow': '0 2px 6px rgba(0,0,0,0.2)',
+        'slideshow_counter_shadow': '0 2px 6px rgba(0,0,0,0.2)',
+        'slideshow_metadata_shadow': '0 2px 8px rgba(0,0,0,0.3)',
+
+        'slideshow_clock_opacity': 1.0,
+        'slideshow_date_opacity': 0.9,
+        'slideshow_source_opacity': 0.8,
+        'slideshow_counter_opacity': 0.8,
+        'slideshow_metadata_opacity': 0.9,
+
+        'slideshow_clock_background_opacity': 70,
+        'slideshow_date_background_opacity': 70,
+        'slideshow_source_background_opacity': 60,
+        'slideshow_counter_background_opacity': 60,
+        'slideshow_metadata_background_opacity': 70
     }
 
-    # Only add UI settings that don't exist (preserve ALL user setup choices)
-    for key, value in slideshow_ui_settings.items():
+    # Only add defaults that don't exist (preserve ALL user setup choices)
+    for key, value in slideshow_defaults.items():
         if key not in config:
             config[key] = value
 
