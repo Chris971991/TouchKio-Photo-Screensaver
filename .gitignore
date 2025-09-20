@@ -29,3 +29,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+.claude/settings.local.json
+%USERPROFILE%.sshid_rsa
+%USERPROFILE%.sshid_rsa.pub
