@@ -1005,7 +1005,6 @@ const initSlideshow = () => {
   // Date settings (independent from clock)
   initSlideshowShowDate();
   initSlideshowDatePosition();
-  initSlideshowDateSize();
   initSlideshowDateBackground();
   initSlideshowDateOpacity();
   initSlideshowDateColor();
@@ -1015,7 +1014,6 @@ const initSlideshow = () => {
   // Source indicator settings
   initSlideshowShowSource();
   initSlideshowSourcePosition();
-  initSlideshowSourceSize();
   initSlideshowSourceOpacity();
   initSlideshowSourceBackground();
   initSlideshowSourceColor();
@@ -1025,7 +1023,6 @@ const initSlideshow = () => {
   // Counter settings
   initSlideshowShowCounter();
   initSlideshowCounterPosition();
-  initSlideshowCounterSize();
   initSlideshowCounterOpacity();
   initSlideshowCounterBackground();
   initSlideshowCounterColor();
@@ -1045,7 +1042,6 @@ const initSlideshow = () => {
   // Metadata settings
   initSlideshowShowMetadata();
   initSlideshowMetadataPosition();
-  initSlideshowMetadataSize();
   initSlideshowMetadataOpacity();
   initSlideshowShowFilename();
   initSlideshowShowDateTaken();
@@ -1606,33 +1602,6 @@ const initSlideshowSourcePosition = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow source size control.
- */
-const initSlideshowSourceSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_source_size`;
-  const config = {
-    name: "Slideshow Source Size",
-    unique_id: `${INTEGRATION.node}_slideshow_source_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["small", "medium", "large"],
-    icon: "mdi:format-size",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const sourceSize = message.toString();
-        console.log("Set Slideshow Source Size:", sourceSize);
-        updateSlideshowSetting("slideshow_source_size", sourceSize);
-        slideshow.updateConfig({ sourceSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow source opacity control.
@@ -1719,33 +1688,6 @@ const initSlideshowCounterPosition = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow counter size control.
- */
-const initSlideshowCounterSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_counter_size`;
-  const config = {
-    name: "Slideshow Counter Size",
-    unique_id: `${INTEGRATION.node}_slideshow_counter_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["small", "medium", "large"],
-    icon: "mdi:format-size",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const counterSize = message.toString();
-        console.log("Set Slideshow Counter Size:", counterSize);
-        updateSlideshowSetting("slideshow_counter_size", counterSize);
-        slideshow.updateConfig({ counterSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow counter opacity control.
@@ -2040,33 +1982,6 @@ const initSlideshowDatePosition = () => {
     .subscribe(config.command_topic);
 };
 
-/**
- * Initializes the slideshow date size control.
- */
-const initSlideshowDateSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_date_size`;
-  const config = {
-    name: "Slideshow Date Size",
-    unique_id: `${INTEGRATION.node}_slideshow_date_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["tiny", "small", "medium", "large", "xlarge", "xxlarge", "massive", "giant"],
-    icon: "mdi:format-size",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const dateSize = message.toString();
-        console.log("Set Slideshow Date Size:", dateSize);
-        updateSlideshowSetting("slideshow_date_size", dateSize);
-        slideshow.updateConfig({ dateSize });
-      }
-    })
-    .subscribe(config.command_topic);
-};
 
 /**
  * Initializes the slideshow date background control.
@@ -2874,34 +2789,6 @@ const initSlideshowMetadataPosition = () => {
         console.log("Set Slideshow Metadata Position:", position);
         updateSlideshowSetting("slideshow_metadata_position", position);
         slideshow.updateConfig({ metadataPosition: position });
-      }
-    })
-    .subscribe(config.command_topic);
-};
-
-/**
- * Initializes the slideshow metadata size control.
- */
-const initSlideshowMetadataSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_metadata_size`;
-  const config = {
-    name: "Slideshow Metadata Size",
-    unique_id: `${INTEGRATION.node}_slideshow_metadata_size`,
-    command_topic: `${root}/set`,
-    state_topic: `${root}/state`,
-    value_template: "{{ value }}",
-    options: ["small", "medium", "large"],
-    icon: "mdi:format-size",
-    device: INTEGRATION.device,
-  };
-
-  publishConfig("select", config)
-    .on("message", (topic, message) => {
-      if (topic === config.command_topic) {
-        const size = message.toString();
-        console.log("Set Slideshow Metadata Size:", size);
-        updateSlideshowSetting("slideshow_metadata_size", size);
-        slideshow.updateConfig({ metadataSize: size });
       }
     })
     .subscribe(config.command_topic);
