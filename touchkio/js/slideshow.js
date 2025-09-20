@@ -1445,7 +1445,7 @@ const showSlideshow = async () => {
     // View might not be added yet
   }
   WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
-  SLIDESHOW.view.setVisible(true);
+  SLIDESHOW.view.setVisible(false); // Keep invisible until content is ready
 
   const windowBounds = WEBVIEW.window.getBounds();
 
@@ -1498,6 +1498,13 @@ const showSlideshow = async () => {
       index: firstPhoto.index || SLIDESHOW.currentIndex,
       photo: firstPhoto,
     });
+
+    // After sending the first photo, signal HTML to show body and make view visible
+    setTimeout(() => {
+      SLIDESHOW.view.webContents.send("slideshow-ready");
+      SLIDESHOW.view.setVisible(true);
+      console.log("Slideshow view now visible after content ready");
+    }, 100); // Small delay to ensure photo is processed
   }
 
   startSlideshowTimer();
