@@ -1353,7 +1353,7 @@
         // Create function to apply date styling
         function applyDate() {
             const date = elements.date;
-            if (config.showDate && date) {
+            if (config.showDate !== false && date) {
                 date.style.display = 'block';
                 const datePos = config.datePosition || 'bottom-left';
                 const dateBackground = config.dateBackground || 'dark';

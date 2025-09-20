@@ -213,9 +213,21 @@ fi
 
 echo "Configuration created successfully at $CONFIG_FILE"
 
-# Configuration enhancement completed, now start the service
+# Configuration enhancement completed, now fix and start the service
+echo "Fixing TouchKio service configuration..."
+
+# Fix the problematic pkill line that kills the service on startup
+sed -i '/ExecStartPre.*pkill -f touchkio/d' ~/.config/systemd/user/touchkio.service
+
+# Reload systemd configuration
+systemctl --user daemon-reload
+
 echo "Starting TouchKio service..."
 systemctl --user start touchkio.service
+
+# Wait a moment for service to start
+sleep 3
+
 echo "Service status:"
 systemctl --user status touchkio.service --no-pager
 

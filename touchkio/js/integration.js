@@ -2637,7 +2637,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_clock_background_opacity", status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70);
 
   // Date settings - independent from clock
-  publishState("slideshow_show_date", status.config.showDate ? "ON" : "OFF");
+  publishState("slideshow_show_date", status.config.showDate !== false ? "ON" : "OFF");
   publishState("slideshow_date_position", status.config.datePosition || ARGS.slideshow_date_position || "bottom-left");
   publishState("slideshow_date_size", status.config.dateSize || ARGS.slideshow_date_size || "medium");
   publishState("slideshow_date_background", status.config.dateBackground || ARGS.slideshow_date_background || "dark");

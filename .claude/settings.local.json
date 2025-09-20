@@ -32,7 +32,9 @@
       "WebFetch(domain:api.github.com)",
       "Bash(cat:*)",
       "Read(//c/**)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git reset:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
