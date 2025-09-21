@@ -4041,6 +4041,31 @@ const initPresetEditorMode = () => {
     .subscribe(config.command_topic);
 };
 
+// Message handler for editor settings updates
+const handleEditorSettingsUpdate = (settings) => {
+  console.log('Received editor settings update:', settings);
+
+  Object.entries(settings).forEach(([key, value]) => {
+    console.log(`Updating setting ${key} = ${value}`);
+    updateSlideshowSetting(key, value);
+
+    // Also update the slideshow runtime config
+    const configKey = key.replace('slideshow_', '').replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+    slideshow.updateConfig({ [configKey]: value });
+  });
+};
+
+// Set up message listener for slideshow window
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'EDITOR_SETTINGS_UPDATE') {
+      handleEditorSettingsUpdate(event.data.settings);
+    } else if (event.data && event.data.type === 'DRAG_POSITION_UPDATE') {
+      handleEditorSettingsUpdate(event.data.settings);
+    }
+  });
+}
+
 module.exports = {
   init,
   update,
