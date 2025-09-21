@@ -630,6 +630,42 @@ const initSlideshowView = async () => {
       }
     });
 
+    ipcMain.on("editor-mode-disable", (event) => {
+      console.log("Received editor mode disable request via IPC");
+
+      // Turn off editor mode in MQTT via integration.js
+      if (global.INTEGRATION && typeof global.INTEGRATION.disableEditorMode === 'function') {
+        global.INTEGRATION.disableEditorMode();
+      } else {
+        console.warn("Integration not available for editor mode disable");
+      }
+    });
+
+    ipcMain.on("resume-normal-slideshow-operation", (event) => {
+      console.log("Received resume normal slideshow operation request");
+
+      if (SLIDESHOW.active) {
+        console.log("Resuming normal slideshow operation - keeping visible, resuming rotation");
+
+        // Start a brief grace period to prevent immediate activity detection
+        SLIDESHOW.startActivityGracePeriod();
+
+        // Small delay to ensure grace period is active before showing overlay
+        setTimeout(() => {
+          // Make sure slideshow overlay is visible
+          showSlideshowOverlay();
+
+          // Resume photo rotation if paused
+          if (!SLIDESHOW.timer) {
+            startSlideshowTimer();
+            console.log("Slideshow timer resumed");
+          }
+
+          console.log("Slideshow now in normal operation mode - activity detection will work normally");
+        }, 100);
+      }
+    });
+
     // Function to start activity grace period after slideshow starts
     SLIDESHOW.startActivityGracePeriod = () => {
       activityGracePeriod = true;

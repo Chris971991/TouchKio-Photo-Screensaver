@@ -127,6 +127,7 @@ const init = async () => {
 
   // Attach handleEditorSettingsUpdate to global for IPC access
   global.INTEGRATION.handleEditorSettingsUpdate = handleEditorSettingsUpdate;
+  global.INTEGRATION.disableEditorMode = disableEditorMode;
 
   return true;
 };
@@ -4387,6 +4388,18 @@ const handleEditorSettingsUpdate = (settings) => {
   });
 };
 
+const disableEditorMode = () => {
+  console.log('Disabling editor mode via MQTT');
+
+  // Turn off editor mode setting
+  updateSlideshowSetting('preset_editor_mode', 'false');
+
+  // Update slideshow config to turn off editor mode
+  slideshow.updateConfig({ editorMode: false });
+
+  console.log('Editor mode disabled via MQTT');
+};
+
 // Export handleEditorSettingsUpdate for IPC communication
 // (window.addEventListener removed - this runs in main process, not renderer)
 
@@ -4394,4 +4407,5 @@ module.exports = {
   init,
   update,
   handleEditorSettingsUpdate,
+  disableEditorMode,
 };

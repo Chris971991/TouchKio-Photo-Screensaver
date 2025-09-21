@@ -2870,6 +2870,14 @@
         }
 
         function exitEditorMode() {
+            // CRITICAL: Turn off editor mode in MQTT first
+            try {
+                ipcRenderer.send('editor-mode-disable');
+                console.log('Sent editor mode disable to main process');
+            } catch (error) {
+                console.error('Error sending editor mode disable:', error);
+            }
+
             // Exit editor mode by updating config directly and hiding UI
             config.editorMode = false;
 
@@ -2893,6 +2901,8 @@
 
             // Re-enable activity detection
             window.activityDetectionEnabled = true;
+
+            console.log('Editor mode exited - slideshow will return to normal idle behavior');
         }
 
         function discardAllChanges() {
