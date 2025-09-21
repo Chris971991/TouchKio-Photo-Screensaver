@@ -2096,6 +2096,7 @@ const startSlideshowTimer = () => {
 };
 
 const updateConfig = (newConfig) => {
+  console.log("slideshow.updateConfig called with:", newConfig);
   Object.assign(SLIDESHOW.config, newConfig);
 
   if (SLIDESHOW.active) {
@@ -2109,9 +2110,12 @@ const updateConfig = (newConfig) => {
 
   // Send config update to view if it exists
   if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
+    console.log("Sending config to renderer via IPC, editorMode:", SLIDESHOW.config.editorMode);
     global.ipcBatcher.queue("slideshow-config", {
       config: SLIDESHOW.config,
     });
+  } else {
+    console.log("Warning: slideshow view not available", { view: !!SLIDESHOW.view, webContents: SLIDESHOW.view ? !!SLIDESHOW.view.webContents : false });
   }
 };
 

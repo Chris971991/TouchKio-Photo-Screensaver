@@ -1107,6 +1107,9 @@ const initSlideshow = () => {
   initAnimationSpeed();
   initAnimationEnabled();
 
+  // === PRESET EDITOR ===
+  initPresetEditorMode();
+
   // === PERFORMANCE SETTINGS ===
   initSlideshowPreloadBufferSize();
   initSlideshowDiskCacheEnabled();
@@ -4003,6 +4006,36 @@ const initAnimationEnabled = () => {
         updateSlideshowSetting("slideshow_animation_enabled", animationEnabled);
         slideshow.updateConfig({ animationEnabled: animationEnabled === "true" });
         publishState(config.state_topic, animationEnabled);
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the preset editor mode toggle.
+ */
+const initPresetEditorMode = () => {
+  const root = `${INTEGRATION.root}/preset_editor_mode`;
+  const config = {
+    name: "Preset Editor Mode",
+    unique_id: `${INTEGRATION.node}_preset_editor_mode`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:palette-outline",
+    payload_on: "true",
+    payload_off: "false",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const editorMode = message.toString();
+        console.log("Set Preset Editor Mode:", editorMode);
+        updateSlideshowSetting("preset_editor_mode", editorMode);
+        console.log("Calling slideshow.updateConfig with editorMode:", editorMode === "true");
+        slideshow.updateConfig({ editorMode: editorMode === "true" });
+        publishState(config.state_topic, editorMode);
       }
     })
     .subscribe(config.command_topic);

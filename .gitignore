@@ -32,3 +32,6 @@ Thumbs.db
 .claude/settings.local.json
 %USERPROFILE%.sshid_rsa
 %USERPROFILE%.sshid_rsa.pub
+*.png
+*.jpg
+*.jpeg

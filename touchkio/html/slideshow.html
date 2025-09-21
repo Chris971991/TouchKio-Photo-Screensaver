@@ -34,7 +34,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 1;
             background: transparent;
             transition: background-color 0.3s ease-in-out;
             /* GPU acceleration */
@@ -691,6 +691,18 @@
 </head>
 <body>
     <div class="slideshow-container">
+        <!-- EDITOR GRID: Inside slideshow container for correct stacking context -->
+        <div id="editor-grid-overlay" style="
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: 20px 20px;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        "></div>
         <div class="photo-container">
             <img id="bg1" class="photo-background" alt="Background 1">
             <img id="bg2" class="photo-background" alt="Background 2">
@@ -1170,10 +1182,98 @@
         }
 
         ipcRenderer.on('slideshow-config', (event, data) => {
+            console.log('===== IPC MESSAGE RECEIVED =====');
             console.log('Received slideshow config:', data);
+            console.log('Data type:', typeof data);
+            console.log('Data keys:', Object.keys(data || {}));
+
+            // Debug box removed - no longer needed
 
             if (data.config) {
                 config = data.config;
+
+                // Handle editor mode - simple immediate activation for testing
+                if (config.editorMode !== undefined) {
+                    console.log('Editor mode config received:', config.editorMode);
+
+                    // Debug indicator removed - using blue notification instead
+
+                    if (config.editorMode) {
+                        // Show slideshow when editor mode is enabled
+                        console.log('Making slideshow container visible for editor mode');
+                        const slideshowContainer = document.querySelector('.slideshow-container');
+                        if (slideshowContainer) {
+                            slideshowContainer.style.display = 'flex';
+                            slideshowContainer.style.visibility = 'visible';
+                            slideshowContainer.style.opacity = '1';
+                            console.log('Slideshow container made visible');
+                        } else {
+                            console.log('Slideshow container not found');
+                        }
+
+                        // Disable activity detection
+                        window.activityDetectionEnabled = false;
+
+                        // Add editor notification
+                        if (!document.getElementById('editor-notification')) {
+                            const notification = document.createElement('div');
+                            notification.id = 'editor-notification';
+                            notification.textContent = 'Editor Mode Active - Drag elements to reposition';
+                            notification.style.cssText = `
+                                position: fixed;
+                                top: 20px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: rgba(74, 144, 226, 0.9);
+                                color: white;
+                                padding: 12px 24px;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                z-index: 10001;
+                            `;
+                            document.body.appendChild(notification);
+                        }
+
+                        // Show editor grid overlay
+                        console.log('Showing editor grid overlay...');
+                        const gridOverlay = document.getElementById('editor-grid-overlay');
+                        if (gridOverlay) {
+                            gridOverlay.style.display = 'block';
+                            console.log('Editor grid overlay made visible');
+                        } else {
+                            console.log('ERROR: Editor grid overlay element not found');
+                        }
+
+                        // Show all elements
+                        ['clock', 'date', 'source', 'counter', 'metadata'].forEach(id => {
+                            const element = document.getElementById(id);
+                            if (element) {
+                                element.style.display = 'block';
+                                element.style.opacity = '1';
+                            }
+                        });
+
+                    } else {
+                        // Deactivate editor mode - just re-enable activity detection
+
+                        // Re-enable activity detection
+                        window.activityDetectionEnabled = true;
+
+                        // Remove editor UI
+                        const notification = document.getElementById('editor-notification');
+                        if (notification) notification.remove();
+
+                        // Hide editor grid overlay
+                        const gridOverlay = document.getElementById('editor-grid-overlay');
+                        if (gridOverlay) {
+                            gridOverlay.style.display = 'none';
+                            console.log('Editor grid overlay hidden');
+                        }
+
+                        // Don't hide slideshow - just let normal activity detection handle it
+                    }
+                }
 
                 // Clock and date configuration
                 applyClock();
@@ -1313,15 +1413,15 @@
         });
 
         // Delay before enabling activity detection to prevent false triggers
-        let activityDetectionEnabled = false;
+        window.activityDetectionEnabled = false;
         setTimeout(() => {
-            activityDetectionEnabled = true;
+            window.activityDetectionEnabled = true;
             console.log('Activity detection enabled');
         }, 1000); // Wait 1 second before enabling
 
         // Aggressive event capture for VNC and remote clicks
         const triggerUserActivity = () => {
-            if (activityDetectionEnabled) {
+            if (window.activityDetectionEnabled) {
                 console.log('User activity detected in slideshow');
                 ipcRenderer.send('slideshow-user-activity');
             }
@@ -2313,6 +2413,418 @@
             }
         }
 
+        // Visual Preset Editor for drag-and-drop layout design
+        window.PresetEditor = class PresetEditor {
+            constructor() {
+                this.isActive = false;
+                this.selectedElement = null;
+                this.isDragging = false;
+                this.dragStartPos = null;
+                this.elementStartPos = null;
+                this.gridSize = 10;
+                this.showGrid = true;
+                this.snapToGrid = true;
+                this.updateDebouncer = {};
+
+                // Bind methods
+                this.handleMouseDown = this.handleMouseDown.bind(this);
+                this.handleMouseMove = this.handleMouseMove.bind(this);
+                this.handleMouseUp = this.handleMouseUp.bind(this);
+                this.handleElementClick = this.handleElementClick.bind(this);
+            }
+
+            // Enter editor mode
+            enter() {
+                if (this.isActive) return;
+                this.isActive = true;
+                console.log('Entering preset editor mode');
+
+                // Disable activity detection to prevent slideshow from hiding
+                this.savedActivityDetection = window.activityDetectionEnabled;
+                window.activityDetectionEnabled = false;
+                console.log('Activity detection disabled for editor mode');
+
+                // Pause slideshow transitions but keep it visible
+                if (window.isSlideshowActive) {
+                    this.wasPlaying = true;
+                    // Don't call pauseSlideshow() as it might hide the slideshow
+                    // Just stop the transitions
+                    if (window.slideshowInterval) {
+                        clearInterval(window.slideshowInterval);
+                        window.slideshowInterval = null;
+                    }
+                } else {
+                    this.wasPlaying = false;
+                    // Make sure slideshow is visible
+                    startSlideshow();
+                }
+
+                // Show all UI elements
+                this.showAllElements();
+
+                // Make elements interactive
+                this.makeElementsInteractive();
+
+                // Add visual helpers
+                if (this.showGrid) {
+                    this.addGrid();
+                }
+
+                // Add editor class to body
+                document.body.classList.add('editor-mode');
+
+                // Show editor notification
+                this.showNotification('Editor Mode Active - Drag elements to reposition');
+            }
+
+            // Exit editor mode
+            exit() {
+                if (!this.isActive) return;
+                this.isActive = false;
+                console.log('Exiting preset editor mode');
+
+                // Restore activity detection
+                window.activityDetectionEnabled = this.savedActivityDetection !== undefined ? this.savedActivityDetection : true;
+                console.log('Activity detection restored');
+
+                // Remove interactive state
+                this.removeElementInteractivity();
+
+                // Remove visual helpers
+                this.removeGrid();
+                this.removeNotification();
+
+                // Remove editor class
+                document.body.classList.remove('editor-mode');
+
+                // Resume slideshow if it was playing
+                if (this.wasPlaying) {
+                    // Restart slideshow interval
+                    if (!window.slideshowInterval && window.isSlideshowActive) {
+                        nextPhoto();
+                        window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
+                    }
+                }
+            }
+
+            // Show all UI elements for editing
+            showAllElements() {
+                const elements = ['clock', 'date', 'source', 'counter', 'metadata'];
+                elements.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.display = 'block';
+                        element.style.opacity = '1';
+                    }
+                });
+            }
+
+            // Make elements interactive
+            makeElementsInteractive() {
+                const elements = ['clock', 'date', 'source', 'counter', 'metadata'];
+                elements.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.classList.add('editor-element');
+                        element.addEventListener('mousedown', this.handleMouseDown);
+                        element.addEventListener('click', this.handleElementClick);
+                        element.style.cursor = 'move';
+                    }
+                });
+
+                // Add global mouse listeners
+                document.addEventListener('mousemove', this.handleMouseMove);
+                document.addEventListener('mouseup', this.handleMouseUp);
+            }
+
+            // Remove element interactivity
+            removeElementInteractivity() {
+                const elements = ['clock', 'date', 'source', 'counter', 'metadata'];
+                elements.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.classList.remove('editor-element', 'selected');
+                        element.removeEventListener('mousedown', this.handleMouseDown);
+                        element.removeEventListener('click', this.handleElementClick);
+                        element.style.cursor = 'default';
+                    }
+                });
+
+                // Remove global mouse listeners
+                document.removeEventListener('mousemove', this.handleMouseMove);
+                document.removeEventListener('mouseup', this.handleMouseUp);
+            }
+
+            // Handle element click for selection
+            handleElementClick(e) {
+                e.stopPropagation();
+                if (this.isDragging) return;
+
+                // Remove previous selection
+                if (this.selectedElement) {
+                    this.selectedElement.classList.remove('selected');
+                }
+
+                // Select new element
+                this.selectedElement = e.currentTarget;
+                this.selectedElement.classList.add('selected');
+                console.log(`Selected element: ${this.selectedElement.id}`);
+            }
+
+            // Handle mouse down for drag start
+            handleMouseDown(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                this.isDragging = true;
+                this.selectedElement = e.currentTarget;
+                this.selectedElement.classList.add('dragging');
+
+                // Store initial positions
+                this.dragStartPos = { x: e.clientX, y: e.clientY };
+                this.elementStartPos = {
+                    x: this.selectedElement.offsetLeft,
+                    y: this.selectedElement.offsetTop
+                };
+
+                console.log(`Started dragging ${this.selectedElement.id}`);
+            }
+
+            // Handle mouse move for dragging
+            handleMouseMove(e) {
+                if (!this.isDragging || !this.selectedElement) return;
+
+                // Calculate new position
+                let newX = this.elementStartPos.x + (e.clientX - this.dragStartPos.x);
+                let newY = this.elementStartPos.y + (e.clientY - this.dragStartPos.y);
+
+                // Apply grid snapping if enabled
+                if (this.snapToGrid) {
+                    newX = Math.round(newX / this.gridSize) * this.gridSize;
+                    newY = Math.round(newY / this.gridSize) * this.gridSize;
+                }
+
+                // Apply boundary constraints
+                newX = Math.max(0, Math.min(newX, window.innerWidth - this.selectedElement.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - this.selectedElement.offsetHeight));
+
+                // Apply new position
+                this.selectedElement.style.left = newX + 'px';
+                this.selectedElement.style.top = newY + 'px';
+                this.selectedElement.style.position = 'fixed';
+
+                // Debounced MQTT update
+                this.updatePositionDebounced(this.selectedElement.id, newX, newY);
+            }
+
+            // Handle mouse up for drag end
+            handleMouseUp(e) {
+                if (!this.isDragging || !this.selectedElement) return;
+
+                this.isDragging = false;
+                this.selectedElement.classList.remove('dragging');
+
+                // Send final position to MQTT
+                const finalX = parseInt(this.selectedElement.style.left);
+                const finalY = parseInt(this.selectedElement.style.top);
+                this.updatePositionFinal(this.selectedElement.id, finalX, finalY);
+
+                console.log(`Finished dragging ${this.selectedElement.id} to (${finalX}, ${finalY})`);
+            }
+
+            // Debounced position update for smooth dragging
+            updatePositionDebounced(elementId, x, y) {
+                clearTimeout(this.updateDebouncer[elementId]);
+                this.updateDebouncer[elementId] = setTimeout(() => {
+                    // Send position update via IPC
+                    window.electronAPI?.send('slideshow-config-update', {
+                        [`${elementId}CustomX`]: x + 'px',
+                        [`${elementId}CustomY`]: y + 'px',
+                        [`${elementId}Position`]: 'custom'
+                    });
+                }, 100);
+            }
+
+            // Final position update when drag ends
+            updatePositionFinal(elementId, x, y) {
+                clearTimeout(this.updateDebouncer[elementId]);
+
+                // Send final position via IPC
+                window.electronAPI?.send('slideshow-config-update', {
+                    [`${elementId}CustomX`]: x + 'px',
+                    [`${elementId}CustomY`]: y + 'px',
+                    [`${elementId}Position`]: 'custom'
+                });
+
+                // Update config object
+                if (window.config) {
+                    window.config[`${elementId}CustomX`] = x + 'px';
+                    window.config[`${elementId}CustomY`] = y + 'px';
+                    window.config[`${elementId}Position`] = 'custom';
+                }
+            }
+
+            // Add grid overlay
+            addGrid() {
+                const grid = document.createElement('div');
+                grid.id = 'editor-grid';
+                grid.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background-size: ${this.gridSize}px ${this.gridSize}px;
+                    background-image:
+                        linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
+                    pointer-events: none;
+                    z-index: 9998;
+                `;
+
+                // Add major grid lines every 50px
+                const majorGrid = document.createElement('div');
+                majorGrid.id = 'editor-major-grid';
+                majorGrid.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background-size: 50px 50px;
+                    background-image:
+                        linear-gradient(rgba(74, 144, 226, 0.3) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(74, 144, 226, 0.3) 1px, transparent 1px);
+                    pointer-events: none;
+                    z-index: 9997;
+                `;
+
+                document.body.appendChild(majorGrid);
+                document.body.appendChild(grid);
+            }
+
+            // Remove grid overlay
+            removeGrid() {
+                const grid = document.getElementById('editor-grid');
+                const majorGrid = document.getElementById('editor-major-grid');
+                if (grid) grid.remove();
+                if (majorGrid) majorGrid.remove();
+            }
+
+            // Show editor notification
+            showNotification(message) {
+                const notification = document.createElement('div');
+                notification.id = 'editor-notification';
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(74, 144, 226, 0.9);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    z-index: 10001;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                document.body.appendChild(notification);
+            }
+
+            // Remove notification
+            removeNotification() {
+                const notification = document.getElementById('editor-notification');
+                if (notification) notification.remove();
+            }
+
+            // Toggle editor mode
+            toggle() {
+                if (this.isActive) {
+                    this.exit();
+                } else {
+                    this.enter();
+                }
+            }
+        }
+
+        // Add editor styles
+        const editorStyles = document.createElement('style');
+        editorStyles.textContent = `
+            /* Editor Mode Styles */
+            .editor-mode {
+                cursor: default !important;
+            }
+
+            .editor-element {
+                transition: box-shadow 0.2s, transform 0.2s;
+            }
+
+            .editor-element:hover {
+                box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.8);
+                transform: scale(1.02);
+            }
+
+            .editor-element.selected {
+                box-shadow: 0 0 0 2px rgba(46, 204, 113, 1);
+            }
+
+            .editor-element.dragging {
+                opacity: 0.8;
+                transform: scale(1.05);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                z-index: 10000 !important;
+                cursor: move !important;
+            }
+
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(editorStyles);
+
+        // Global preset editor instance
+        window.presetEditor = new window.PresetEditor();
+
+        // Create debug grid immediately when page loads
+        function createDebugGrid() {
+            // Remove any existing grid
+            const existingGrid = document.getElementById('debug-grid');
+            if (existingGrid) existingGrid.remove();
+
+            // Create new grid
+            const grid = document.createElement('div');
+            grid.id = 'debug-grid';
+            grid.style.cssText = `
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background-size: 50px 50px;
+                background-image:
+                    linear-gradient(rgba(255,0,0,0.8) 2px, transparent 2px),
+                    linear-gradient(90deg, rgba(255,0,0,0.8) 2px, transparent 2px);
+                pointer-events: none;
+                z-index: 9998;
+                display: none;
+            `;
+            document.body.appendChild(grid);
+            console.log('Debug grid created and added to body');
+            return grid;
+        }
+
+        // Create the grid immediately
+        const debugGrid = createDebugGrid();
+
+        // Function to toggle grid visibility
+        window.toggleDebugGrid = function(show) {
+            const grid = document.getElementById('debug-grid');
+            if (grid) {
+                grid.style.display = show ? 'block' : 'none';
+                console.log('Debug grid toggled:', show ? 'visible' : 'hidden');
+            }
+        };
+
         // Global performance monitor instance
         window.performanceMonitor = new PerformanceMonitor();
 
@@ -2334,6 +2846,54 @@
         window.performanceMonitor.startMonitoring();
 
         console.log('Slideshow HTML loaded with Animation Controller, Memory Manager, and Performance Monitor ready');
+
+        // Create editor grid immediately as global element
+        // Simple visible grid overlay for editor mode
+        let editorGridOverlay = null;
+
+        window.showEditorGrid = function(show) {
+            if (show && !editorGridOverlay) {
+                // Create bright visible grid
+                editorGridOverlay = document.createElement('div');
+                editorGridOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background-size: 20px 20px;
+                    background-image:
+                        linear-gradient(rgba(0,255,0,0.9) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,255,0,0.9) 1px, transparent 1px);
+                    pointer-events: none;
+                    z-index: 5;
+                `;
+                document.body.appendChild(editorGridOverlay);
+                console.log('Bright green editor grid created and shown');
+            } else if (!show && editorGridOverlay) {
+                // Remove grid overlay
+                if (editorGridOverlay.parentNode) {
+                    document.body.removeChild(editorGridOverlay);
+                }
+                editorGridOverlay = null;
+                console.log('Editor grid removed');
+            }
+        };
+
+        console.log('Simple editor grid system ready');
+
+        // TEST: Create always-visible grid to verify z-index and visibility
+        const testGrid = document.createElement('div');
+        testGrid.id = 'test-grid';
+        testGrid.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(rgba(255,0,0,0.7) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(255,0,0,0.7) 2px, transparent 2px);
+            pointer-events: none;
+            z-index: 99999;
+        `;
+        document.body.appendChild(testGrid);
+        console.log('TEST: Red grid overlay created with z-index 99999');
     </script>
 </body>
 </html>
