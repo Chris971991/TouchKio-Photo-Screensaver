@@ -168,183 +168,6 @@ class BackendTimerController {
 global.timerController = new BackendTimerController();
 
 /**
- * State machine for managing slideshow mode transitions
- * Prevents invalid state transitions and ensures consistency
- */
-class SlideshowStateMachine {
-  constructor() {
-    this.currentState = 'INACTIVE';
-    this.previousState = null;
-    this.transitionInProgress = false;
-
-    // Define valid state transitions
-    this.validTransitions = {
-      'INACTIVE': ['STARTING', 'EDITOR_MODE'],
-      'STARTING': ['ACTIVE', 'INACTIVE'],
-      'ACTIVE': ['PAUSED', 'INACTIVE', 'EDITOR_MODE'],
-      'PAUSED': ['ACTIVE', 'INACTIVE', 'EDITOR_MODE'],
-      'EDITOR_MODE': ['ACTIVE', 'PAUSED', 'INACTIVE'],
-      'TRANSITIONING': [] // Temporary state during transitions
-    };
-
-    // State entry/exit actions
-    this.stateActions = {
-      'STARTING': {
-        onEnter: () => this.onEnterStarting(),
-        onExit: () => this.onExitStarting()
-      },
-      'ACTIVE': {
-        onEnter: () => this.onEnterActive(),
-        onExit: () => this.onExitActive()
-      },
-      'PAUSED': {
-        onEnter: () => this.onEnterPaused(),
-        onExit: () => this.onExitPaused()
-      },
-      'EDITOR_MODE': {
-        onEnter: () => this.onEnterEditorMode(),
-        onExit: () => this.onExitEditorMode()
-      },
-      'INACTIVE': {
-        onEnter: () => this.onEnterInactive(),
-        onExit: () => this.onExitInactive()
-      }
-    };
-  }
-
-  /**
-   * Attempts to transition to a new state
-   */
-  transition(newState, reason = 'unknown') {
-    if (this.transitionInProgress) {
-      console.warn(`🚫 State transition blocked: already transitioning from ${this.currentState}`);
-      return false;
-    }
-
-    if (!this.isValidTransition(this.currentState, newState)) {
-      console.error(`🚫 Invalid state transition: ${this.currentState} → ${newState} (reason: ${reason})`);
-      return false;
-    }
-
-    console.log(`🔄 State transition: ${this.currentState} → ${newState} (reason: ${reason})`);
-
-    this.transitionInProgress = true;
-    this.previousState = this.currentState;
-
-    try {
-      // Execute exit actions for current state
-      if (this.stateActions[this.currentState]?.onExit) {
-        this.stateActions[this.currentState].onExit();
-      }
-
-      // Update state
-      this.currentState = newState;
-
-      // Execute entry actions for new state
-      if (this.stateActions[newState]?.onEnter) {
-        this.stateActions[newState].onEnter();
-      }
-
-      console.log(`✅ State transition completed: ${this.previousState} → ${newState}`);
-      return true;
-
-    } catch (error) {
-      console.error(`❌ State transition failed: ${error.message}`);
-      // Attempt rollback
-      this.currentState = this.previousState;
-      return false;
-
-    } finally {
-      this.transitionInProgress = false;
-    }
-  }
-
-  /**
-   * Checks if a transition is valid
-   */
-  isValidTransition(fromState, toState) {
-    return this.validTransitions[fromState]?.includes(toState) || false;
-  }
-
-  /**
-   * Gets current state information
-   */
-  getStateInfo() {
-    return {
-      current: this.currentState,
-      previous: this.previousState,
-      transitioning: this.transitionInProgress,
-      validNextStates: this.validTransitions[this.currentState] || []
-    };
-  }
-
-  // State action handlers
-  onEnterStarting() {
-    console.log('📱 Entering STARTING state');
-    SLIDESHOW.active = true;
-    gracePeriodManager.start(1000, 'slideshow_starting');
-  }
-
-  onExitStarting() {
-    console.log('📱 Exiting STARTING state');
-  }
-
-  onEnterActive() {
-    console.log('📱 Entering ACTIVE state');
-    SLIDESHOW.active = true;
-    if (!SLIDESHOW.timer) {
-      startSlideshowTimer();
-    }
-    gracePeriodManager.start(1000, 'slideshow_activated');
-  }
-
-  onExitActive() {
-    console.log('📱 Exiting ACTIVE state');
-  }
-
-  onEnterPaused() {
-    console.log('📱 Entering PAUSED state');
-    if (SLIDESHOW.timer) {
-      pauseSlideshowTimer();
-    }
-  }
-
-  onExitPaused() {
-    console.log('📱 Exiting PAUSED state');
-  }
-
-  onEnterEditorMode() {
-    console.log('📱 Entering EDITOR_MODE state');
-    SLIDESHOW.config.editorMode = true;
-    if (SLIDESHOW.timer) {
-      pauseSlideshowTimer();
-    }
-    gracePeriodManager.start(2000, 'editor_mode_active');
-  }
-
-  onExitEditorMode() {
-    console.log('📱 Exiting EDITOR_MODE state');
-    SLIDESHOW.config.editorMode = false;
-    gracePeriodManager.start(1000, 'editor_mode_exit');
-  }
-
-  onEnterInactive() {
-    console.log('📱 Entering INACTIVE state');
-    SLIDESHOW.active = false;
-    if (SLIDESHOW.timer) {
-      pauseSlideshowTimer();
-    }
-  }
-
-  onExitInactive() {
-    console.log('📱 Exiting INACTIVE state');
-  }
-}
-
-// Global state machine instance
-global.slideshowStateMachine = new SlideshowStateMachine();
-
-/**
  * Backend Memory Management - handles photo cache and preload cleanup
  */
 class BackendMemoryManager {
@@ -789,11 +612,8 @@ const initSlideshowView = async () => {
     ipcMain.on("slideshow-user-activity", () => {
       // Only process activity if slideshow is actually visible and not in grace period
       if (SLIDESHOW.active && !activityGracePeriod) {
-        console.log("User activity detected in slideshow - hiding slideshow overlay");
-        // Use state machine for controlled transition
-        if (global.slideshowStateMachine.transition('PAUSED', 'user_activity')) {
-          hideSlideshowOverlay();
-        }
+        console.log("User activity detected in slideshow");
+        EVENTS.emit("userActivity");
       } else if (activityGracePeriod) {
         console.log("User activity detected but ignored during grace period");
       }
@@ -828,7 +648,7 @@ const initSlideshowView = async () => {
         console.log("Resuming normal slideshow operation - keeping visible, resuming rotation");
 
         // Start a brief grace period to prevent immediate activity detection
-        SLIDESHOW.startActivityGracePeriod(1000, 'editor_mode_resume');
+        SLIDESHOW.startActivityGracePeriod();
 
         // Small delay to ensure grace period is active before showing overlay
         setTimeout(() => {
@@ -846,86 +666,15 @@ const initSlideshowView = async () => {
       }
     });
 
-    // Unified grace period management system
-    class GracePeriodManager {
-      constructor() {
-        this.isActive = false;
-        this.activeTimer = null;
-        this.reason = null;
-      }
-
-      /**
-       * Starts a grace period, extending if one is already active
-       */
-      start(durationMs = 1000, reason = 'unknown') {
-        // Clear any existing timer
-        if (this.activeTimer) {
-          clearTimeout(this.activeTimer);
-        }
-
-        this.isActive = true;
-        this.reason = reason;
-        console.log(`🔒 Activity detection disabled for ${durationMs}ms (reason: ${reason})`);
-
-        this.activeTimer = setTimeout(() => {
-          this.isActive = false;
-          this.activeTimer = null;
-          this.reason = null;
-          console.log("🔓 Activity detection re-enabled");
-        }, durationMs);
-      }
-
-      /**
-       * Forces grace period to end immediately
-       */
-      forceEnd(reason = 'manual') {
-        if (this.activeTimer) {
-          clearTimeout(this.activeTimer);
-          this.activeTimer = null;
-        }
-        this.isActive = false;
-        console.log(`🔓 Activity detection force-enabled (reason: ${reason})`);
-      }
-
-      /**
-       * Check if grace period is currently active
-       */
-      isGracePeriodActive() {
-        return this.isActive;
-      }
-
-      /**
-       * Get current grace period status
-       */
-      getStatus() {
-        return {
-          active: this.isActive,
-          reason: this.reason,
-          hasTimer: this.activeTimer !== null
-        };
-      }
-    }
-
-    // Global grace period manager
-    const gracePeriodManager = new GracePeriodManager();
-
-    // Legacy compatibility function
-    SLIDESHOW.startActivityGracePeriod = (duration = 1000, reason = 'slideshow_transition') => {
-      gracePeriodManager.start(duration, reason);
+    // Function to start activity grace period after slideshow starts
+    SLIDESHOW.startActivityGracePeriod = () => {
+      activityGracePeriod = true;
+      console.log("Activity detection disabled for 1 second (grace period)");
+      setTimeout(() => {
+        activityGracePeriod = false;
+        console.log("Activity detection re-enabled");
+      }, 1000);
     };
-
-    // Update activity detection to use unified manager
-    activityGracePeriod = false; // Keep for compatibility
-    Object.defineProperty(window, 'activityGracePeriod', {
-      get: () => gracePeriodManager.isGracePeriodActive(),
-      set: (value) => {
-        if (value === true) {
-          gracePeriodManager.start(1000, 'legacy_setter');
-        } else if (value === false) {
-          gracePeriodManager.forceEnd('legacy_setter');
-        }
-      }
-    });
   } catch (error) {
     console.warn("Running outside Electron context, slideshow view not initialized");
     SLIDESHOW.view = null;
@@ -2119,26 +1868,21 @@ const showSlideshow = async () => {
   // Check if photos are available (Google Photos or local)
   const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
 
-  if (!SLIDESHOW.initialized || !hasPhotos) {
+  if (SLIDESHOW.active || !SLIDESHOW.initialized || !hasPhotos) {
     if (!hasPhotos) {
       console.warn("No photos available for slideshow (Google Photos or local)");
     }
     return;
   }
 
-  // Use state machine for controlled transition
-  if (!global.slideshowStateMachine.transition('STARTING', 'user_request')) {
-    console.warn("Cannot start slideshow from current state");
-    return;
-  }
-
   console.log("Starting slideshow");
+  SLIDESHOW.active = true;
   publishSlideshowState();
   SLIDESHOW.currentIndex = 0;
 
   // Start activity grace period immediately to prevent false activity detection
   if (SLIDESHOW.startActivityGracePeriod) {
-    SLIDESHOW.startActivityGracePeriod(1000, 'slideshow_start');
+    SLIDESHOW.startActivityGracePeriod();
   }
 
   // Remove and re-add to ensure it's on top of all other views
@@ -2213,9 +1957,6 @@ const showSlideshow = async () => {
 
   startSlideshowTimer();
   EVENTS.emit("slideshowStateChanged", true);
-
-  // Complete state machine transition to ACTIVE
-  global.slideshowStateMachine.transition('ACTIVE', 'slideshow_started');
 };
 
 // Hide slideshow overlay (pause) without stopping slideshow completely
@@ -2300,7 +2041,7 @@ const showSlideshowOverlay = () => {
 
     // Start activity grace period immediately to prevent false activity detection
     if (SLIDESHOW.startActivityGracePeriod) {
-      SLIDESHOW.startActivityGracePeriod(1000, 'slideshow_overlay_show');
+      SLIDESHOW.startActivityGracePeriod();
     }
 
     // Resume the slideshow timer

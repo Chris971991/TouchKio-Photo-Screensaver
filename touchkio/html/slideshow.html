@@ -2909,6 +2909,13 @@
             const changeCount = Object.keys(pendingChanges).length;
 
             if (changeCount > 0) {
+            // RESTART the slideshow rotation when editor mode is disabled
+            if (!window.slideshowInterval && window.isSlideshowActive) {
+                console.log("Restarting slideshow rotation after editor mode");
+                nextPhoto();
+                window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
+            }
+
                 // Restore original configuration
                 config = JSON.parse(JSON.stringify(originalConfig));
 
@@ -3001,7 +3008,12 @@
 
                         // Disable activity detection
                         window.activityDetectionEnabled = false;
-                        // Backend handles pausing slideshow rotation for editor mode
+                        // PAUSE the slideshow rotation when editor mode is enabled
+                        if (window.slideshowInterval) {
+                            console.log("Pausing slideshow rotation for editor mode");
+                            clearInterval(window.slideshowInterval);
+                            window.slideshowInterval = null;
+                        }
 
 
                         // Start editor session (store original config for rollback)
@@ -3109,7 +3121,12 @@
 
                         // Re-enable activity detection
                         window.activityDetectionEnabled = true;
-                        // Backend handles resuming slideshow rotation
+                        // RESTART the slideshow rotation when editor mode is disabled
+                        if (!window.slideshowInterval && window.isSlideshowActive) {
+                            console.log("Restarting slideshow rotation after editor mode toggled off");
+                            nextPhoto();
+                            window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
+                        }
 
 
                         // Remove editor UI
@@ -4337,7 +4354,12 @@
                 // Pause slideshow transitions but keep it visible
                 if (window.isSlideshowActive) {
                     this.wasPlaying = true;
-                    // Backend handles slideshow timing, frontend only displays
+                    // Don't call pauseSlideshow() as it might hide the slideshow
+                    // Just stop the transitions
+                    if (window.slideshowInterval) {
+                        clearInterval(window.slideshowInterval);
+                        window.slideshowInterval = null;
+                    }
                 } else {
                     this.wasPlaying = false;
                     // Make sure slideshow is visible
@@ -4382,8 +4404,14 @@
                 // Remove editor class
                 document.body.classList.remove('editor-mode');
 
-                // Backend handles resuming slideshow if it was playing
-                console.log('Editor mode disabled, backend will handle slideshow resumption');
+                // Resume slideshow if it was playing
+                if (this.wasPlaying) {
+                    // Restart slideshow interval
+                    if (!window.slideshowInterval && window.isSlideshowActive) {
+                        nextPhoto();
+                        window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
+                    }
+                }
             }
 
             // Show all UI elements for editing
