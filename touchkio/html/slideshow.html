@@ -2893,6 +2893,13 @@
             const changeCount = Object.keys(pendingChanges).length;
 
             if (changeCount > 0) {
+            // RESTART the slideshow rotation when editor mode is disabled
+            if (!window.slideshowInterval && window.isSlideshowActive) {
+                console.log("Restarting slideshow rotation after editor mode");
+                nextPhoto();
+                window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
+            }
+
                 // Restore original configuration
                 config = JSON.parse(JSON.stringify(originalConfig));
 
@@ -2985,6 +2992,13 @@
 
                         // Disable activity detection
                         window.activityDetectionEnabled = false;
+                        // PAUSE the slideshow rotation when editor mode is enabled
+                        if (window.slideshowInterval) {
+                            console.log("Pausing slideshow rotation for editor mode");
+                            clearInterval(window.slideshowInterval);
+                            window.slideshowInterval = null;
+                        }
+
 
                         // Start editor session (store original config for rollback)
                         startEditorSession();
@@ -3091,6 +3105,13 @@
 
                         // Re-enable activity detection
                         window.activityDetectionEnabled = true;
+                        // RESTART the slideshow rotation when editor mode is disabled
+                        if (!window.slideshowInterval && window.isSlideshowActive) {
+                            console.log("Restarting slideshow rotation after editor mode toggled off");
+                            nextPhoto();
+                            window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
+                        }
+
 
                         // Remove editor UI
                         const notification = document.getElementById('editor-notification');
