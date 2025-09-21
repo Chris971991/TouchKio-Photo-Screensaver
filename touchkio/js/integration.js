@@ -1192,12 +1192,12 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_counter_background_opacity) savedCustomConfig.counterBackgroundOpacity = ARGS.slideshow_counter_background_opacity;
   if (ARGS.slideshow_metadata_background_opacity) savedCustomConfig.metadataBackgroundOpacity = ARGS.slideshow_metadata_background_opacity;
 
-  // Load saved background enabled/disabled states for all elements
-  if (ARGS.slideshow_clock_background) savedCustomConfig.clockBackground = ARGS.slideshow_clock_background === 'ON';
-  if (ARGS.slideshow_date_background) savedCustomConfig.dateBackground = ARGS.slideshow_date_background === 'ON';
-  if (ARGS.slideshow_source_background) savedCustomConfig.sourceBackground = ARGS.slideshow_source_background === 'ON';
-  if (ARGS.slideshow_counter_background) savedCustomConfig.counterBackground = ARGS.slideshow_counter_background === 'ON';
-  if (ARGS.slideshow_metadata_background) savedCustomConfig.metadataBackground = ARGS.slideshow_metadata_background === 'ON';
+  // Load saved background enabled/disabled states for all elements - pass through as strings not booleans
+  if (ARGS.slideshow_clock_background) savedCustomConfig.clockBackground = ARGS.slideshow_clock_background;
+  if (ARGS.slideshow_date_background) savedCustomConfig.dateBackground = ARGS.slideshow_date_background;
+  if (ARGS.slideshow_source_background) savedCustomConfig.sourceBackground = ARGS.slideshow_source_background;
+  if (ARGS.slideshow_counter_background) savedCustomConfig.counterBackground = ARGS.slideshow_counter_background;
+  if (ARGS.slideshow_metadata_background) savedCustomConfig.metadataBackground = ARGS.slideshow_metadata_background;
 
   // Load saved styling values (border radius, padding, shadow)
   if (ARGS.slideshow_clock_border_radius) savedCustomConfig.clockBorderRadius = ARGS.slideshow_clock_border_radius;
