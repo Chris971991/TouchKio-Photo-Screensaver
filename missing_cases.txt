@@ -1,0 +1,83 @@
+      // Border radius settings for all elements
+      case "slideshow_clock_border_radius":
+        slideshow.updateConfig({ clockBorderRadius: value });
+        break;
+      case "slideshow_date_border_radius":
+        slideshow.updateConfig({ dateBorderRadius: value });
+        break;
+      case "slideshow_source_border_radius":
+        slideshow.updateConfig({ sourceBorderRadius: value });
+        break;
+      case "slideshow_counter_border_radius":
+        slideshow.updateConfig({ counterBorderRadius: value });
+        break;
+      case "slideshow_metadata_border_radius":
+        slideshow.updateConfig({ metadataBorderRadius: value });
+        break;
+      // Padding settings for all elements
+      case "slideshow_clock_padding":
+        slideshow.updateConfig({ clockPadding: value });
+        break;
+      case "slideshow_date_padding":
+        slideshow.updateConfig({ datePadding: value });
+        break;
+      case "slideshow_source_padding":
+        slideshow.updateConfig({ sourcePadding: value });
+        break;
+      case "slideshow_counter_padding":
+        slideshow.updateConfig({ counterPadding: value });
+        break;
+      case "slideshow_metadata_padding":
+        slideshow.updateConfig({ metadataPadding: value });
+        break;
+      // Shadow settings for all elements
+      case "slideshow_clock_shadow":
+        slideshow.updateConfig({ clockShadow: value });
+        break;
+      case "slideshow_date_shadow":
+        slideshow.updateConfig({ dateShadow: value });
+        break;
+      case "slideshow_source_shadow":
+        slideshow.updateConfig({ sourceShadow: value });
+        break;
+      case "slideshow_counter_shadow":
+        slideshow.updateConfig({ counterShadow: value });
+        break;
+      case "slideshow_metadata_shadow":
+        slideshow.updateConfig({ metadataShadow: value });
+        break;
+      // Custom position coordinates
+      case "slideshow_clock_custom_x":
+        slideshow.updateConfig({ clockCustomX: value });
+        break;
+      case "slideshow_clock_custom_y":
+        slideshow.updateConfig({ clockCustomY: value });
+        break;
+      case "slideshow_date_custom_x":
+        slideshow.updateConfig({ dateCustomX: value });
+        break;
+      case "slideshow_date_custom_y":
+        slideshow.updateConfig({ dateCustomY: value });
+        break;
+      case "slideshow_source_custom_x":
+        slideshow.updateConfig({ sourceCustomX: value });
+        break;
+      case "slideshow_source_custom_y":
+        slideshow.updateConfig({ sourceCustomY: value });
+        break;
+      case "slideshow_counter_custom_x":
+        slideshow.updateConfig({ counterCustomX: value });
+        break;
+      case "slideshow_counter_custom_y":
+        slideshow.updateConfig({ counterCustomY: value });
+        break;
+      case "slideshow_metadata_custom_x":
+        slideshow.updateConfig({ metadataCustomX: value });
+        break;
+      case "slideshow_metadata_custom_y":
+        slideshow.updateConfig({ metadataCustomY: value });
+        break;
+      // Metadata background opacity
+      case "slideshow_metadata_background_opacity":
+        slideshow.updateConfig({ metadataBackgroundOpacity: parseInt(value) });
+        break;
