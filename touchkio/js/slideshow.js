@@ -2000,6 +2000,9 @@ const hideSlideshowOverlay = () => {
   }
 
   resetIdleTimer();
+
+  // CRITICAL: Emit state change so MQTT shows slideshow as inactive
+  EVENTS.emit("slideshowStateChanged", false);
 };
 
 // Show slideshow overlay (resume) for already active slideshow
@@ -2043,6 +2046,9 @@ const showSlideshowOverlay = () => {
 
     // Resume the slideshow timer
     resumeSlideshowTimer();
+
+    // CRITICAL: Emit state change so MQTT shows slideshow as active
+    EVENTS.emit("slideshowStateChanged", true);
   }
 };
 
