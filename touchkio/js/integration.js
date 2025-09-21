@@ -79,42 +79,7 @@ const init = async () => {
 
       // Initialize slideshow runtime config with saved ARGS values for custom positioning
       if (ARGS.slideshow_enabled === "true") {
-        console.log("Loading saved custom positioning values into slideshow runtime config...");
-        const savedCustomConfig = {};
-
-        // Load all saved custom coordinate values from ARGS
-        if (ARGS.slideshow_clock_custom_x) savedCustomConfig.clockCustomX = ARGS.slideshow_clock_custom_x;
-        if (ARGS.slideshow_clock_custom_y) savedCustomConfig.clockCustomY = ARGS.slideshow_clock_custom_y;
-        if (ARGS.slideshow_date_custom_x) savedCustomConfig.dateCustomX = ARGS.slideshow_date_custom_x;
-        if (ARGS.slideshow_date_custom_y) savedCustomConfig.dateCustomY = ARGS.slideshow_date_custom_y;
-        if (ARGS.slideshow_source_custom_x) savedCustomConfig.sourceCustomX = ARGS.slideshow_source_custom_x;
-        if (ARGS.slideshow_source_custom_y) savedCustomConfig.sourceCustomY = ARGS.slideshow_source_custom_y;
-        if (ARGS.slideshow_counter_custom_x) savedCustomConfig.counterCustomX = ARGS.slideshow_counter_custom_x;
-        if (ARGS.slideshow_counter_custom_y) savedCustomConfig.counterCustomY = ARGS.slideshow_counter_custom_y;
-        if (ARGS.slideshow_metadata_custom_x) savedCustomConfig.metadataCustomX = ARGS.slideshow_metadata_custom_x;
-        if (ARGS.slideshow_metadata_custom_y) savedCustomConfig.metadataCustomY = ARGS.slideshow_metadata_custom_y;
-
-        // Also load other saved styling values
-        if (ARGS.slideshow_clock_border_radius) savedCustomConfig.clockBorderRadius = ARGS.slideshow_clock_border_radius;
-        if (ARGS.slideshow_clock_padding) savedCustomConfig.clockPadding = ARGS.slideshow_clock_padding;
-        if (ARGS.slideshow_clock_shadow) savedCustomConfig.clockShadow = ARGS.slideshow_clock_shadow;
-        if (ARGS.slideshow_date_border_radius) savedCustomConfig.dateBorderRadius = ARGS.slideshow_date_border_radius;
-        if (ARGS.slideshow_date_padding) savedCustomConfig.datePadding = ARGS.slideshow_date_padding;
-        if (ARGS.slideshow_date_shadow) savedCustomConfig.dateShadow = ARGS.slideshow_date_shadow;
-        if (ARGS.slideshow_source_border_radius) savedCustomConfig.sourceBorderRadius = ARGS.slideshow_source_border_radius;
-        if (ARGS.slideshow_source_padding) savedCustomConfig.sourcePadding = ARGS.slideshow_source_padding;
-        if (ARGS.slideshow_source_shadow) savedCustomConfig.sourceShadow = ARGS.slideshow_source_shadow;
-        if (ARGS.slideshow_counter_border_radius) savedCustomConfig.counterBorderRadius = ARGS.slideshow_counter_border_radius;
-        if (ARGS.slideshow_counter_padding) savedCustomConfig.counterPadding = ARGS.slideshow_counter_padding;
-        if (ARGS.slideshow_counter_shadow) savedCustomConfig.counterShadow = ARGS.slideshow_counter_shadow;
-        if (ARGS.slideshow_metadata_border_radius) savedCustomConfig.metadataBorderRadius = ARGS.slideshow_metadata_border_radius;
-        if (ARGS.slideshow_metadata_padding) savedCustomConfig.metadataPadding = ARGS.slideshow_metadata_padding;
-        if (ARGS.slideshow_metadata_shadow) savedCustomConfig.metadataShadow = ARGS.slideshow_metadata_shadow;
-
-        if (Object.keys(savedCustomConfig).length > 0) {
-          console.log("Applying saved custom config to slideshow:", savedCustomConfig);
-          slideshow.updateConfig(savedCustomConfig);
-        }
+        loadAndApplySavedSlideshowConfig();
       }
 
       // Init client sensors
@@ -159,6 +124,9 @@ const init = async () => {
     updateApp();
     updatePackageUpgrades();
   }, 3600 * 1000);
+
+  // Attach handleEditorSettingsUpdate to global for IPC access
+  global.INTEGRATION.handleEditorSettingsUpdate = handleEditorSettingsUpdate;
 
   return true;
 };
@@ -1031,8 +999,10 @@ const initSlideshow = () => {
   initSlideshowShowClock();
   initSlideshowClockPosition();
   initSlideshowClockCustomFontSize();
+  initSlideshowClockFormat();
   initSlideshowClockColor();
   initSlideshowClockBackground();
+  initSlideshowClockBackgroundColor();
   initSlideshowClockOpacity();
   initSlideshowClockBackgroundOpacity();
   initSlideshowClockBorderRadius();
@@ -1047,6 +1017,7 @@ const initSlideshow = () => {
   initSlideshowDateCustomFontSize();
   initSlideshowDateColor();
   initSlideshowDateBackground();
+  initSlideshowDateBackgroundColor();
   initSlideshowDateOpacity();
   initSlideshowDateBackgroundOpacity();
   initSlideshowDateBorderRadius();
@@ -1061,6 +1032,7 @@ const initSlideshow = () => {
   initSlideshowSourceCustomFontSize();
   initSlideshowSourceColor();
   initSlideshowSourceBackground();
+  initSlideshowSourceBackgroundColor();
   initSlideshowSourceOpacity();
   initSlideshowSourceBackgroundOpacity();
   initSlideshowSourceBorderRadius();
@@ -1075,6 +1047,7 @@ const initSlideshow = () => {
   initSlideshowCounterCustomFontSize();
   initSlideshowCounterColor();
   initSlideshowCounterBackground();
+  initSlideshowCounterBackgroundColor();
   initSlideshowCounterOpacity();
   initSlideshowCounterBackgroundOpacity();
   initSlideshowCounterBorderRadius();
@@ -1089,6 +1062,7 @@ const initSlideshow = () => {
   initSlideshowMetadataCustomFontSize();
   initSlideshowMetadataColor();
   initSlideshowMetadataBackground();
+  initSlideshowMetadataBackgroundColor();
   initSlideshowMetadataOpacity();
   initSlideshowMetadataBackgroundOpacity();
   initSlideshowMetadataBorderRadius();
@@ -1157,6 +1131,98 @@ const initSlideshowEnabled = () => {
 };
 
 /**
+ * Loads and applies saved slideshow configuration from Arguments.json
+ */
+const loadAndApplySavedSlideshowConfig = () => {
+  console.log("Loading saved custom positioning values into slideshow runtime config...");
+  const savedCustomConfig = {};
+
+  // Load all saved custom coordinate values from ARGS
+  if (ARGS.slideshow_clock_custom_x) savedCustomConfig.clockCustomX = ARGS.slideshow_clock_custom_x;
+  if (ARGS.slideshow_clock_custom_y) savedCustomConfig.clockCustomY = ARGS.slideshow_clock_custom_y;
+  if (ARGS.slideshow_date_custom_x) savedCustomConfig.dateCustomX = ARGS.slideshow_date_custom_x;
+  if (ARGS.slideshow_date_custom_y) savedCustomConfig.dateCustomY = ARGS.slideshow_date_custom_y;
+  if (ARGS.slideshow_source_custom_x) savedCustomConfig.sourceCustomX = ARGS.slideshow_source_custom_x;
+  if (ARGS.slideshow_source_custom_y) savedCustomConfig.sourceCustomY = ARGS.slideshow_source_custom_y;
+  if (ARGS.slideshow_counter_custom_x) savedCustomConfig.counterCustomX = ARGS.slideshow_counter_custom_x;
+  if (ARGS.slideshow_counter_custom_y) savedCustomConfig.counterCustomY = ARGS.slideshow_counter_custom_y;
+  if (ARGS.slideshow_metadata_custom_x) savedCustomConfig.metadataCustomX = ARGS.slideshow_metadata_custom_x;
+  if (ARGS.slideshow_metadata_custom_y) savedCustomConfig.metadataCustomY = ARGS.slideshow_metadata_custom_y;
+
+  // Load saved positions for all elements
+  if (ARGS.slideshow_clock_position) savedCustomConfig.clockPosition = ARGS.slideshow_clock_position;
+  if (ARGS.slideshow_date_position) savedCustomConfig.datePosition = ARGS.slideshow_date_position;
+  if (ARGS.slideshow_source_position) savedCustomConfig.sourcePosition = ARGS.slideshow_source_position;
+  if (ARGS.slideshow_counter_position) savedCustomConfig.counterPosition = ARGS.slideshow_counter_position;
+  if (ARGS.slideshow_metadata_position) savedCustomConfig.metadataPosition = ARGS.slideshow_metadata_position;
+
+  // Load saved font sizes for all elements
+  if (ARGS.slideshow_clock_custom_font_size) savedCustomConfig.clockCustomFontSize = ARGS.slideshow_clock_custom_font_size;
+  if (ARGS.slideshow_clock_format) savedCustomConfig.clockFormat = ARGS.slideshow_clock_format;
+  if (ARGS.slideshow_date_custom_font_size) savedCustomConfig.dateCustomFontSize = ARGS.slideshow_date_custom_font_size;
+  if (ARGS.slideshow_source_custom_font_size) savedCustomConfig.sourceCustomFontSize = ARGS.slideshow_source_custom_font_size;
+  if (ARGS.slideshow_counter_custom_font_size) savedCustomConfig.counterCustomFontSize = ARGS.slideshow_counter_custom_font_size;
+  if (ARGS.slideshow_metadata_custom_font_size) savedCustomConfig.metadataCustomFontSize = ARGS.slideshow_metadata_custom_font_size;
+
+  // Load saved colors for all elements
+  if (ARGS.slideshow_clock_color) savedCustomConfig.clockColor = ARGS.slideshow_clock_color;
+  if (ARGS.slideshow_date_color) savedCustomConfig.dateColor = ARGS.slideshow_date_color;
+  if (ARGS.slideshow_source_color) savedCustomConfig.sourceColor = ARGS.slideshow_source_color;
+  if (ARGS.slideshow_counter_color) savedCustomConfig.counterColor = ARGS.slideshow_counter_color;
+  if (ARGS.slideshow_metadata_color) savedCustomConfig.metadataColor = ARGS.slideshow_metadata_color;
+
+  // Load saved background colors for all elements
+  if (ARGS.slideshow_clock_background_color) savedCustomConfig.clockBackgroundColor = ARGS.slideshow_clock_background_color;
+  if (ARGS.slideshow_date_background_color) savedCustomConfig.dateBackgroundColor = ARGS.slideshow_date_background_color;
+  if (ARGS.slideshow_source_background_color) savedCustomConfig.sourceBackgroundColor = ARGS.slideshow_source_background_color;
+  if (ARGS.slideshow_counter_background_color) savedCustomConfig.counterBackgroundColor = ARGS.slideshow_counter_background_color;
+  if (ARGS.slideshow_metadata_background_color) savedCustomConfig.metadataBackgroundColor = ARGS.slideshow_metadata_background_color;
+
+  // Load saved opacity values for all elements
+  if (ARGS.slideshow_clock_opacity) savedCustomConfig.clockOpacity = ARGS.slideshow_clock_opacity;
+  if (ARGS.slideshow_date_opacity) savedCustomConfig.dateOpacity = ARGS.slideshow_date_opacity;
+  if (ARGS.slideshow_source_opacity) savedCustomConfig.sourceOpacity = ARGS.slideshow_source_opacity;
+  if (ARGS.slideshow_counter_opacity) savedCustomConfig.counterOpacity = ARGS.slideshow_counter_opacity;
+  if (ARGS.slideshow_metadata_opacity) savedCustomConfig.metadataOpacity = ARGS.slideshow_metadata_opacity;
+
+  // Load saved background opacity values for all elements
+  if (ARGS.slideshow_clock_background_opacity) savedCustomConfig.clockBackgroundOpacity = ARGS.slideshow_clock_background_opacity;
+  if (ARGS.slideshow_date_background_opacity) savedCustomConfig.dateBackgroundOpacity = ARGS.slideshow_date_background_opacity;
+  if (ARGS.slideshow_source_background_opacity) savedCustomConfig.sourceBackgroundOpacity = ARGS.slideshow_source_background_opacity;
+  if (ARGS.slideshow_counter_background_opacity) savedCustomConfig.counterBackgroundOpacity = ARGS.slideshow_counter_background_opacity;
+  if (ARGS.slideshow_metadata_background_opacity) savedCustomConfig.metadataBackgroundOpacity = ARGS.slideshow_metadata_background_opacity;
+
+  // Load saved background enabled/disabled states for all elements
+  if (ARGS.slideshow_clock_background) savedCustomConfig.clockBackground = ARGS.slideshow_clock_background === 'ON';
+  if (ARGS.slideshow_date_background) savedCustomConfig.dateBackground = ARGS.slideshow_date_background === 'ON';
+  if (ARGS.slideshow_source_background) savedCustomConfig.sourceBackground = ARGS.slideshow_source_background === 'ON';
+  if (ARGS.slideshow_counter_background) savedCustomConfig.counterBackground = ARGS.slideshow_counter_background === 'ON';
+  if (ARGS.slideshow_metadata_background) savedCustomConfig.metadataBackground = ARGS.slideshow_metadata_background === 'ON';
+
+  // Load saved styling values (border radius, padding, shadow)
+  if (ARGS.slideshow_clock_border_radius) savedCustomConfig.clockBorderRadius = ARGS.slideshow_clock_border_radius;
+  if (ARGS.slideshow_clock_padding) savedCustomConfig.clockPadding = ARGS.slideshow_clock_padding;
+  if (ARGS.slideshow_clock_shadow) savedCustomConfig.clockShadow = ARGS.slideshow_clock_shadow;
+  if (ARGS.slideshow_date_border_radius) savedCustomConfig.dateBorderRadius = ARGS.slideshow_date_border_radius;
+  if (ARGS.slideshow_date_padding) savedCustomConfig.datePadding = ARGS.slideshow_date_padding;
+  if (ARGS.slideshow_date_shadow) savedCustomConfig.dateShadow = ARGS.slideshow_date_shadow;
+  if (ARGS.slideshow_source_border_radius) savedCustomConfig.sourceBorderRadius = ARGS.slideshow_source_border_radius;
+  if (ARGS.slideshow_source_padding) savedCustomConfig.sourcePadding = ARGS.slideshow_source_padding;
+  if (ARGS.slideshow_source_shadow) savedCustomConfig.sourceShadow = ARGS.slideshow_source_shadow;
+  if (ARGS.slideshow_counter_border_radius) savedCustomConfig.counterBorderRadius = ARGS.slideshow_counter_border_radius;
+  if (ARGS.slideshow_counter_padding) savedCustomConfig.counterPadding = ARGS.slideshow_counter_padding;
+  if (ARGS.slideshow_counter_shadow) savedCustomConfig.counterShadow = ARGS.slideshow_counter_shadow;
+  if (ARGS.slideshow_metadata_border_radius) savedCustomConfig.metadataBorderRadius = ARGS.slideshow_metadata_border_radius;
+  if (ARGS.slideshow_metadata_padding) savedCustomConfig.metadataPadding = ARGS.slideshow_metadata_padding;
+  if (ARGS.slideshow_metadata_shadow) savedCustomConfig.metadataShadow = ARGS.slideshow_metadata_shadow;
+
+  if (Object.keys(savedCustomConfig).length > 0) {
+    console.log("Applying saved custom config to slideshow:", savedCustomConfig);
+    slideshow.updateConfig(savedCustomConfig);
+  }
+};
+
+/**
  * Initializes the slideshow active control (current running state).
  */
 const initSlideshowActive = () => {
@@ -1177,6 +1243,8 @@ const initSlideshowActive = () => {
         console.log("Set Slideshow Active:", state);
         updateSlideshowSetting("slideshow_active", state === "ON");
         if (state === "ON") {
+          // Reapply saved configuration before showing slideshow
+          loadAndApplySavedSlideshowConfig();
           slideshow.showSlideshow();
         } else {
           slideshow.hideSlideshow();
@@ -1552,6 +1620,141 @@ const initSlideshowClockBackground = () => {
         console.log("Set Slideshow Clock Background:", clockBackground);
         updateSlideshowSetting("slideshow_clock_background", clockBackground);
         slideshow.updateConfig({ clockBackground });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock background color control.
+ */
+const initSlideshowClockBackgroundColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_background_color`;
+  const config = {
+    name: "Slideshow Clock Background Color",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_background_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockBackgroundColor = message.toString();
+        console.log("Set Slideshow Clock Background Color:", clockBackgroundColor);
+        updateSlideshowSetting("slideshow_clock_background_color", clockBackgroundColor);
+        slideshow.updateConfig({ clockBackgroundColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date background color control.
+ */
+const initSlideshowDateBackgroundColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_background_color`;
+  const config = {
+    name: "Slideshow Date Background Color",
+    unique_id: `${INTEGRATION.node}_slideshow_date_background_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateBackgroundColor = message.toString();
+        console.log("Set Slideshow Date Background Color:", dateBackgroundColor);
+        updateSlideshowSetting("slideshow_date_background_color", dateBackgroundColor);
+        slideshow.updateConfig({ dateBackgroundColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source background color control.
+ */
+const initSlideshowSourceBackgroundColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_background_color`;
+  const config = {
+    name: "Slideshow Source Background Color",
+    unique_id: `${INTEGRATION.node}_slideshow_source_background_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceBackgroundColor = message.toString();
+        console.log("Set Slideshow Source Background Color:", sourceBackgroundColor);
+        updateSlideshowSetting("slideshow_source_background_color", sourceBackgroundColor);
+        slideshow.updateConfig({ sourceBackgroundColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow counter background color control.
+ */
+const initSlideshowCounterBackgroundColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_background_color`;
+  const config = {
+    name: "Slideshow Counter Background Color",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_background_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterBackgroundColor = message.toString();
+        console.log("Set Slideshow Counter Background Color:", counterBackgroundColor);
+        updateSlideshowSetting("slideshow_counter_background_color", counterBackgroundColor);
+        slideshow.updateConfig({ counterBackgroundColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow metadata background color control.
+ */
+const initSlideshowMetadataBackgroundColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_background_color`;
+  const config = {
+    name: "Slideshow Metadata Background Color",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_background_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataBackgroundColor = message.toString();
+        console.log("Set Slideshow Metadata Background Color:", metadataBackgroundColor);
+        updateSlideshowSetting("slideshow_metadata_background_color", metadataBackgroundColor);
+        slideshow.updateConfig({ metadataBackgroundColor });
       }
     })
     .subscribe(config.command_topic);
@@ -2306,6 +2509,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_clock_background":
         slideshow.updateConfig({ clockBackground: value });
         break;
+      case "slideshow_clock_background_color":
+        slideshow.updateConfig({ clockBackgroundColor: value });
+        break;
       case "slideshow_clock_opacity":
         slideshow.updateConfig({ clockOpacity: parseFloat(value) });
         break;
@@ -2314,6 +2520,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_clock_custom_font_size":
         slideshow.updateConfig({ clockCustomFontSize: value });
+        break;
+      case "slideshow_clock_format":
+        slideshow.updateConfig({ clockFormat: value });
         break;
       case "slideshow_clock_background_opacity":
         slideshow.updateConfig({ clockBackgroundOpacity: parseInt(value) });
@@ -2331,6 +2540,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_date_background":
         slideshow.updateConfig({ dateBackground: value });
+        break;
+      case "slideshow_date_background_color":
+        slideshow.updateConfig({ dateBackgroundColor: value });
         break;
       case "slideshow_date_opacity":
         slideshow.updateConfig({ dateOpacity: parseFloat(value) });
@@ -2357,6 +2569,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_source_background":
         slideshow.updateConfig({ sourceBackground: value });
         break;
+      case "slideshow_source_background_color":
+        slideshow.updateConfig({ sourceBackgroundColor: value });
+        break;
       case "slideshow_source_color":
         slideshow.updateConfig({ sourceColor: value });
         break;
@@ -2378,6 +2593,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_counter_background":
         slideshow.updateConfig({ counterBackground: value });
+        break;
+      case "slideshow_counter_background_color":
+        slideshow.updateConfig({ counterBackgroundColor: value });
         break;
       case "slideshow_counter_color":
         slideshow.updateConfig({ counterColor: value });
@@ -2448,6 +2666,9 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_metadata_background":
         slideshow.updateConfig({ metadataBackground: value });
         break;
+      case "slideshow_metadata_background_color":
+        slideshow.updateConfig({ metadataBackgroundColor: value });
+        break;
       case "slideshow_metadata_color":
         slideshow.updateConfig({ metadataColor: value });
         break;
@@ -2516,6 +2737,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
   publishState("slideshow_clock_custom_font_size", status.config.clockCustomFontSize || ARGS.slideshow_clock_custom_font_size || "");
   publishState("slideshow_clock_background_opacity", status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70);
+  publishState("slideshow_clock_format", status.config.clockFormat || ARGS.slideshow_clock_format || "24hour");
 
   // Date settings - independent from clock
   publishState("slideshow_show_date", status.config.showDate !== false ? "ON" : "OFF");
@@ -3161,6 +3383,33 @@ const initSlideshowClockCustomFontSize = () => {
         console.log("Set Slideshow Clock Custom Font Size:", clockCustomFontSize);
         updateSlideshowSetting("slideshow_clock_custom_font_size", clockCustomFontSize);
         slideshow.updateConfig({ clockCustomFontSize });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock format control (12/24 hour).
+ */
+const initSlideshowClockFormat = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_format`;
+  const config = {
+    name: "Slideshow Clock Format",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_format`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:clock-outline",
+    options: ["12hour", "24hour"],
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockFormat = message.toString();
+        console.log("Set Slideshow Clock Format:", clockFormat);
+        updateSlideshowSetting("slideshow_clock_format", clockFormat);
+        slideshow.updateConfig({ clockFormat });
       }
     })
     .subscribe(config.command_topic);
@@ -4055,18 +4304,11 @@ const handleEditorSettingsUpdate = (settings) => {
   });
 };
 
-// Set up message listener for slideshow window
-if (typeof window !== 'undefined') {
-  window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'EDITOR_SETTINGS_UPDATE') {
-      handleEditorSettingsUpdate(event.data.settings);
-    } else if (event.data && event.data.type === 'DRAG_POSITION_UPDATE') {
-      handleEditorSettingsUpdate(event.data.settings);
-    }
-  });
-}
+// Export handleEditorSettingsUpdate for IPC communication
+// (window.addEventListener removed - this runs in main process, not renderer)
 
 module.exports = {
   init,
   update,
+  handleEditorSettingsUpdate,
 };

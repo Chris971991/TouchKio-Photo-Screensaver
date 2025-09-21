@@ -619,6 +619,17 @@ const initSlideshowView = async () => {
       }
     });
 
+    ipcMain.on("editor-settings-update", (event, settings) => {
+      console.log("Received editor settings update via IPC:", settings);
+
+      // Forward to integration.js if available
+      if (global.INTEGRATION && typeof global.INTEGRATION.handleEditorSettingsUpdate === 'function') {
+        global.INTEGRATION.handleEditorSettingsUpdate(settings);
+      } else {
+        console.warn("Integration not available or handleEditorSettingsUpdate not found");
+      }
+    });
+
     // Function to start activity grace period after slideshow starts
     SLIDESHOW.startActivityGracePeriod = () => {
       activityGracePeriod = true;
