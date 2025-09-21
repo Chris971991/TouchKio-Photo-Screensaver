@@ -4394,10 +4394,9 @@ const disableEditorMode = () => {
   // Turn off editor mode setting
   updateSlideshowSetting('preset_editor_mode', 'false');
 
-  // Update slideshow config to turn off editor mode
-  slideshow.updateConfig({ editorMode: false });
-
-  console.log('Editor mode disabled via MQTT');
+  // DON'T update slideshow config - frontend handles its own cleanup via exitEditorMode()
+  // This prevents the config change that triggers the flash
+  console.log('Editor mode disabled via MQTT - frontend handles cleanup');
 };
 
 // Export handleEditorSettingsUpdate for IPC communication

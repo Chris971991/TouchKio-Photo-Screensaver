@@ -18,6 +18,7 @@ global.SLIDESHOW = global.SLIDESHOW || {
   timer: null,
   idleTimer: null,
   lastActivity: new Date(),
+  activityGracePeriod: false,
   preloadedNext: null,
 
   // Google Photos lazy loading
@@ -607,15 +608,22 @@ const initSlideshowView = async () => {
 
     // Listen for user activity events from the slideshow interface
     const { ipcMain } = require("electron");
-    let activityGracePeriod = false;
+    let hideInProgress = false;
 
     ipcMain.on("slideshow-user-activity", () => {
       // Only process activity if slideshow is actually visible and not in grace period
-      if (SLIDESHOW.active && !activityGracePeriod) {
+      if (SLIDESHOW.active && !SLIDESHOW.activityGracePeriod && !hideInProgress) {
         console.log("User activity detected in slideshow");
-        EVENTS.emit("userActivity");
-      } else if (activityGracePeriod) {
+        hideInProgress = true;
+        hideSlideshowOverlay();
+        // Reset flag after animation completes
+        setTimeout(() => {
+          hideInProgress = false;
+        }, 200);
+      } else if (SLIDESHOW.activityGracePeriod) {
         console.log("User activity detected but ignored during grace period");
+      } else if (hideInProgress) {
+        console.log("User activity detected but hide animation already in progress");
       }
     });
 
@@ -633,6 +641,14 @@ const initSlideshowView = async () => {
     ipcMain.on("editor-mode-disable", (event) => {
       console.log("Received editor mode disable request via IPC");
 
+      // CRITICAL: Start grace period BEFORE any MQTT operations to prevent flash
+      SLIDESHOW.activityGracePeriod = true;
+      console.log("Activity detection disabled for 3 seconds (grace period for editor mode exit)");
+      setTimeout(() => {
+        SLIDESHOW.activityGracePeriod = false;
+        console.log("Activity detection re-enabled after editor mode transition");
+      }, 3000);
+
       // Turn off editor mode in MQTT via integration.js
       if (global.INTEGRATION && typeof global.INTEGRATION.disableEditorMode === 'function') {
         global.INTEGRATION.disableEditorMode();
@@ -647,8 +663,18 @@ const initSlideshowView = async () => {
       if (SLIDESHOW.active) {
         console.log("Resuming normal slideshow operation - keeping visible, resuming rotation");
 
-        // Start a brief grace period to prevent immediate activity detection
-        SLIDESHOW.startActivityGracePeriod();
+        // Check if extended grace period is already active (from editor mode disable)
+        if (!SLIDESHOW.activityGracePeriod) {
+          // Start normal grace period for regular resume operations
+          SLIDESHOW.activityGracePeriod = true;
+          console.log("Activity detection disabled for 1 second (normal grace period)");
+          setTimeout(() => {
+            SLIDESHOW.activityGracePeriod = false;
+            console.log("Activity detection re-enabled after resume");
+          }, 1000);
+        } else {
+          console.log("Extended grace period already active - skipping additional grace period");
+        }
 
         // Small delay to ensure grace period is active before showing overlay
         setTimeout(() => {
@@ -668,10 +694,10 @@ const initSlideshowView = async () => {
 
     // Function to start activity grace period after slideshow starts
     SLIDESHOW.startActivityGracePeriod = () => {
-      activityGracePeriod = true;
+      SLIDESHOW.activityGracePeriod = true;
       console.log("Activity detection disabled for 1 second (grace period)");
       setTimeout(() => {
-        activityGracePeriod = false;
+        SLIDESHOW.activityGracePeriod = false;
         console.log("Activity detection re-enabled");
       }, 1000);
     };
@@ -2014,14 +2040,8 @@ const showSlideshowOverlay = () => {
   console.log("Showing slideshow overlay (resuming)");
 
   if (SLIDESHOW.view) {
-    // Remove and re-add to ensure it's on top of all other views
-    try {
-      WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
-    } catch (e) {
-      // View might not be added yet
-    }
-    WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
-
+    // Don't remove/re-add during editor mode exit to prevent flash
+    // Just ensure it's visible and properly positioned
     SLIDESHOW.view.setVisible(true);
 
     // Trigger entrance animation with configured duration
@@ -2040,8 +2060,11 @@ const showSlideshowOverlay = () => {
     });
 
     // Start activity grace period immediately to prevent false activity detection
-    if (SLIDESHOW.startActivityGracePeriod) {
+    // But don't override if we're already in an extended grace period (e.g., from editor mode)
+    if (SLIDESHOW.startActivityGracePeriod && !SLIDESHOW.activityGracePeriod) {
       SLIDESHOW.startActivityGracePeriod();
+    } else if (SLIDESHOW.activityGracePeriod) {
+      console.log("Skipping grace period - already in extended grace period");
     }
 
     // Resume the slideshow timer

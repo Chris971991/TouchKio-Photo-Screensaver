@@ -2870,52 +2870,49 @@
         }
 
         function exitEditorMode() {
-            // CRITICAL: Turn off editor mode in MQTT first
+            // CRITICAL: Send backend signals first, then delay frontend cleanup to prevent flash
             try {
                 ipcRenderer.send('editor-mode-disable');
-                console.log('Sent editor mode disable to main process');
+                ipcRenderer.send('resume-normal-slideshow-operation');
+                console.log('Sent editor mode disable and resume signals to main process');
             } catch (error) {
-                console.error('Error sending editor mode disable:', error);
+                console.error('Error sending editor mode signals:', error);
             }
 
-            // Exit editor mode by updating config directly and hiding UI
-            config.editorMode = false;
+            // Delay all frontend cleanup to happen after backend has stabilized
+            setTimeout(() => {
+                // Exit editor mode by updating config directly and hiding UI
+                config.editorMode = false;
 
-            // Remove entire editor notification (this fixes the background artifact)
-            const notification = document.getElementById('editor-notification');
-            if (notification) {
-                notification.remove();
-                console.log('Removed editor notification completely');
-            }
+                // Remove entire editor notification
+                const notification = document.getElementById('editor-notification');
+                if (notification) {
+                    notification.remove();
+                    console.log('Removed editor notification completely');
+                }
 
-            // Hide editor grid overlay
-            const gridOverlay = document.getElementById('editor-grid-overlay');
-            if (gridOverlay) gridOverlay.style.display = 'none';
+                // Hide editor grid overlay
+                const gridOverlay = document.getElementById('editor-grid-overlay');
+                if (gridOverlay) gridOverlay.style.display = 'none';
 
-            // Remove context menu cursors and hover effects
-            document.querySelectorAll('.slideshow-element').forEach(element => {
-                element.style.cursor = 'none';
-                element.classList.remove('editor-element');
-                element.style.boxShadow = '';
-            });
+                // Remove context menu cursors and hover effects
+                document.querySelectorAll('.slideshow-element').forEach(element => {
+                    element.style.cursor = 'none';
+                    element.classList.remove('editor-element');
+                    element.style.boxShadow = '';
+                });
 
-            // Re-enable activity detection
-            window.activityDetectionEnabled = true;
+                // Re-enable activity detection
+                window.activityDetectionEnabled = true;
 
-            console.log('Editor mode exited - slideshow will return to normal idle behavior');
+                console.log('Editor mode frontend cleanup completed');
+            }, 500); // Wait 500ms for backend to stabilize
         }
 
         function discardAllChanges() {
             const changeCount = Object.keys(pendingChanges).length;
 
             if (changeCount > 0) {
-            // RESTART the slideshow rotation when editor mode is disabled
-            if (!window.slideshowInterval && window.isSlideshowActive) {
-                console.log("Restarting slideshow rotation after editor mode");
-                nextPhoto();
-                window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
-            }
-
                 // Restore original configuration
                 config = JSON.parse(JSON.stringify(originalConfig));
 
@@ -2932,7 +2929,7 @@
             // Clear pending changes
             pendingChanges = {};
 
-            // Exit editor mode
+            // Exit editor mode (this will signal backend to resume normal operation)
             exitEditorMode();
         }
 
@@ -3008,12 +3005,7 @@
 
                         // Disable activity detection
                         window.activityDetectionEnabled = false;
-                        // PAUSE the slideshow rotation when editor mode is enabled
-                        if (window.slideshowInterval) {
-                            console.log("Pausing slideshow rotation for editor mode");
-                            clearInterval(window.slideshowInterval);
-                            window.slideshowInterval = null;
-                        }
+                        // Backend handles slideshow timer management - no frontend timer control needed
 
 
                         // Start editor session (store original config for rollback)
@@ -3121,12 +3113,7 @@
 
                         // Re-enable activity detection
                         window.activityDetectionEnabled = true;
-                        // RESTART the slideshow rotation when editor mode is disabled
-                        if (!window.slideshowInterval && window.isSlideshowActive) {
-                            console.log("Restarting slideshow rotation after editor mode toggled off");
-                            nextPhoto();
-                            window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
-                        }
+                        // Backend handles slideshow timer management - no frontend timer restart needed
 
 
                         // Remove editor UI
@@ -3864,6 +3851,10 @@
 
         // Expose updateConfig function for backend communication
         window.updateConfig = function(newConfig) {
+            // Temporarily disable activity detection during config update to prevent cascade
+            const wasActivityEnabled = window.activityDetectionEnabled;
+            window.activityDetectionEnabled = false;
+
             // Merge new config with existing config
             Object.assign(config, newConfig);
 
@@ -3895,6 +3886,14 @@
                     updateMetadataOverlay();
                 }
             }
+
+            // Restore activity detection state after a delay to ensure DOM updates complete
+            // Use longer delay for editor mode changes which trigger more extensive UI updates
+            const delay = newConfig.editorMode !== undefined ? 200 : 50;
+            setTimeout(() => {
+                window.activityDetectionEnabled = wasActivityEnabled;
+                console.log('Activity detection restored after config update');
+            }, delay);
         };
 
         // Listen for slideshow ready event - backend handles visibility
@@ -4351,19 +4350,11 @@
                 window.activityDetectionEnabled = false;
                 console.log('Activity detection disabled for editor mode');
 
-                // Pause slideshow transitions but keep it visible
+                // Backend handles slideshow timer management
                 if (window.isSlideshowActive) {
                     this.wasPlaying = true;
-                    // Don't call pauseSlideshow() as it might hide the slideshow
-                    // Just stop the transitions
-                    if (window.slideshowInterval) {
-                        clearInterval(window.slideshowInterval);
-                        window.slideshowInterval = null;
-                    }
                 } else {
                     this.wasPlaying = false;
-                    // Make sure slideshow is visible
-                    startSlideshow();
                 }
 
                 // Show all UI elements
@@ -4404,14 +4395,8 @@
                 // Remove editor class
                 document.body.classList.remove('editor-mode');
 
-                // Resume slideshow if it was playing
-                if (this.wasPlaying) {
-                    // Restart slideshow interval
-                    if (!window.slideshowInterval && window.isSlideshowActive) {
-                        nextPhoto();
-                        window.slideshowInterval = setInterval(nextPhoto, config.interval * 1000);
-                    }
-                }
+                // Backend handles slideshow timer management
+                // No frontend timer restart needed
             }
 
             // Show all UI elements for editing
