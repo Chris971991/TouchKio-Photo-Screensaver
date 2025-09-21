@@ -2789,35 +2789,41 @@
                     // Map to MQTT setting names (same as existing integration)
                     let mqttKey = '';
 
+                    // Fix element ID mapping for MQTT keys
+                    let mqttElementId = elementId;
+                    if (elementId === 'metadataOverlay') {
+                        mqttElementId = 'metadata';
+                    }
+
                     if (property.includes('Position')) {
-                        mqttKey = `slideshow_${elementId}_position`;
+                        mqttKey = `slideshow_${mqttElementId}_position`;
                     } else if (property.includes('CustomX')) {
-                        mqttKey = `slideshow_${elementId}_custom_x`;
+                        mqttKey = `slideshow_${mqttElementId}_custom_x`;
                     } else if (property.includes('CustomY')) {
-                        mqttKey = `slideshow_${elementId}_custom_y`;
+                        mqttKey = `slideshow_${mqttElementId}_custom_y`;
                     } else if (property.includes('CustomFontSize')) {
-                        mqttKey = `slideshow_${elementId}_custom_font_size`;
+                        mqttKey = `slideshow_${mqttElementId}_custom_font_size`;
                     } else if (property.includes('Color') && !property.includes('Background')) {
-                        mqttKey = `slideshow_${elementId}_color`;
+                        mqttKey = `slideshow_${mqttElementId}_color`;
                     } else if (property.includes('BackgroundColor')) {
-                        mqttKey = `slideshow_${elementId}_background_color`;
+                        mqttKey = `slideshow_${mqttElementId}_background_color`;
                     } else if (property.includes('Opacity') && !property.includes('Background')) {
-                        mqttKey = `slideshow_${elementId}_opacity`;
+                        mqttKey = `slideshow_${mqttElementId}_opacity`;
                     } else if (property.includes('BackgroundOpacity')) {
-                        mqttKey = `slideshow_${elementId}_background_opacity`;
+                        mqttKey = `slideshow_${mqttElementId}_background_opacity`;
                     } else if (property.includes('Background') && !property.includes('Color') && !property.includes('Opacity')) {
-                        mqttKey = `slideshow_${elementId}_background`;
+                        mqttKey = `slideshow_${mqttElementId}_background`;
                         // Handle both boolean and string background values
                         if (typeof value === 'boolean') {
                             value = value ? 'ON' : 'OFF';
                         }
                         // String values like 'dark', 'none' pass through unchanged
                     } else if (property.includes('BorderRadius')) {
-                        mqttKey = `slideshow_${elementId}_border_radius`;
+                        mqttKey = `slideshow_${mqttElementId}_border_radius`;
                     } else if (property.includes('Padding')) {
-                        mqttKey = `slideshow_${elementId}_padding`;
+                        mqttKey = `slideshow_${mqttElementId}_padding`;
                     } else if (property.includes('Shadow')) {
-                        mqttKey = `slideshow_${elementId}_shadow`;
+                        mqttKey = `slideshow_${mqttElementId}_shadow`;
                     } else if (property === 'clockFormat') {
                         mqttKey = `slideshow_clock_format`;
                     }
@@ -3359,8 +3365,16 @@
                 sourceIndicator.style.transform = 'none';
 
                 // Check if custom coordinates are provided
-                const hasCustomX = config.sourceCustomX && config.sourceCustomX.trim() !== '';
-                const hasCustomY = config.sourceCustomY && config.sourceCustomY.trim() !== '';
+                const hasCustomX = config.sourceCustomX && config.sourceCustomX.toString().trim() !== '';
+                const hasCustomY = config.sourceCustomY && config.sourceCustomY.toString().trim() !== '';
+
+                console.log('Source positioning debug:', {
+                    sourceCustomX: config.sourceCustomX,
+                    sourceCustomY: config.sourceCustomY,
+                    hasCustomX,
+                    hasCustomY,
+                    sourcePosition: sourcePos
+                });
 
                 if (hasCustomX || hasCustomY) {
                     // Use custom positioning - clear preset styles first
@@ -3400,6 +3414,11 @@
                         case 'bottom-right':
                             sourceIndicator.style.bottom = '20px';
                             sourceIndicator.style.right = '20px';
+                            break;
+                        case 'center':
+                            sourceIndicator.style.top = '50%';
+                            sourceIndicator.style.left = '50%';
+                            sourceIndicator.style.transform = 'translate(-50%, -50%)';
                             break;
                     }
                 }
@@ -3730,8 +3749,16 @@
                 photoCounter.style.transform = 'none';
 
                 // Check if custom coordinates are provided
-                const hasCustomX = config.counterCustomX && config.counterCustomX.trim() !== '';
-                const hasCustomY = config.counterCustomY && config.counterCustomY.trim() !== '';
+                const hasCustomX = config.counterCustomX && config.counterCustomX.toString().trim() !== '';
+                const hasCustomY = config.counterCustomY && config.counterCustomY.toString().trim() !== '';
+
+                console.log('Counter positioning debug:', {
+                    counterCustomX: config.counterCustomX,
+                    counterCustomY: config.counterCustomY,
+                    hasCustomX,
+                    hasCustomY,
+                    counterPosition: counterPos
+                });
 
                 if (hasCustomX || hasCustomY) {
                     // Use custom positioning - clear preset styles first
@@ -3771,6 +3798,11 @@
                         case 'bottom-right':
                             photoCounter.style.bottom = '20px';
                             photoCounter.style.right = '20px';
+                            break;
+                        case 'center':
+                            photoCounter.style.top = '50%';
+                            photoCounter.style.left = '50%';
+                            photoCounter.style.transform = 'translate(-50%, -50%)';
                             break;
                     }
                 }

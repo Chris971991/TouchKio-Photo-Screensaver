@@ -1855,7 +1855,7 @@ const initSlideshowSourcePosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
     icon: "mdi:information-outline",
     device: INTEGRATION.device,
   };
@@ -1941,7 +1941,7 @@ const initSlideshowCounterPosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
     icon: "mdi:counter",
     device: INTEGRATION.device,
   };
@@ -2235,7 +2235,7 @@ const initSlideshowDatePosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
     icon: "mdi:calendar-clock",
     device: INTEGRATION.device,
   };
