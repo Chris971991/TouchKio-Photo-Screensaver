@@ -1774,13 +1774,21 @@ const resetIdleTimer = () => {
     }
 
     if (SLIDESHOW.active && !SLIDESHOW.timer) {
-      // Slideshow is active but paused - resume it
-      console.log("Idle timeout reached, resuming paused slideshow");
-      showSlideshowOverlay();
+      // Slideshow is active but paused - resume it only if not in editor mode
+      if (!SLIDESHOW.config.editorMode) {
+        console.log("Idle timeout reached, resuming paused slideshow");
+        showSlideshowOverlay();
+      } else {
+        console.log("Idle timeout reached, but editor mode is active - not resuming slideshow");
+      }
     } else if (!SLIDESHOW.active) {
-      // Slideshow is not active - start it fresh
-      console.log("Idle timeout reached, starting slideshow");
-      showSlideshow();
+      // Slideshow is not active - start it fresh (only if not in editor mode)
+      if (!SLIDESHOW.config.editorMode) {
+        console.log("Idle timeout reached, starting slideshow");
+        showSlideshow();
+      } else {
+        console.log("Idle timeout reached, but editor mode is active - not starting slideshow");
+      }
     }
   }, SLIDESHOW.config.idleTimeout, 'idle_timer');
 };
@@ -1810,8 +1818,13 @@ const pauseSlideshowTimer = () => {
 
 const resumeSlideshowTimer = () => {
   if (SLIDESHOW.active && !SLIDESHOW.timer) {
-    console.log("Resuming slideshow timer");
-    startSlideshowTimer();
+    // Only resume timer if NOT in editor mode
+    if (!SLIDESHOW.config.editorMode) {
+      console.log("Resuming slideshow timer");
+      startSlideshowTimer();
+    } else {
+      console.log("Not resuming slideshow timer - editor mode active");
+    }
   }
 };
 
@@ -2113,7 +2126,14 @@ const updateConfig = (newConfig) => {
   if (SLIDESHOW.active) {
     if (SLIDESHOW.timer) {
       global.timerController.clearTimer(SLIDESHOW.timer);
+      SLIDESHOW.timer = null;
+    }
+
+    // Only restart timer if NOT in editor mode
+    if (!SLIDESHOW.config.editorMode) {
       startSlideshowTimer();
+    } else {
+      console.log("Pausing slideshow timer - editor mode active");
     }
   }
 
