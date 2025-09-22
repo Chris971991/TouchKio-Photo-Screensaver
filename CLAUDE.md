@@ -195,6 +195,88 @@ ssh pi@kiosk.local "cat ~/.config/touchkio/Arguments.json | python3 -m json.tool
 
 **Status**: 🔴 **BLOCKING** - Affects editor mode functionality and user experience
 
+## 🔐 Feature Persistence Architecture - CRITICAL IMPLEMENTATION GUIDE
+
+**⚠️ ESSENTIAL:** All slideshow settings must follow this exact pattern for proper persistence across TouchKio restarts.
+
+### **Step-by-Step Persistence Implementation**
+
+#### **1. Frontend Property Mapping (slideshow.html)**
+Settings must be mapped correctly in the `saveAllChanges()` function:
+
+```javascript
+// In saveAllChanges() property mapping section:
+} else if (property === 'yourNewProperty') {
+    mqttKey = `slideshow_element_your_property_name`;
+```
+
+**Key Naming Convention**: Always use `slideshow_[element]_[property]` format with underscores.
+
+#### **2. Backend Loading (integration.js)**
+Settings must be loaded from ARGS at startup:
+
+```javascript
+// In slideshow initialization section (~line 1170):
+if (ARGS.slideshow_element_your_property_name) savedCustomConfig.yourNewProperty = ARGS.slideshow_element_your_property_name;
+```
+
+#### **3. State Publishing (integration.js)**
+Settings must be published to MQTT state topics:
+
+```javascript
+// In updateSlideshow() function (~line 2845):
+publishState("slideshow_element_your_property_name", status.config.yourNewProperty || ARGS.slideshow_element_your_property_name || "default_value");
+```
+
+#### **4. MQTT Handler (integration.js)**
+MQTT messages must save with correct key names:
+
+```javascript
+// In MQTT message handler:
+updateSlideshowSetting("slideshow_element_your_property_name", newValue);
+```
+
+### **🚨 Common Persistence Bugs**
+
+#### **Key Name Mismatches**
+- ❌ **WRONG**: Frontend saves `slideshow_clock_am_pm_size`, backend loads `slideshow_clock_ampm_size`
+- ✅ **CORRECT**: Use identical key names throughout entire chain
+
+#### **Missing ARGS Loading**
+- ❌ **WRONG**: Only adding MQTT handler, forgetting ARGS loading
+- ✅ **CORRECT**: Add setting to ARGS loading section in integration.js
+
+#### **Missing State Publishing**
+- ❌ **WRONG**: Settings save but don't sync to Home Assistant
+- ✅ **CORRECT**: Add publishState() call in updateSlideshow()
+
+### **🔍 Debugging Persistence Issues**
+
+```bash
+# Check if setting is saved to Arguments.json
+ssh pi@kiosk.local "cat ~/.config/touchkio/Arguments.json | python3 -m json.tool | grep your_property"
+
+# Check TouchKio logs for setting updates
+ssh pi@kiosk.local "sudo journalctl -u user@1000.service --since '2 minutes ago' | grep 'your_property'"
+
+# Verify MQTT state publishing
+ssh pi@kiosk.local "sudo journalctl -u user@1000.service --since '2 minutes ago' | grep 'Publishing.*your_property'"
+```
+
+### **✅ Persistence Checklist**
+
+Before committing any new slideshow feature:
+- [ ] Frontend mapping in `saveAllChanges()` function
+- [ ] Backend loading from `ARGS.slideshow_*` in integration.js
+- [ ] State publishing in `updateSlideshow()` function
+- [ ] MQTT handler uses correct `slideshow_*` key name
+- [ ] All key names identical across frontend/backend
+- [ ] Tested on Pi with TouchKio restart
+- [ ] Setting persists in Arguments.json
+- [ ] Home Assistant shows correct state
+
+**💡 Pro Tip**: Always test persistence by making a change, restarting TouchKio, and verifying the setting survives.
+
 ## Essential Pi Commands
 
 **Pi Connection**:
@@ -374,5 +456,5 @@ Each of 5 elements (Clock, Date, Source, Counter, Metadata) has 13 controls:
 ---
 
 *Last Updated: 2025-09-22*
-*Version: Phase 6C Complete - Editor Mode Flash Bug Fixed + All State Management Working*
-*MQTT Controls: 117 entities across 5 domains*
+*Version: Phase 6C Complete + AM/PM Customization - Full clock customization with proper persistence*
+*MQTT Controls: 120 entities across 5 domains*
