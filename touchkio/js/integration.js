@@ -1001,6 +1001,8 @@ const initSlideshow = () => {
   initSlideshowClockPosition();
   initSlideshowClockCustomFontSize();
   initSlideshowClockFormat();
+  initSlideshowClockAmPmCase();
+  initSlideshowClockAmPmSize();
   initSlideshowClockColor();
   initSlideshowClockBackground();
   initSlideshowClockBackgroundColor();
@@ -1163,6 +1165,8 @@ const loadAndApplySavedSlideshowConfig = () => {
   // Load saved font sizes for all elements
   if (ARGS.slideshow_clock_custom_font_size) savedCustomConfig.clockCustomFontSize = ARGS.slideshow_clock_custom_font_size;
   if (ARGS.slideshow_clock_format) savedCustomConfig.clockFormat = ARGS.slideshow_clock_format;
+  if (ARGS.slideshow_clock_ampm_case) savedCustomConfig.clockAmPmCase = ARGS.slideshow_clock_ampm_case;
+  if (ARGS.slideshow_clock_ampm_size) savedCustomConfig.clockAmPmSize = ARGS.slideshow_clock_ampm_size;
   if (ARGS.slideshow_date_custom_font_size) savedCustomConfig.dateCustomFontSize = ARGS.slideshow_date_custom_font_size;
   if (ARGS.slideshow_source_custom_font_size) savedCustomConfig.sourceCustomFontSize = ARGS.slideshow_source_custom_font_size;
   if (ARGS.slideshow_counter_custom_font_size) savedCustomConfig.counterCustomFontSize = ARGS.slideshow_counter_custom_font_size;
@@ -2533,6 +2537,12 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_clock_format":
         slideshow.updateConfig({ clockFormat: value });
         break;
+      case "slideshow_clock_ampm_case":
+        slideshow.updateConfig({ clockAmPmCase: value });
+        break;
+      case "slideshow_clock_ampm_size":
+        slideshow.updateConfig({ clockAmPmSize: value });
+        break;
       case "slideshow_clock_background_opacity":
         slideshow.updateConfig({ clockBackgroundOpacity: parseInt(value) });
         break;
@@ -2830,6 +2840,8 @@ const updateSlideshow = async () => {
   publishState("slideshow_clock_custom_font_size", status.config.clockCustomFontSize || ARGS.slideshow_clock_custom_font_size || "");
   publishState("slideshow_clock_background_opacity", status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70);
   publishState("slideshow_clock_format", status.config.clockFormat || ARGS.slideshow_clock_format || "24hour");
+  publishState("slideshow_clock_ampm_case", status.config.clockAmPmCase || ARGS.slideshow_clock_ampm_case || "uppercase");
+  publishState("slideshow_clock_ampm_size", status.config.clockAmPmSize || ARGS.slideshow_clock_ampm_size || "normal");
 
   // Date settings - independent from clock
   publishState("slideshow_show_date", status.config.showDate !== false ? "ON" : "OFF");
@@ -3502,6 +3514,62 @@ const initSlideshowClockFormat = () => {
         console.log("Set Slideshow Clock Format:", clockFormat);
         updateSlideshowSetting("slideshow_clock_format", clockFormat);
         slideshow.updateConfig({ clockFormat });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock AM/PM case control.
+ */
+const initSlideshowClockAmPmCase = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_ampm_case`;
+  const config = {
+    name: "Slideshow Clock AM/PM Case",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_ampm_case`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["uppercase", "lowercase"],
+    icon: "mdi:format-letter-case",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockAmPmCase = message.toString();
+        console.log("Set Slideshow Clock AM/PM Case:", clockAmPmCase);
+        updateSlideshowSetting("slideshow_clock_ampm_case", clockAmPmCase);
+        slideshow.updateConfig({ clockAmPmCase });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock AM/PM size control.
+ */
+const initSlideshowClockAmPmSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_ampm_size`;
+  const config = {
+    name: "Slideshow Clock AM/PM Size",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_ampm_size`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    value_template: "{{ value }}",
+    options: ["small", "normal", "large"],
+    icon: "mdi:format-size",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockAmPmSize = message.toString();
+        console.log("Set Slideshow Clock AM/PM Size:", clockAmPmSize);
+        updateSlideshowSetting("slideshow_clock_ampm_size", clockAmPmSize);
+        slideshow.updateConfig({ clockAmPmSize });
       }
     })
     .subscribe(config.command_topic);
