@@ -605,7 +605,12 @@ const initPageUrl = () => {
       if (topic === config.command_topic) {
         const url = message.toString();
         console.log("Set Page Url:", url);
+
+        // Load the URL in the current webview
         WEBVIEW.views[WEBVIEW.viewActive || 1].webContents.loadURL(url);
+
+        // Persist the URL to Arguments.json (web_url is an array)
+        updateSetting("web_url", [url]);
       }
     })
     .subscribe(config.command_topic);
@@ -2415,6 +2420,58 @@ const initSlideshowMetadataColor = () => {
  * Updates a slideshow setting in ARGS and persists to Arguments.json safely.
  * Uses the same approach as install.sh to preserve TouchKio's encryption system.
  */
+/**
+ * Updates a general TouchKio setting and persists it to Arguments.json
+ */
+const updateSetting = (key, value) => {
+  // Update the ARGS object in memory
+  ARGS[key] = value;
+  console.log(`Updated runtime ${key}:`, value);
+
+  // Persist to Arguments.json using safe JSON modification (like install.sh)
+  const fs = require("fs");
+  const path = require("path");
+  const argsFilePath = path.join(APP.config, "Arguments.json");
+
+  try {
+    // Only persist if Arguments.json exists (follows TouchKio startup pattern)
+    if (!fs.existsSync(argsFilePath)) {
+      console.log(`Arguments.json not found at ${argsFilePath}, skipping persistence`);
+      return;
+    }
+
+    // Backup the config file first (following install.sh pattern)
+    const backupPath = `${argsFilePath}.backup`;
+    fs.copyFileSync(argsFilePath, backupPath);
+
+    // Read current config as text first to preserve formatting
+    const configContent = fs.readFileSync(argsFilePath, "utf8");
+    const currentConfig = JSON.parse(configContent);
+
+    // Update only the specific key, preserving all other data (including encryption)
+    const valueToStore = typeof value === "boolean" ? value.toString() : value;
+    currentConfig[key] = valueToStore;
+
+    // Write back with preserved structure (2-space indent like TouchKio)
+    fs.writeFileSync(argsFilePath, JSON.stringify(currentConfig, null, 2));
+    console.log(`Persisted ${key} to Arguments.json:`, value);
+
+  } catch (error) {
+    console.error(`Failed to persist ${key} to Arguments.json:`, error.message);
+
+    // Restore backup if write failed
+    const backupPath = `${argsFilePath}.backup`;
+    if (fs.existsSync(backupPath)) {
+      try {
+        fs.copyFileSync(backupPath, argsFilePath);
+        console.log("Restored Arguments.json from backup after error");
+      } catch (restoreError) {
+        console.error("Failed to restore backup:", restoreError.message);
+      }
+    }
+  }
+};
+
 const updateSlideshowSetting = (key, value) => {
   // Update the ARGS object in memory
   ARGS[key] = value;
