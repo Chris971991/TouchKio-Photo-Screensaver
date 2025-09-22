@@ -1582,7 +1582,7 @@ const initSlideshowClockPosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center", "custom"],
     icon: "mdi:clock-time-four",
     device: INTEGRATION.device,
   };
@@ -1859,7 +1859,7 @@ const initSlideshowSourcePosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center", "custom"],
     icon: "mdi:information-outline",
     device: INTEGRATION.device,
   };
@@ -1945,7 +1945,7 @@ const initSlideshowCounterPosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center", "custom"],
     icon: "mdi:counter",
     device: INTEGRATION.device,
   };
@@ -2239,7 +2239,7 @@ const initSlideshowDatePosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "center", "custom"],
     icon: "mdi:calendar-clock",
     device: INTEGRATION.device,
   };
@@ -3213,7 +3213,7 @@ const initSlideshowMetadataPosition = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
-    options: ["top-left", "top-right", "bottom-left", "bottom-right", "bottom-center"],
+    options: ["top-left", "top-right", "bottom-left", "bottom-right", "bottom-center", "custom"],
     icon: "mdi:format-vertical-align-bottom",
     device: INTEGRATION.device,
   };

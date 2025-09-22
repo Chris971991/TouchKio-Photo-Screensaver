@@ -1263,17 +1263,20 @@
                 const y = Math.round(elementRect.top - containerRect.top);
 
                 // Update config and save
-                addPendingChange(elementId, `${elementId}CustomX`, x + 'px');
-                addPendingChange(elementId, `${elementId}CustomY`, y + 'px');
-                addPendingChange(elementId, `${elementId}Position`, 'custom');
+                const propNameX = `${elementId}CustomX`;
+                const propNameY = `${elementId}CustomY`;
+                const propNamePos = `${elementId}Position`;
+
+                console.log(`🔍 DEBUG: Adding pending changes for ${elementId}:`);
+                console.log(`  Property names: X='${propNameX}', Y='${propNameY}', Pos='${propNamePos}'`);
+                console.log(`  Values: X='${x}px', Y='${y}px', Pos='custom'`);
+
+                addPendingChange(elementId, propNameX, x + 'px');
+                addPendingChange(elementId, propNameY, y + 'px');
+                addPendingChange(elementId, propNamePos, 'custom');
 
                 console.log(`🎯 DRAG COMPLETE: Dragged ${elementId} to (${x}, ${y})`);
-                console.log(`🎯 PENDING CHANGES ADDED:`, {
-                    elementId,
-                    customX: x + 'px',
-                    customY: y + 'px',
-                    position: 'custom'
-                });
+                console.log(`🎯 PENDING CHANGES ADDED:`, pendingChanges);
             }
 
             // Right-click context menu
@@ -2766,13 +2769,24 @@
             console.log('Saving all pending changes:', pendingChanges);
 
             // Apply all changes directly to config
+            console.log('🔍 DEBUG: Applying pending changes to config');
+            console.log('  Current config.counterCustomX:', config.counterCustomX);
+            console.log('  Current config.counterCustomY:', config.counterCustomY);
+
             Object.entries(pendingChanges).forEach(([elementId, changes]) => {
+                console.log(`  Processing element: ${elementId}`);
                 Object.entries(changes).forEach(([property, value]) => {
                     // Apply change to config
                     config[property] = value;
-                    console.log(`🔧 CONFIG UPDATED: Applied ${property} = ${value} to config`);
+                    console.log(`🔧 CONFIG UPDATED: Applied config['${property}'] = '${value}'`);
+                    if (property.includes('counter')) {
+                        console.log(`    ⚠️ Counter property detected: ${property}`);
+                    }
                 });
             });
+
+            console.log('  After changes - config.counterCustomX:', config.counterCustomX);
+            console.log('  After changes - config.counterCustomY:', config.counterCustomY);
 
             // Re-render all elements with new config
             applyClock();
@@ -2799,8 +2813,10 @@
                         mqttKey = `slideshow_${mqttElementId}_position`;
                     } else if (property.includes('CustomX')) {
                         mqttKey = `slideshow_${mqttElementId}_custom_x`;
+                        console.log(`    📍 Mapping CustomX: ${property} -> ${mqttKey}`);
                     } else if (property.includes('CustomY')) {
                         mqttKey = `slideshow_${mqttElementId}_custom_y`;
+                        console.log(`    📍 Mapping CustomY: ${property} -> ${mqttKey}`);
                     } else if (property.includes('CustomFontSize')) {
                         mqttKey = `slideshow_${mqttElementId}_custom_font_size`;
                     } else if (property.includes('Color') && !property.includes('Background')) {
@@ -3154,40 +3170,8 @@
                     sourceIndicator.style.display = 'flex';
                     const sourcePos = config.sourcePosition || 'top-left';
 
-                    // Apply proper styling via the dedicated function
+                    // Apply proper styling via the dedicated function (handles all positioning including custom)
                     applySourceIndicatorPosition();
-
-                    // Set absolute positioning directly
-                    sourceIndicator.style.position = 'absolute';
-                    sourceIndicator.style.zIndex = '10';
-
-                    // Clear all positioning
-                    sourceIndicator.style.top = 'auto';
-                    sourceIndicator.style.right = 'auto';
-                    sourceIndicator.style.bottom = 'auto';
-                    sourceIndicator.style.left = 'auto';
-
-                    // Apply specific position
-                    switch(sourcePos) {
-                        case 'top-left':
-                            sourceIndicator.style.top = '20px';
-                            sourceIndicator.style.left = '20px';
-                            break;
-                        case 'top-right':
-                            sourceIndicator.style.top = '20px';
-                            sourceIndicator.style.right = '20px';
-                            break;
-                        case 'bottom-left':
-                            sourceIndicator.style.bottom = '20px';
-                            sourceIndicator.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            sourceIndicator.style.bottom = '20px';
-                            sourceIndicator.style.right = '20px';
-                            break;
-                    }
-
-                    sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
                 } else {
                     sourceIndicator.style.display = 'none';
                 }
@@ -3198,40 +3182,8 @@
                     photoCounter.style.display = 'flex';
                     const counterPos = config.counterPosition || 'bottom-left';
 
-                    // Apply proper styling via the dedicated function
+                    // Apply proper styling via the dedicated function (handles all positioning including custom)
                     applyPhotoCounterPosition();
-
-                    // Set absolute positioning directly
-                    photoCounter.style.position = 'absolute';
-                    photoCounter.style.zIndex = '10';
-
-                    // Clear all positioning
-                    photoCounter.style.top = 'auto';
-                    photoCounter.style.right = 'auto';
-                    photoCounter.style.bottom = 'auto';
-                    photoCounter.style.left = 'auto';
-
-                    // Apply specific position
-                    switch(counterPos) {
-                        case 'top-left':
-                            photoCounter.style.top = '20px';
-                            photoCounter.style.left = '20px';
-                            break;
-                        case 'top-right':
-                            photoCounter.style.top = '20px';
-                            photoCounter.style.right = '20px';
-                            break;
-                        case 'bottom-left':
-                            photoCounter.style.bottom = '20px';
-                            photoCounter.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            photoCounter.style.bottom = '20px';
-                            photoCounter.style.right = '20px';
-                            break;
-                    }
-
-                    photoCounter.style.opacity = config.counterOpacity || 0.8;
                 } else {
                     photoCounter.style.display = 'none';
                 }
@@ -3417,6 +3369,9 @@
                             sourceIndicator.style.left = '50%';
                             sourceIndicator.style.transform = 'translate(-50%, -50%)';
                             break;
+                        case 'custom':
+                            // Custom position handled above, do nothing here
+                            break;
                     }
                 }
 
@@ -3548,6 +3503,9 @@
                             clock.style.left = '50%';
                             clock.style.transform = 'translate(-50%, -50%)';
                             break;
+                        case 'custom':
+                            // Custom position handled above, do nothing here
+                            break;
                     }
                 }
 
@@ -3670,6 +3628,9 @@
                             date.style.top = '50%';
                             date.style.left = '50%';
                             date.style.transform = 'translate(-50%, -50%)';
+                            break;
+                        case 'custom':
+                            // Custom position handled above, do nothing here
                             break;
                     }
                 }
@@ -3801,6 +3762,9 @@
                             photoCounter.style.left = '50%';
                             photoCounter.style.transform = 'translate(-50%, -50%)';
                             break;
+                        case 'custom':
+                            // Custom position handled above, do nothing here
+                            break;
                     }
                 }
 
@@ -3865,8 +3829,8 @@
             }
 
             // Re-apply counter styling if any counter option changed
-            if (currentPhotoIndex !== -1 && (newConfig.counterPosition || newConfig.counterBackground ||
-                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity || newConfig.counterBorderRadius || newConfig.counterPadding || newConfig.counterShadow || newConfig.counterCustomX || newConfig.counterCustomY)) {
+            if (newConfig.counterPosition || newConfig.counterBackground ||
+                newConfig.counterColor || newConfig.counterFontSize || newConfig.counterBackgroundOpacity || newConfig.counterSize || newConfig.counterOpacity || newConfig.counterBorderRadius || newConfig.counterPadding || newConfig.counterShadow || newConfig.counterCustomX || newConfig.counterCustomY || newConfig.showPhotoCounter !== undefined) {
                 applyPhotoCounterPosition();
             }
 
