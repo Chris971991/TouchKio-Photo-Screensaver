@@ -799,12 +799,16 @@
                     // Create time with custom AM/PM styling
                     const timeBase = `${hour12}:${minute}`;
 
+                    // Generate spacing (number of spaces)
+                    const spacing = config.clockAmPmSpacing || '1';
+                    const spaceChars = '\u00A0'.repeat(parseInt(spacing)); // Use non-breaking spaces
+
                     if (config.clockAmPmSize && config.clockAmPmSize !== '80') {
                         // Use HTML with custom AM/PM size as percentage of clock font
                         const ampmSize = (config.clockAmPmSize / 100) + 'em';
-                        elements.clock.innerHTML = `${timeBase} <span style="font-size: ${ampmSize};">${ampmFormatted}</span>`;
+                        elements.clock.innerHTML = `${timeBase}${spaceChars}<span style="font-size: ${ampmSize};">${ampmFormatted}</span>`;
                     } else {
-                        elements.clock.textContent = `${timeBase} ${ampmFormatted}`;
+                        elements.clock.textContent = `${timeBase}${spaceChars}${ampmFormatted}`;
                     }
                 } else {
                     // 24-hour format
@@ -1979,6 +1983,7 @@
             const currentFormat = config.clockFormat || '24hour';
             const currentAmPmCase = config.clockAmPmCase || 'uppercase';
             const currentAmPmSize = config.clockAmPmSize || '80';
+            const currentAmPmSpacing = config.clockAmPmSpacing || '1';
 
             // Create time format menu
             const menu = document.createElement('div');
@@ -2036,7 +2041,12 @@
 
                         <div>
                             <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Size (% of clock):</label>
-                            <input type="number" id="ampm-size" value="${config.clockAmPmSize || '80'}" min="30" max="150" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px;">
+                            <input type="number" id="ampm-size" value="${config.clockAmPmSize || '80'}" min="30" max="150" step="5" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px;">
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Spacing (characters):</label>
+                            <input type="number" id="ampm-spacing" value="${config.clockAmPmSpacing || '1'}" min="0" max="3" step="0.1" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px;">
                         </div>
                     </div>
                 </div>
@@ -2067,6 +2077,7 @@
             let selectedFormat = currentFormat;
             let selectedAmPmCase = currentAmPmCase;
             let selectedAmPmSize = currentAmPmSize;
+            let selectedAmPmSpacing = currentAmPmSpacing;
 
             // Handle format selection
             menu.querySelectorAll('input[name="timeFormat"]').forEach(radio => {
@@ -2098,12 +2109,21 @@
                 });
             }
 
+            // Handle AM/PM spacing input
+            const amPmSpacingInput = document.getElementById('ampm-spacing');
+            if (amPmSpacingInput) {
+                amPmSpacingInput.addEventListener('input', (e) => {
+                    selectedAmPmSpacing = e.target.value;
+                });
+            }
+
             // Handle apply button
             document.getElementById('format-apply-btn').addEventListener('click', () => {
                 addPendingChange(elementId, 'clockFormat', selectedFormat);
                 if (selectedFormat === '12hour') {
                     addPendingChange(elementId, 'clockAmPmCase', selectedAmPmCase);
                     addPendingChange(elementId, 'clockAmPmSize', selectedAmPmSize);
+                    addPendingChange(elementId, 'clockAmPmSpacing', selectedAmPmSpacing);
                 }
                 menu.remove();
                 style.remove();
@@ -3092,6 +3112,8 @@
                         mqttKey = `slideshow_clock_am_pm_case`;
                     } else if (property === 'clockAmPmSize') {
                         mqttKey = `slideshow_clock_am_pm_size`;
+                    } else if (property === 'clockAmPmSpacing') {
+                        mqttKey = `slideshow_clock_am_pm_spacing`;
                     } else if (property === 'showClock') {
                         mqttKey = `slideshow_show_clock`;
                     } else if (property === 'showDate') {
