@@ -679,7 +679,8 @@ const initSlideshowView = async () => {
         // Small delay to ensure grace period is active before showing overlay
         setTimeout(() => {
           // Make sure slideshow overlay is visible
-          showSlideshowOverlay();
+          // Skip entrance animation when resuming from editor mode to prevent flash
+          showSlideshowOverlay(true);
 
           // Resume photo rotation if paused
           if (!SLIDESHOW.timer) {
@@ -1903,6 +1904,7 @@ const showSlideshow = async () => {
 
   console.log("Starting slideshow");
   SLIDESHOW.active = true;
+  SLIDESHOW.visible = true; // Initially visible when started
   publishSlideshowState();
   SLIDESHOW.currentIndex = 0;
 
@@ -1986,12 +1988,22 @@ const showSlideshow = async () => {
 };
 
 // Hide slideshow overlay (pause) without stopping slideshow completely
+let hideInProgress = false;
 const hideSlideshowOverlay = () => {
   if (!SLIDESHOW.active) {
     return;
   }
 
+  if (hideInProgress) {
+    console.log("DEBUG: hideSlideshowOverlay called but already in progress - ignoring");
+    return;
+  }
+
+  hideInProgress = true;
   console.log("Hiding slideshow overlay (pausing)");
+
+  // Mark as not visible for MQTT state
+  SLIDESHOW.visible = false;
 
   // Pause the timer but keep slideshow active
   pauseSlideshowTimer();
@@ -2027,28 +2039,51 @@ const hideSlideshowOverlay = () => {
 
   resetIdleTimer();
 
-  // CRITICAL: Emit state change so MQTT shows slideshow as inactive
+  // CRITICAL: Emit state change so MQTT shows slideshow as inactive (hidden)
+  // This is correct - when slideshow is hidden due to activity, MQTT should show false
+  console.log("DEBUG: Emitting slideshowStateChanged(false) for MQTT update");
   EVENTS.emit("slideshowStateChanged", false);
+
+  // Reset the hide flag after a delay to allow for normal operation
+  setTimeout(() => {
+    hideInProgress = false;
+    console.log("DEBUG: hideSlideshowOverlay lock released");
+  }, 1000);
 };
 
 // Show slideshow overlay (resume) for already active slideshow
-const showSlideshowOverlay = () => {
+const showSlideshowOverlay = (skipEntranceAnimation = false) => {
   if (!SLIDESHOW.active) {
     return;
   }
 
   console.log("Showing slideshow overlay (resuming)");
 
+  // Mark as visible for MQTT state
+  SLIDESHOW.visible = true;
+
   if (SLIDESHOW.view) {
-    // Don't remove/re-add during editor mode exit to prevent flash
-    // Just ensure it's visible and properly positioned
+    // Re-add view to window if it was removed during hide
+    try {
+      WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
+    } catch (error) {
+      // View might already be added - that's fine
+      console.log("View already in window or add failed:", error.message);
+    }
+
+    // Ensure it's visible and properly positioned
     SLIDESHOW.view.setVisible(true);
 
-    // Trigger entrance animation with configured duration
-    const animationDuration = getAnimationDuration();
-    if (animationDuration > 0) {
-      console.log(`Triggering slideshow entrance animation (${animationDuration}ms)`);
-      SLIDESHOW.view.webContents.send('apply-entrance-animation', animationDuration);
+    // Skip entrance animation if requested (e.g., when exiting editor mode)
+    // This prevents the visual flash that occurs during editor mode transitions
+    if (!skipEntranceAnimation) {
+      const animationDuration = getAnimationDuration();
+      if (animationDuration > 0) {
+        console.log(`Triggering slideshow entrance animation (${animationDuration}ms)`);
+        SLIDESHOW.view.webContents.send('apply-entrance-animation', animationDuration);
+      }
+    } else {
+      console.log("Skipping entrance animation to prevent flash during editor mode exit");
     }
 
     const windowBounds = WEBVIEW.window.getBounds();
@@ -2257,6 +2292,7 @@ const reloadPhotos = async () => {
 const getStatus = () => ({
   initialized: SLIDESHOW.initialized,
   active: SLIDESHOW.active,
+  visible: SLIDESHOW.visible || false, // Track if slideshow overlay is currently visible
   photoCount: SLIDESHOW.googlePhotoUrls.length > 0 ? SLIDESHOW.googlePhotoUrls.length : SLIDESHOW.photos.length,
   activePhotoSource: SLIDESHOW.googlePhotoUrls.length > 0 ? "google" : "local",
   googlePhotoCount: SLIDESHOW.googlePhotoUrls.length,

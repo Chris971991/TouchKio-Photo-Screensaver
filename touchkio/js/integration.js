@@ -1098,7 +1098,10 @@ const initSlideshow = () => {
   updateSlideshow();
 
   // Listen for slideshow state changes
-  EVENTS.on("slideshowStateChanged", updateSlideshow);
+  EVENTS.on("slideshowStateChanged", (newState) => {
+    console.log(`DEBUG: Received slideshowStateChanged event: ${newState}`);
+    updateSlideshow();
+  });
 };
 
 /**
@@ -2503,6 +2506,11 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_google_album_5":
         reloadAllGoogleAlbums();
         break;
+      // Editor mode settings
+      case "preset_editor_mode":
+        const editorMode = value === "true" || value === true;
+        slideshow.updateConfig({ editorMode });
+        break;
       // Clock styling settings
       case "slideshow_clock_position":
         slideshow.updateConfig({ clockPosition: value });
@@ -2776,9 +2784,9 @@ const updateSlideshow = async () => {
 
   const status = slideshow.getStatus();
 
-  // Basic slideshow state - use actual runtime state
+  // Basic slideshow state - use visibility for slideshow_active (user-facing), active for slideshow (enabled)
   publishState("slideshow", status.active ? "ON" : "OFF");
-  publishState("slideshow_active", status.active ? "ON" : "OFF");
+  publishState("slideshow_active", status.visible ? "ON" : "OFF");
 
   // Photo source settings
   const homedir = require("os").homedir();
