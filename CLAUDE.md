@@ -195,62 +195,128 @@ ssh pi@kiosk.local "cat ~/.config/touchkio/Arguments.json | python3 -m json.tool
 
 **Status**: 🔴 **BLOCKING** - Affects editor mode functionality and user experience
 
-## 🔐 Feature Persistence Architecture - CRITICAL IMPLEMENTATION GUIDE
+## 🔐 Editor Mode Feature Implementation - COMPLETE INTEGRATION GUIDE
 
-**⚠️ ESSENTIAL:** All slideshow settings must follow this exact pattern for proper persistence across TouchKio restarts.
+**⚠️ ESSENTIAL:** All editor mode features require FIVE separate implementation points for full persistence and MQTT integration.
 
-### **Step-by-Step Persistence Implementation**
+### **Complete Implementation Pipeline (5 Required Steps)**
 
-#### **1. Frontend Property Mapping (slideshow.html)**
-Settings must be mapped correctly in the `saveAllChanges()` function:
+#### **1. Editor UI (slideshow.html) - Context Menu**
+Add menu item and handling for your new property:
 
 ```javascript
-// In saveAllChanges() property mapping section:
+// In context menu (showColorMenu, showTimeFormatMenu, etc.):
+addPendingChange(elementId, 'yourNewProperty', selectedValue);
+```
+
+#### **2. Editor Save Mapping (slideshow.html) - saveAllChanges()**
+**🚨 CRITICAL:** Map editor property to MQTT key in `saveAllChanges()` function:
+
+```javascript
+// In saveAllChanges() property mapping section (~line 3247):
 } else if (property === 'yourNewProperty') {
     mqttKey = `slideshow_element_your_property_name`;
 ```
 
 **Key Naming Convention**: Always use `slideshow_[element]_[property]` format with underscores.
 
-#### **2. Backend Loading (integration.js)**
-Settings must be loaded from ARGS at startup:
+#### **3. Backend ARGS Loading (integration.js)**
+Load saved settings from Arguments.json at startup:
 
 ```javascript
-// In slideshow initialization section (~line 1170):
+// In loadAndApplySavedSlideshowConfig() (~line 1174):
 if (ARGS.slideshow_element_your_property_name) savedCustomConfig.yourNewProperty = ARGS.slideshow_element_your_property_name;
 ```
 
-#### **3. State Publishing (integration.js)**
-Settings must be published to MQTT state topics:
+#### **4. MQTT Entity Registration (integration.js)**
+Create MQTT entity for Home Assistant discovery:
 
 ```javascript
-// In updateSlideshow() function (~line 2845):
+// Create init function:
+const initSlideshowElementYourProperty = () => {
+  const root = `${INTEGRATION.root}/slideshow_element_your_property_name`;
+  const config = {
+    name: "Slideshow Element Your Property",
+    unique_id: `${INTEGRATION.node}_slideshow_element_your_property_name`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:your-icon",
+    options: ["option1", "option2", "option3"], // For select entities
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config) // or "text", "number", etc.
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const value = message.toString();
+        console.log("Set Slideshow Element Your Property:", value);
+        updateSlideshowSetting("slideshow_element_your_property_name", value);
+        slideshow.updateConfig({ yourNewProperty: value });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+// Add to initSlideshow() function:
+initSlideshowElementYourProperty();
+```
+
+#### **5. State Publishing (integration.js)**
+Publish current state to MQTT for Home Assistant display:
+
+```javascript
+// In updateSlideshow() function (~line 2868):
 publishState("slideshow_element_your_property_name", status.config.yourNewProperty || ARGS.slideshow_element_your_property_name || "default_value");
 ```
 
-#### **4. MQTT Handler (integration.js)**
-MQTT messages must save with correct key names:
+#### **6. Runtime Config Updates (integration.js)**
+Handle MQTT commands by updating runtime config:
 
 ```javascript
-// In MQTT message handler:
-updateSlideshowSetting("slideshow_element_your_property_name", newValue);
+// In updateSlideshowRuntimeConfig() switch statement (~line 2555):
+case "slideshow_element_your_property_name":
+  slideshow.updateConfig({ yourNewProperty: value });
+  break;
 ```
 
-### **🚨 Common Persistence Bugs**
+### **🚨 Common Persistence Bugs (Real Examples)**
 
-#### **Key Name Mismatches**
+#### **1. Missing Editor Save Mapping**
+**Most Common Bug** - Feature works in UI but doesn't persist:
+- ❌ **WRONG**: Add `addPendingChange()` but forget editor save mapping
+- ✅ **CORRECT**: Add property mapping in `saveAllChanges()` function
+- **Example**: Date alignment UI worked but didn't save until save mapping was added
+
+#### **2. MQTT Entity Not Registered**
+Feature persists locally but no Home Assistant control:
+- ❌ **WRONG**: Forget to add `initSlideshowYourProperty()` call
+- ✅ **CORRECT**: Add init function AND call it in `initSlideshow()`
+- **Example**: Date alignment MQTT entity missing until init function was called
+
+#### **3. Missing State Publishing**
+Settings save but Home Assistant shows old values:
+- ❌ **WRONG**: Settings save but MQTT state not updated
+- ✅ **CORRECT**: Add `publishState()` call in `updateSlideshow()`
+- **Real Example**: Clock alignment saved as "center" but MQTT showed "right"
+
+#### **4. Key Name Mismatches**
 - ❌ **WRONG**: Frontend saves `slideshow_clock_am_pm_size`, backend loads `slideshow_clock_ampm_size`
 - ✅ **CORRECT**: Use identical key names throughout entire chain
 
-#### **Missing ARGS Loading**
+#### **5. Missing ARGS Loading**
 - ❌ **WRONG**: Only adding MQTT handler, forgetting ARGS loading
 - ✅ **CORRECT**: Add setting to ARGS loading section in integration.js
 
-#### **Missing State Publishing**
-- ❌ **WRONG**: Settings save but don't sync to Home Assistant
-- ✅ **CORRECT**: Add publishState() call in updateSlideshow()
-
 ### **🔍 Debugging Persistence Issues**
+
+**MQTT Connection Details:**
+- **Broker**: `192.168.50.45:1883`
+- **Username**: `mqtt_user`
+- **Password**: `mqtt_password`
+- **Device ID**: `rpi_BC5B9F` (from TouchKio device registration)
+
+**🤖 Claude Direct MQTT Access:**
+Claude can connect directly to the MQTT broker to check states and send commands without going through the Pi. Use these connection details for direct debugging and testing.
 
 ```bash
 # Check if setting is saved to Arguments.json
@@ -261,21 +327,75 @@ ssh pi@kiosk.local "sudo journalctl -u user@1000.service --since '2 minutes ago'
 
 # Verify MQTT state publishing
 ssh pi@kiosk.local "sudo journalctl -u user@1000.service --since '2 minutes ago' | grep 'Publishing.*your_property'"
+
+# Check MQTT state directly on broker (via Pi)
+ssh pi@kiosk.local "mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/your_property_name/state' -C 1"
+
+# Test MQTT command manually (via Pi)
+ssh pi@kiosk.local "mosquitto_pub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/your_property_name/set' -m 'test_value'"
+
+# Listen for all TouchKio MQTT states (via Pi)
+ssh pi@kiosk.local "mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/+/state'"
+
+# Check Home Assistant discovery topic (via Pi)
+ssh pi@kiosk.local "mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'homeassistant/select/touchkio_kiosk_your_property/config' -C 1"
+
+# ===============================
+# 🤖 CLAUDE DIRECT MQTT COMMANDS
+# ===============================
+# Claude can use these commands directly (no SSH required):
+
+# Check current state values
+mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/slideshow_clock_alignment/state' -C 1
+mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/slideshow_date_alignment/state' -C 1
+
+# Test sending commands
+mosquitto_pub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/slideshow_clock_alignment/set' -m 'center'
+mosquitto_pub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/slideshow_date_alignment/set' -m 'right'
+
+# Monitor all TouchKio states
+mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/+/state'
+
+# Check Home Assistant discovery configs
+mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'homeassistant/+/touchkio_kiosk_+/config'
 ```
 
-### **✅ Persistence Checklist**
+### **✅ Complete Implementation Checklist**
 
-Before committing any new slideshow feature:
-- [ ] Frontend mapping in `saveAllChanges()` function
-- [ ] Backend loading from `ARGS.slideshow_*` in integration.js
-- [ ] State publishing in `updateSlideshow()` function
-- [ ] MQTT handler uses correct `slideshow_*` key name
+Before committing any new slideshow feature, verify ALL 6 implementation points:
+
+**🎨 Frontend (slideshow.html):**
+- [ ] Context menu calls `addPendingChange(elementId, 'yourProperty', value)`
+- [ ] Property mapping in `saveAllChanges()` function: `property === 'yourProperty'` → `mqttKey = 'slideshow_element_property'`
+
+**🔧 Backend (integration.js):**
+- [ ] ARGS loading in `loadAndApplySavedSlideshowConfig()`: `if (ARGS.slideshow_element_property) savedCustomConfig.yourProperty = ARGS.slideshow_element_property`
+- [ ] MQTT entity init function created: `initSlideshowElementProperty()`
+- [ ] Init function called in `initSlideshow()`
+- [ ] State publishing in `updateSlideshow()`: `publishState("slideshow_element_property", status.config.yourProperty || ARGS.slideshow_element_property || "default")`
+- [ ] Runtime config update in `updateSlideshowRuntimeConfig()` switch statement
+
+**🧪 Testing Requirements:**
+- [ ] Setting changes in editor mode and applies immediately
+- [ ] Setting persists after TouchKio restart
+- [ ] MQTT entity appears in Home Assistant
+- [ ] MQTT commands from Home Assistant work
+- [ ] MQTT state reflects current value
 - [ ] All key names identical across frontend/backend
-- [ ] Tested on Pi with TouchKio restart
-- [ ] Setting persists in Arguments.json
-- [ ] Home Assistant shows correct state
 
-**💡 Pro Tip**: Always test persistence by making a change, restarting TouchKio, and verifying the setting survives.
+**📋 MQTT Verification Commands:**
+```bash
+# Check MQTT entity exists
+ssh pi@kiosk.local "mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'homeassistant/select/touchkio_kiosk_your_property/config' -C 1"
+
+# Check current MQTT state
+ssh pi@kiosk.local "mosquitto_sub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/slideshow_element_property/state' -C 1"
+
+# Test MQTT command
+ssh pi@kiosk.local "mosquitto_pub -h 192.168.50.45 -u mqtt_user -P mqtt_password -t 'touchkio/rpi_BC5B9F/slideshow_element_property/set' -m 'test_value'"
+```
+
+**💡 Pro Tip**: If ANY step fails, the feature is incomplete. Don't commit until all checkboxes are verified working on Pi hardware.
 
 ## Essential Pi Commands
 

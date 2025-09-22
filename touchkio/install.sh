@@ -157,18 +157,146 @@ echo ""
 mkdir -p "$HOME/TouchKio-Photo-Screensaver/photos"
 echo "Created photos directory at $HOME/TouchKio-Photo-Screensaver/photos"
 
-# Download sample images
-echo "Adding sample slideshow images..."
+# Download sample images with rich metadata
+echo "Adding sample slideshow images with rich metadata..."
 cd "$HOME/TouchKio-Photo-Screensaver/photos"
 
-# Download some generic sample images (landscape/nature photos)
-wget -q "https://picsum.photos/1920/1080?random=1" -O sample1.jpg
-wget -q "https://picsum.photos/1920/1080?random=2" -O sample2.jpg
-wget -q "https://picsum.photos/1920/1080?random=3" -O sample3.jpg
-wget -q "https://picsum.photos/1920/1080?random=4" -O sample4.jpg
-wget -q "https://picsum.photos/1920/1080?random=5" -O sample5.jpg
+# Install exiftool for metadata enhancement (if not already installed)
+if ! command -v exiftool &> /dev/null; then
+    echo "Installing exiftool for metadata enhancement..."
+    sudo apt-get update -qq
+    sudo apt-get install -y libimage-exiftool-perl
+fi
 
-echo "Added 5 sample images for immediate slideshow functionality"
+# Download high-quality sample images
+echo "Downloading sample photos..."
+wget -q "https://picsum.photos/1920/1080?random=1" -O mountain_vista.jpg
+wget -q "https://picsum.photos/1920/1080?random=2" -O city_skyline.jpg
+wget -q "https://picsum.photos/1920/1080?random=3" -O forest_path.jpg
+wget -q "https://picsum.photos/1920/1080?random=4" -O ocean_sunset.jpg
+wget -q "https://picsum.photos/1920/1080?random=5" -O urban_architecture.jpg
+
+# Add comprehensive metadata to showcase the metadata system
+echo "Adding rich metadata to sample photos..."
+
+# Mountain Vista - Landscape Photography
+exiftool -overwrite_original \
+    -EXIF:Make="Canon" \
+    -EXIF:Model="EOS R5" \
+    -EXIF:LensModel="RF 24-70mm F2.8 L IS USM" \
+    -EXIF:DateTime="2024:09:15 06:30:00" \
+    -EXIF:DateTimeOriginal="2024:09:15 06:30:00" \
+    -EXIF:ISO=100 \
+    -EXIF:FNumber=8.0 \
+    -EXIF:ExposureTime="1/250" \
+    -EXIF:FocalLength="35.0 mm" \
+    -GPS:GPSLatitude=46.8181877 \
+    -GPS:GPSLongitude=8.2275124 \
+    -GPS:GPSLatitudeRef="N" \
+    -GPS:GPSLongitudeRef="E" \
+    -EXIF:ImageDescription="Breathtaking mountain vista captured during golden hour in the Swiss Alps" \
+    -EXIF:Artist="TouchKio Demo" \
+    -EXIF:Copyright="Sample Photo for Slideshow Demo" \
+    -XMP:Subject="mountains, landscape, alps, golden hour, nature" \
+    -XMP:Title="Alpine Morning Glory" \
+    mountain_vista.jpg 2>/dev/null
+
+# City Skyline - Urban Photography
+exiftool -overwrite_original \
+    -EXIF:Make="Sony" \
+    -EXIF:Model="α7R V" \
+    -EXIF:LensModel="FE 70-200mm F2.8 GM OSS II" \
+    -EXIF:DateTime="2024:08:22 20:15:00" \
+    -EXIF:DateTimeOriginal="2024:08:22 20:15:00" \
+    -EXIF:ISO=800 \
+    -EXIF:FNumber=4.0 \
+    -EXIF:ExposureTime="1/60" \
+    -EXIF:FocalLength="135.0 mm" \
+    -GPS:GPSLatitude=40.7589 \
+    -GPS:GPSLongitude=-73.9851 \
+    -GPS:GPSLatitudeRef="N" \
+    -GPS:GPSLongitudeRef="W" \
+    -EXIF:ImageDescription="Dynamic city skyline showcasing modern architecture and urban energy" \
+    -EXIF:Artist="TouchKio Demo" \
+    -EXIF:Copyright="Sample Photo for Slideshow Demo" \
+    -XMP:Subject="city, skyline, urban, architecture, night, lights" \
+    -XMP:Title="Metropolitan Nights" \
+    city_skyline.jpg 2>/dev/null
+
+# Forest Path - Nature Photography
+exiftool -overwrite_original \
+    -EXIF:Make="Nikon" \
+    -EXIF:Model="Z9" \
+    -EXIF:LensModel="NIKKOR Z 14-24mm f/2.8 S" \
+    -EXIF:DateTime="2024:07:10 14:45:00" \
+    -EXIF:DateTimeOriginal="2024:07:10 14:45:00" \
+    -EXIF:ISO=400 \
+    -EXIF:FNumber=5.6 \
+    -EXIF:ExposureTime="1/125" \
+    -EXIF:FocalLength="20.0 mm" \
+    -GPS:GPSLatitude=47.6062 \
+    -GPS:GPSLongitude=-122.3321 \
+    -GPS:GPSLatitudeRef="N" \
+    -GPS:GPSLongitudeRef="W" \
+    -EXIF:ImageDescription="Mystical forest path winding through ancient trees with dappled sunlight" \
+    -EXIF:Artist="TouchKio Demo" \
+    -EXIF:Copyright="Sample Photo for Slideshow Demo" \
+    -XMP:Subject="forest, nature, trees, path, woodland, peaceful" \
+    -XMP:Title="Enchanted Forest Trail" \
+    forest_path.jpg 2>/dev/null
+
+# Ocean Sunset - Seascape Photography
+exiftool -overwrite_original \
+    -EXIF:Make="Fujifilm" \
+    -EXIF:Model="X-T5" \
+    -EXIF:LensModel="XF 16-55mm F2.8 R LM WR" \
+    -EXIF:DateTime="2024:06:28 19:30:00" \
+    -EXIF:DateTimeOriginal="2024:06:28 19:30:00" \
+    -EXIF:ISO=200 \
+    -EXIF:FNumber=11.0 \
+    -EXIF:ExposureTime="1/500" \
+    -EXIF:FocalLength="35.0 mm" \
+    -GPS:GPSLatitude=34.0522 \
+    -GPS:GPSLongitude=-118.2437 \
+    -GPS:GPSLatitudeRef="N" \
+    -GPS:GPSLongitudeRef="W" \
+    -EXIF:ImageDescription="Spectacular ocean sunset with dramatic clouds reflected in wet sand" \
+    -EXIF:Artist="TouchKio Demo" \
+    -EXIF:Copyright="Sample Photo for Slideshow Demo" \
+    -XMP:Subject="ocean, sunset, beach, seascape, dramatic, clouds" \
+    -XMP:Title="Pacific Sunset Spectacular" \
+    ocean_sunset.jpg 2>/dev/null
+
+# Urban Architecture - Architectural Photography
+exiftool -overwrite_original \
+    -EXIF:Make="Leica" \
+    -EXIF:Model="Q2" \
+    -EXIF:LensModel="Summilux 28mm f/1.7 ASPH" \
+    -EXIF:DateTime="2024:05:12 16:20:00" \
+    -EXIF:DateTimeOriginal="2024:05:12 16:20:00" \
+    -EXIF:ISO=320 \
+    -EXIF:FNumber=8.0 \
+    -EXIF:ExposureTime="1/320" \
+    -EXIF:FocalLength="28.0 mm" \
+    -GPS:GPSLatitude=51.5074 \
+    -GPS:GPSLongitude=-0.1278 \
+    -GPS:GPSLatitudeRef="N" \
+    -GPS:GPSLongitudeRef="W" \
+    -EXIF:ImageDescription="Bold geometric architecture with striking lines and contemporary design elements" \
+    -EXIF:Artist="TouchKio Demo" \
+    -EXIF:Copyright="Sample Photo for Slideshow Demo" \
+    -XMP:Subject="architecture, modern, geometric, design, urban, contemporary" \
+    -XMP:Title="Architectural Geometry" \
+    urban_architecture.jpg 2>/dev/null
+
+echo "✓ Added 5 metadata-rich sample images showcasing:"
+echo "  • Camera settings (ISO, aperture, shutter speed, focal length)"
+echo "  • GPS location data for different world cities"
+echo "  • Professional camera equipment metadata"
+echo "  • Descriptive titles and subject tags"
+echo "  • Photography dates and artist information"
+echo ""
+echo "These photos demonstrate the full metadata display capabilities!"
 echo "Replace with your own photos or configure Google Photos albums via Home Assistant"
 
 # Run TouchKio setup with slideshow files already installed
