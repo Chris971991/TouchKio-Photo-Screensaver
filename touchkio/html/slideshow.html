@@ -1347,8 +1347,16 @@
                 font-size: 14px;
             `;
 
+            // Determine if element is currently visible
+            const isVisible = getElementVisibility(elementId);
+
             // Create menu items
             const menuItems = [
+                {
+                    icon: isVisible ? '👁️' : '👁️‍🗨️',
+                    label: isVisible ? 'Hide Element' : 'Show Element',
+                    action: () => toggleElementVisibility(elementId)
+                },
                 { icon: '📍', label: 'Position', action: () => showPositionMenu(elementId) },
                 { icon: '📏', label: 'Font Size', action: () => showSizeMenu(elementId) },
                 { icon: '🎨', label: 'Colors', action: () => showColorMenu(elementId) },
@@ -1768,6 +1776,170 @@
                         document.removeEventListener('click', closeSizeMenu);
                     }
                 });
+            }, 100);
+        }
+
+        // Get element visibility state
+        function getElementVisibility(elementId) {
+            // Map element IDs to their visibility config properties
+            const visibilityMap = {
+                'clock': config.showClock !== false,
+                'date': config.showDate !== false,
+                'source': config.showSourceIndicator !== false,
+                'counter': config.showPhotoCounter !== false,
+                'metadataOverlay': config.showMetadata !== false
+            };
+            return visibilityMap[elementId] !== false;
+        }
+
+        // Toggle element visibility
+        function toggleElementVisibility(elementId) {
+            const isVisible = getElementVisibility(elementId);
+            const newVisibility = !isVisible;
+
+            // Map element IDs to their show config properties
+            const propertyMap = {
+                'clock': 'showClock',
+                'date': 'showDate',
+                'source': 'showSourceIndicator',
+                'counter': 'showPhotoCounter',
+                'metadataOverlay': 'showMetadata'
+            };
+
+            const property = propertyMap[elementId];
+            if (property) {
+                // Add to pending changes
+                addPendingChange(elementId, property, newVisibility);
+
+                // Apply immediately for preview
+                const element = document.getElementById(elementId);
+                if (element) {
+                    if (newVisibility) {
+                        // Show the element
+                        element.style.display = (elementId === 'counter' || elementId === 'source' ? 'flex' : 'block');
+                        element.style.opacity = '';
+                        element.classList.remove('editor-hidden');
+                    } else {
+                        // In editor mode, keep hidden elements visible but semi-transparent
+                        if (config.editorMode) {
+                            element.style.opacity = '0.3';
+                            element.classList.add('editor-hidden');
+                            // Keep display property so element is still interactable
+                        } else {
+                            element.style.display = 'none';
+                        }
+                    }
+                }
+
+                // Close context menu
+                const menu = document.getElementById('context-menu');
+                if (menu) menu.remove();
+
+                // Show feedback
+                console.log(`${elementId} visibility changed to: ${newVisibility ? 'visible' : 'hidden'}`);
+            }
+        }
+
+        // Global Element Menu for empty space
+        function showGlobalElementMenu(x, y) {
+            // Remove any existing menu
+            const existingMenu = document.getElementById('context-menu');
+            if (existingMenu) existingMenu.remove();
+
+            // Create context menu
+            const menu = document.createElement('div');
+            menu.id = 'context-menu';
+            menu.style.cssText = `
+                position: fixed;
+                left: ${x}px;
+                top: ${y}px;
+                background: rgba(32, 34, 37, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 8px 0;
+                min-width: 250px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                z-index: 10001;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: 14px;
+            `;
+
+            // Add header
+            const header = document.createElement('div');
+            header.style.cssText = `
+                padding: 8px 16px;
+                font-weight: 600;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 4px;
+            `;
+            header.textContent = '🎨 Manage Elements';
+            menu.appendChild(header);
+
+            // Define all elements
+            const elementList = [
+                { id: 'clock', name: '🕐 Clock', property: 'showClock' },
+                { id: 'date', name: '📅 Date', property: 'showDate' },
+                { id: 'counter', name: '🔢 Photo Counter', property: 'showPhotoCounter' },
+                { id: 'source', name: '📍 Source Indicator', property: 'showSourceIndicator' },
+                { id: 'metadataOverlay', name: '📷 Metadata', property: 'showMetadata' }
+            ];
+
+            // Create toggle for each element
+            elementList.forEach(elem => {
+                const isVisible = getElementVisibility(elem.id);
+                const menuItem = document.createElement('div');
+                menuItem.style.cssText = `
+                    padding: 10px 16px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    transition: background-color 0.2s ease;
+                `;
+
+                menuItem.innerHTML = `
+                    <span>${elem.name}</span>
+                    <span style="
+                        background: ${isVisible ? 'rgba(46, 204, 113, 0.9)' : 'rgba(231, 76, 60, 0.9)'};
+                        color: white;
+                        padding: 2px 8px;
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: 500;
+                    ">${isVisible ? 'Visible' : 'Hidden'}</span>
+                `;
+
+                menuItem.addEventListener('mouseenter', () => {
+                    menuItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                });
+
+                menuItem.addEventListener('mouseleave', () => {
+                    menuItem.style.backgroundColor = 'transparent';
+                });
+
+                menuItem.addEventListener('click', () => {
+                    toggleElementVisibility(elem.id);
+                    menu.remove();
+                    // Reopen menu to show updated states
+                    setTimeout(() => showGlobalElementMenu(x, y), 100);
+                });
+
+                menu.appendChild(menuItem);
+            });
+
+            document.body.appendChild(menu);
+
+            // Close menu when clicking outside
+            setTimeout(() => {
+                function closeMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                }
+                document.addEventListener('click', closeMenu);
             }, 100);
         }
 
@@ -2842,6 +3014,16 @@
                         mqttKey = `slideshow_${mqttElementId}_shadow`;
                     } else if (property === 'clockFormat') {
                         mqttKey = `slideshow_clock_format`;
+                    } else if (property === 'showClock') {
+                        mqttKey = `slideshow_show_clock`;
+                    } else if (property === 'showDate') {
+                        mqttKey = `slideshow_show_date`;
+                    } else if (property === 'showSourceIndicator') {
+                        mqttKey = `slideshow_show_source`;
+                    } else if (property === 'showPhotoCounter') {
+                        mqttKey = `slideshow_show_counter`;
+                    } else if (property === 'showMetadata') {
+                        mqttKey = `slideshow_show_metadata`;
                     }
 
                     if (mqttKey) {
@@ -3121,6 +3303,48 @@
 
                                 // Make element context menu enabled
                                 makeContextMenuEnabled(element, id);
+                            }
+                        });
+
+                        // Add global context menu for empty space to manage all elements
+                        document.addEventListener('contextmenu', function(e) {
+                            if (!config.editorMode) return;
+
+                            // Check if click is on empty space (not on an element)
+                            const clickedElement = e.target;
+                            const isEmptySpace = !clickedElement.classList.contains('editor-element') &&
+                                                !clickedElement.closest('.editor-element') &&
+                                                !clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/);
+
+                            if (isEmptySpace) {
+                                e.preventDefault();
+                                showGlobalElementMenu(e.clientX, e.clientY);
+                            }
+                        });
+
+                        // Touch and hold for empty space on mobile
+                        let globalTouchTimer;
+                        document.addEventListener('touchstart', function(e) {
+                            if (!config.editorMode) return;
+
+                            const touch = e.touches[0];
+                            const clickedElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const isEmptySpace = !clickedElement.classList.contains('editor-element') &&
+                                                !clickedElement.closest('.editor-element') &&
+                                                !clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/);
+
+                            if (isEmptySpace) {
+                                globalTouchTimer = setTimeout(() => {
+                                    showGlobalElementMenu(touch.clientX, touch.clientY);
+                                    if (navigator.vibrate) navigator.vibrate(50);
+                                }, 500);
+                            }
+                        });
+
+                        document.addEventListener('touchend', function() {
+                            if (globalTouchTimer) {
+                                clearTimeout(globalTouchTimer);
+                                globalTouchTimer = null;
                             }
                         });
 
@@ -4626,6 +4850,16 @@
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
                 z-index: 10000 !important;
                 cursor: move !important;
+            }
+
+            .editor-element.editor-hidden {
+                opacity: 0.3 !important;
+                border: 2px dashed rgba(255, 255, 255, 0.3);
+            }
+
+            .editor-element.editor-hidden:hover {
+                opacity: 0.5 !important;
+                box-shadow: 0 0 0 2px rgba(255, 165, 0, 0.8);
             }
 
             @keyframes slideIn {
