@@ -167,6 +167,34 @@ Create a **Canva/Webflow-style visual editor** for TouchKio slideshow layouts th
 - ✅ **Runtime Config Update**: All editor properties mapped to MQTT settings
 - ✅ **Restart Survival**: Settings load on TouchKio restart
 
+## ⚠️ Known Issues & Current Bugs
+
+### **🔴 CRITICAL: Custom Position Saving Issues**
+
+**Problem**: Photo counter and source elements don't retain custom positions when saving in editor mode - they revert to center position.
+
+**Root Cause**: Custom coordinates not being properly saved to Arguments.json despite UI appearing to work.
+
+**Evidence**:
+```bash
+# Check saved coordinates (should have pixel values, currently empty)
+ssh pi@kiosk.local "cat ~/.config/touchkio/Arguments.json | python3 -m json.tool | grep -E 'counter_custom|source_custom'"
+# Shows: "slideshow_counter_custom_x": "", "slideshow_counter_custom_y": ""
+```
+
+**Investigation Needed**:
+1. Check if editor save function includes counter/source coordinate mapping
+2. Verify IPC communication sends counter/source coordinates to main process
+3. Confirm MQTT settings update includes these specific coordinate keys
+4. Test if integration.js properly handles these coordinate updates
+
+**Files to Check**:
+- `touchkio/html/slideshow.html` - Editor save function coordinate mapping
+- `touchkio/js/slideshow.js` - IPC message handling for coordinates
+- `touchkio/js/integration.js` - MQTT setting update functions
+
+**Status**: 🔴 **BLOCKING** - Affects editor mode functionality and user experience
+
 ## Essential Pi Commands
 
 **Pi Connection**:
