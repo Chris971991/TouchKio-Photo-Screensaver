@@ -687,6 +687,97 @@
                 /* Removed fixed positioning - pos- classes will handle this */
             }
         }
+
+        /* Change Warning Popup */
+        #change-warning-popup {
+            position: fixed;
+            bottom: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #ff6b35;
+            border-radius: 15px;
+            padding: 0;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 500px;
+            width: 90%;
+            cursor: auto;
+        }
+
+        #change-warning-popup.show {
+            bottom: 30px;
+        }
+
+        .warning-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .warning-icon {
+            font-size: 2.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .warning-text h3 {
+            color: #ff6b35;
+            margin: 0 0 8px 0;
+            font-size: 1.2rem;
+        }
+
+        .warning-text p {
+            color: #fff;
+            margin: 0;
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .warning-buttons {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+            min-width: 120px;
+        }
+
+        .warning-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .warning-btn.save {
+            background: #46cc71;
+            color: white;
+        }
+
+        .warning-btn.save:hover {
+            background: #3bb863;
+            transform: translateY(-2px);
+        }
+
+        .warning-btn.dismiss {
+            background: transparent;
+            color: #ccc;
+            border: 1px solid #555;
+        }
+
+        .warning-btn.dismiss:hover {
+            background: #333;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -3040,10 +3131,26 @@
             // Store original configuration for potential rollback
             originalConfig = JSON.parse(JSON.stringify(config));
             pendingChanges = {};
+            warningShown = false; // Reset warning flag for new session
             updateSaveButtonState();
         }
 
         function addPendingChange(elementId, property, value) {
+            // Check for excessive pending changes to prevent memory issues
+            const totalChanges = Object.keys(pendingChanges).reduce((count, id) =>
+                count + Object.keys(pendingChanges[id]).length, 0);
+
+            // Show warning popup at 75 changes
+            if (totalChanges >= 75 && totalChanges < 100) {
+                showChangeWarningPopup(totalChanges);
+            }
+
+            if (totalChanges > 100) {
+                console.warn('Too many pending changes (>100), auto-saving to prevent memory issues');
+                saveAllChanges();
+                return;
+            }
+
             if (!pendingChanges[elementId]) {
                 pendingChanges[elementId] = {};
             }
@@ -3095,6 +3202,55 @@
                     statusElement.textContent = `${changeCount} unsaved change${changeCount === 1 ? '' : 's'} - Right-click to continue editing`;
                 }
             }
+        }
+
+        let warningShown = false;
+
+        function showChangeWarningPopup(changeCount) {
+            // Only show once per editor session
+            if (warningShown) return;
+            warningShown = true;
+
+            // Create popup HTML
+            const popup = document.createElement('div');
+            popup.id = 'change-warning-popup';
+            popup.innerHTML = `
+                <div class="warning-content">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-text">
+                        <h3>Approaching Change Limit</h3>
+                        <p>${changeCount} changes pending. Save now to prevent performance issues.</p>
+                    </div>
+                    <div class="warning-buttons">
+                        <button id="warning-save-btn" class="warning-btn save">Save Now</button>
+                        <button id="warning-dismiss-btn" class="warning-btn dismiss">Continue</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+
+            // Add event listeners
+            document.getElementById('warning-save-btn').addEventListener('click', () => {
+                popup.remove();
+                saveAllChanges();
+            });
+
+            document.getElementById('warning-dismiss-btn').addEventListener('click', () => {
+                popup.remove();
+            });
+
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (popup.parentNode) {
+                    popup.remove();
+                }
+            }, 10000);
+
+            // Animate in
+            setTimeout(() => {
+                popup.classList.add('show');
+            }, 100);
         }
 
         function mapPropertyToMQTTTopic(elementId, property) {
@@ -3152,7 +3308,12 @@
 
         function saveAllChanges() {
             console.log('🚀 SAVE STARTED: saveAllChanges function called!');
+
+            // Check for too many changes that could cause performance issues
             const changeCount = Object.keys(pendingChanges).length;
+            if (changeCount > 50) {
+                console.warn(`Warning: Large number of changes (${changeCount}), processing carefully`);
+            }
 
             console.log('Pending changes count:', changeCount);
             console.log('Pending changes object:', pendingChanges);
@@ -3267,36 +3428,48 @@
                 });
             });
 
-            // Send to main process via proper IPC
+            // Send to main process via proper IPC with better error handling
             if (Object.keys(settingsUpdate).length > 0) {
                 console.log('About to send IPC message with settings:', settingsUpdate);
                 try {
                     ipcRenderer.send('editor-settings-update', settingsUpdate);
                     console.log('Successfully sent editor settings update via IPC');
+
+                    // Clear pending changes only after successful send
+                    pendingChanges = {};
+                    updateSaveButtonState();
+                    updateStatusText();
+
+                    // Show success feedback and exit editor mode
+                    const statusElement = document.getElementById('editor-status');
+                    if (statusElement) {
+                        statusElement.textContent = `✅ ${changeCount} change${changeCount === 1 ? '' : 's'} saved to MQTT!`;
+                        statusElement.style.color = '#46cc71';
+
+                        setTimeout(() => {
+                            // Exit editor mode after showing success message
+                            exitEditorMode();
+                        }, 1000);
+                    } else {
+                        // If no status element, exit immediately
+                        exitEditorMode();
+                    }
                 } catch (error) {
                     console.error('Error sending IPC message:', error);
+                    const statusElement = document.getElementById('editor-status');
+                    if (statusElement) {
+                        statusElement.textContent = `❌ Failed to save changes - IPC error`;
+                        statusElement.style.color = '#ff4757';
+                    }
+                    // Don't clear changes or exit if send failed
+                    return;
                 }
             } else {
                 console.log('No settings to send via IPC');
-            }
-
-            // Clear pending changes
-            pendingChanges = {};
-            updateSaveButtonState();
-            updateStatusText();
-
-            // Show success feedback and exit editor mode
-            const statusElement = document.getElementById('editor-status');
-            if (statusElement) {
-                statusElement.textContent = `✅ ${changeCount} change${changeCount === 1 ? '' : 's'} saved to MQTT!`;
-                statusElement.style.color = '#46cc71';
-
-                setTimeout(() => {
-                    // Exit editor mode after showing success message
-                    exitEditorMode();
-                }, 1000);
-            } else {
-                // If no status element, exit immediately
+                // Still clear changes if no settings were prepared
+                pendingChanges = {};
+                updateSaveButtonState();
+                updateStatusText();
                 exitEditorMode();
             }
         }
@@ -3313,31 +3486,35 @@
 
             // Delay all frontend cleanup to happen after backend has stabilized
             setTimeout(() => {
-                // Exit editor mode by updating config directly and hiding UI
-                config.editorMode = false;
+                try {
+                    // Exit editor mode by updating config directly and hiding UI
+                    config.editorMode = false;
 
-                // Remove entire editor notification
-                const notification = document.getElementById('editor-notification');
-                if (notification) {
-                    notification.remove();
-                    console.log('Removed editor notification completely');
+                    // Remove entire editor notification
+                    const notification = document.getElementById('editor-notification');
+                    if (notification) {
+                        notification.remove();
+                        console.log('Removed editor notification completely');
+                    }
+
+                    // Hide editor grid overlay
+                    const gridOverlay = document.getElementById('editor-grid-overlay');
+                    if (gridOverlay) gridOverlay.style.display = 'none';
+
+                    // Remove context menu cursors and hover effects
+                    document.querySelectorAll('.slideshow-element').forEach(element => {
+                        element.style.cursor = 'none';
+                        element.classList.remove('editor-element');
+                        element.style.boxShadow = '';
+                    });
+
+                    // Re-enable activity detection
+                    window.activityDetectionEnabled = true;
+
+                    console.log('Editor mode frontend cleanup completed');
+                } catch (error) {
+                    console.error('Error during editor mode cleanup:', error);
                 }
-
-                // Hide editor grid overlay
-                const gridOverlay = document.getElementById('editor-grid-overlay');
-                if (gridOverlay) gridOverlay.style.display = 'none';
-
-                // Remove context menu cursors and hover effects
-                document.querySelectorAll('.slideshow-element').forEach(element => {
-                    element.style.cursor = 'none';
-                    element.classList.remove('editor-element');
-                    element.style.boxShadow = '';
-                });
-
-                // Re-enable activity detection
-                window.activityDetectionEnabled = true;
-
-                console.log('Editor mode frontend cleanup completed');
             }, 500); // Wait 500ms for backend to stabilize
         }
 
@@ -3345,17 +3522,21 @@
             const changeCount = Object.keys(pendingChanges).length;
 
             if (changeCount > 0) {
-                // Restore original configuration
-                config = JSON.parse(JSON.stringify(originalConfig));
+                try {
+                    // Restore original configuration
+                    config = JSON.parse(JSON.stringify(originalConfig));
 
-                // Re-apply all elements to restore original state
-                applyClock();
-                applyDate();
-                applySourceIndicatorPosition();
-                applyPhotoCounterPosition();
-                updateMetadataStyles();
+                    // Re-apply all elements to restore original state
+                    applyClock();
+                    applyDate();
+                    applySourceIndicatorPosition();
+                    applyPhotoCounterPosition();
+                    updateMetadataStyles();
 
-                console.log(`Discarded ${changeCount} pending changes`);
+                    console.log(`Discarded ${changeCount} pending changes`);
+                } catch (error) {
+                    console.error('Error restoring original config:', error);
+                }
             }
 
             // Clear pending changes

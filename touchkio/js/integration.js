@@ -4636,6 +4636,7 @@ const disableEditorMode = () => {
   console.log('Editor mode disabled via MQTT - frontend handles cleanup');
 };
 
+
 // Export handleEditorSettingsUpdate for IPC communication
 // (window.addEventListener removed - this runs in main process, not renderer)
 
