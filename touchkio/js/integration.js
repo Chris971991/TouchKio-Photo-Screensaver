@@ -1004,6 +1004,7 @@ const initSlideshow = () => {
   initSlideshowClockAmPmCase();
   initSlideshowClockAmPmSize();
   initSlideshowClockAmPmSpacing();
+  initSlideshowClockAlignment();
   initSlideshowClockColor();
   initSlideshowClockBackground();
   initSlideshowClockBackgroundColor();
@@ -1018,6 +1019,7 @@ const initSlideshow = () => {
   // === DATE ELEMENT ===
   initSlideshowShowDate();
   initSlideshowDatePosition();
+  initSlideshowDateAlignment();
   initSlideshowDateCustomFontSize();
   initSlideshowDateColor();
   initSlideshowDateBackground();
@@ -1169,6 +1171,8 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_clock_am_pm_case) savedCustomConfig.clockAmPmCase = ARGS.slideshow_clock_am_pm_case;
   if (ARGS.slideshow_clock_am_pm_size) savedCustomConfig.clockAmPmSize = ARGS.slideshow_clock_am_pm_size;
   if (ARGS.slideshow_clock_am_pm_spacing) savedCustomConfig.clockAmPmSpacing = ARGS.slideshow_clock_am_pm_spacing;
+  if (ARGS.slideshow_clock_alignment) savedCustomConfig.clockAlignment = ARGS.slideshow_clock_alignment;
+  if (ARGS.slideshow_date_alignment) savedCustomConfig.dateAlignment = ARGS.slideshow_date_alignment;
   if (ARGS.slideshow_date_custom_font_size) savedCustomConfig.dateCustomFontSize = ARGS.slideshow_date_custom_font_size;
   if (ARGS.slideshow_source_custom_font_size) savedCustomConfig.sourceCustomFontSize = ARGS.slideshow_source_custom_font_size;
   if (ARGS.slideshow_counter_custom_font_size) savedCustomConfig.counterCustomFontSize = ARGS.slideshow_counter_custom_font_size;
@@ -2545,6 +2549,12 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_clock_ampm_size":
         slideshow.updateConfig({ clockAmPmSize: value });
         break;
+      case "slideshow_clock_alignment":
+        slideshow.updateConfig({ clockAlignment: value });
+        break;
+      case "slideshow_date_alignment":
+        slideshow.updateConfig({ dateAlignment: value });
+        break;
       case "slideshow_clock_background_opacity":
         slideshow.updateConfig({ clockBackgroundOpacity: parseInt(value) });
         break;
@@ -2845,6 +2855,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_clock_ampm_case", status.config.clockAmPmCase || ARGS.slideshow_clock_am_pm_case || "uppercase");
   publishState("slideshow_clock_ampm_size", status.config.clockAmPmSize || ARGS.slideshow_clock_am_pm_size || "80");
   publishState("slideshow_clock_ampm_spacing", status.config.clockAmPmSpacing || ARGS.slideshow_clock_am_pm_spacing || "1");
+  publishState("slideshow_clock_alignment", status.config.clockAlignment || ARGS.slideshow_clock_alignment || "left");
 
   // Date settings - independent from clock
   publishState("slideshow_show_date", status.config.showDate !== false ? "ON" : "OFF");
@@ -2855,6 +2866,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_date_color", status.config.dateColor || ARGS.slideshow_date_color || "#ffffff");
   publishState("slideshow_date_custom_font_size", status.config.dateCustomFontSize || ARGS.slideshow_date_custom_font_size || "");
   publishState("slideshow_date_background_opacity", status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity || 70);
+  publishState("slideshow_date_alignment", status.config.dateAlignment || ARGS.slideshow_date_alignment || "left");
 
   // Source indicator settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_source", status.config.showSourceIndicator ? "ON" : "OFF");
@@ -3608,6 +3620,60 @@ const initSlideshowClockAmPmSpacing = () => {
         console.log("Set Slideshow Clock AM/PM Spacing:", clockAmPmSpacing);
         updateSlideshowSetting("slideshow_clock_am_pm_spacing", clockAmPmSpacing);
         slideshow.updateConfig({ clockAmPmSpacing });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow clock text alignment control.
+ */
+const initSlideshowClockAlignment = () => {
+  const root = `${INTEGRATION.root}/slideshow_clock_alignment`;
+  const config = {
+    name: "Slideshow Clock Text Alignment",
+    unique_id: `${INTEGRATION.node}_slideshow_clock_alignment`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-left",
+    options: ["left", "center", "right"],
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const clockAlignment = message.toString();
+        console.log("Set Slideshow Clock Alignment:", clockAlignment);
+        updateSlideshowSetting("slideshow_clock_alignment", clockAlignment);
+        slideshow.updateConfig({ clockAlignment });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow date text alignment control.
+ */
+const initSlideshowDateAlignment = () => {
+  const root = `${INTEGRATION.root}/slideshow_date_alignment`;
+  const config = {
+    name: "Slideshow Date Text Alignment",
+    unique_id: `${INTEGRATION.node}_slideshow_date_alignment`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-left",
+    options: ["left", "center", "right"],
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const dateAlignment = message.toString();
+        console.log("Set Slideshow Date Alignment:", dateAlignment);
+        updateSlideshowSetting("slideshow_date_alignment", dateAlignment);
+        slideshow.updateConfig({ dateAlignment });
       }
     })
     .subscribe(config.command_topic);

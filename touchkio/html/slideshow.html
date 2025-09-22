@@ -1397,6 +1397,11 @@
                 menuItems.splice(2, 0, { icon: '🕐', label: 'Time Format', action: () => showTimeFormatMenu(elementId) });
             }
 
+            // Add date-specific format option
+            if (elementId === 'date') {
+                menuItems.splice(2, 0, { icon: '📅', label: 'Date Format', action: () => showDateFormatMenu(elementId) });
+            }
+
             menuItems.forEach(item => {
                 const menuItem = document.createElement('div');
                 menuItem.style.cssText = `
@@ -1984,6 +1989,7 @@
             const currentAmPmCase = config.clockAmPmCase || 'uppercase';
             const currentAmPmSize = config.clockAmPmSize || '80';
             const currentAmPmSpacing = config.clockAmPmSpacing || '1';
+            const currentClockAlignment = config.clockAlignment || 'left';
 
             // Create time format menu
             const menu = document.createElement('div');
@@ -2051,6 +2057,19 @@
                     </div>
                 </div>
 
+                <div style="margin-bottom: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">⚖️ Text Alignment</h4>
+
+                    <div>
+                        <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Alignment:</label>
+                        <select id="clock-alignment" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: black; font-size: 14px;">
+                            <option value="left" style="color: black;" ${(config.clockAlignment || 'left') === 'left' ? 'selected' : ''}>Left Align</option>
+                            <option value="center" style="color: black;" ${(config.clockAlignment || 'left') === 'center' ? 'selected' : ''}>Center Align</option>
+                            <option value="right" style="color: black;" ${(config.clockAlignment || 'left') === 'right' ? 'selected' : ''}>Right Align</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button id="format-cancel-btn" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; cursor: pointer; font-size: 14px;">Cancel</button>
                     <button id="format-apply-btn" style="padding: 8px 16px; background: #4A90E2; border: 1px solid #4A90E2; border-radius: 4px; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">Apply</button>
@@ -2078,6 +2097,7 @@
             let selectedAmPmCase = currentAmPmCase;
             let selectedAmPmSize = currentAmPmSize;
             let selectedAmPmSpacing = currentAmPmSpacing;
+            let selectedClockAlignment = currentClockAlignment;
 
             // Handle format selection
             menu.querySelectorAll('input[name="timeFormat"]').forEach(radio => {
@@ -2117,9 +2137,18 @@
                 });
             }
 
+            // Handle clock alignment selection
+            const clockAlignmentSelect = document.getElementById('clock-alignment');
+            if (clockAlignmentSelect) {
+                clockAlignmentSelect.addEventListener('change', (e) => {
+                    selectedClockAlignment = e.target.value;
+                });
+            }
+
             // Handle apply button
             document.getElementById('format-apply-btn').addEventListener('click', () => {
                 addPendingChange(elementId, 'clockFormat', selectedFormat);
+                addPendingChange(elementId, 'clockAlignment', selectedClockAlignment);
                 if (selectedFormat === '12hour') {
                     addPendingChange(elementId, 'clockAmPmCase', selectedAmPmCase);
                     addPendingChange(elementId, 'clockAmPmSize', selectedAmPmSize);
@@ -2142,6 +2171,107 @@
                         menu.remove();
                         style.remove();
                         document.removeEventListener('click', closeFormatMenu);
+                    }
+                });
+            }, 100);
+        }
+
+        // Date Format Menu
+        function showDateFormatMenu(elementId) {
+            console.log(`Show date format menu for ${elementId}`);
+
+            // Remove any existing menu
+            const existingMenu = document.getElementById('date-format-menu');
+            if (existingMenu) existingMenu.remove();
+
+            // Get current alignment
+            const currentDateAlignment = config.dateAlignment || 'left';
+
+            // Create date format menu
+            const menu = document.createElement('div');
+            menu.id = 'date-format-menu';
+            menu.style.cssText = `
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 20px;
+                min-width: 300px;
+                max-width: 90vw;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                z-index: 10002;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            `;
+
+            menu.innerHTML = `
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">📅 Date Format</h3>
+
+                <div style="margin-bottom: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">⚖️ Text Alignment</h4>
+                    <p style="margin: 0 0 15px 0; font-size: 12px; color: rgba(255,255,255,0.6);">Choose alignment to prevent date from shifting when content length changes.</p>
+
+                    <div>
+                        <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Alignment:</label>
+                        <select id="date-alignment" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: black; font-size: 14px;">
+                            <option value="left" style="color: black;" ${(config.dateAlignment || 'left') === 'left' ? 'selected' : ''}>Left Align</option>
+                            <option value="center" style="color: black;" ${(config.dateAlignment || 'left') === 'center' ? 'selected' : ''}>Center Align</option>
+                            <option value="right" style="color: black;" ${(config.dateAlignment || 'left') === 'right' ? 'selected' : ''}>Right Align</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="date-format-cancel-btn" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; cursor: pointer; font-size: 14px;">Cancel</button>
+                    <button id="date-format-apply-btn" style="padding: 8px 16px; background: #4A90E2; border: 1px solid #4A90E2; border-radius: 4px; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">Apply</button>
+                </div>
+            `;
+
+            // Add hover effects
+            const style = document.createElement('style');
+            style.textContent = `
+                #date-format-apply-btn:hover, #date-format-cancel-btn:hover {
+                    opacity: 0.8;
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(menu);
+
+            let selectedDateAlignment = currentDateAlignment;
+
+            // Handle date alignment selection
+            const dateAlignmentSelect = document.getElementById('date-alignment');
+            if (dateAlignmentSelect) {
+                dateAlignmentSelect.addEventListener('change', (e) => {
+                    selectedDateAlignment = e.target.value;
+                });
+            }
+
+            // Handle apply button
+            document.getElementById('date-format-apply-btn').addEventListener('click', () => {
+                addPendingChange(elementId, 'dateAlignment', selectedDateAlignment);
+                menu.remove();
+                style.remove();
+            });
+
+            // Handle cancel button
+            document.getElementById('date-format-cancel-btn').addEventListener('click', () => {
+                menu.remove();
+                style.remove();
+            });
+
+            // Close menu when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDateFormatMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        style.remove();
+                        document.removeEventListener('click', closeDateFormatMenu);
                     }
                 });
             }, 100);
@@ -3114,6 +3244,10 @@
                         mqttKey = `slideshow_clock_am_pm_size`;
                     } else if (property === 'clockAmPmSpacing') {
                         mqttKey = `slideshow_clock_am_pm_spacing`;
+                    } else if (property === 'clockAlignment') {
+                        mqttKey = `slideshow_clock_alignment`;
+                    } else if (property === 'dateAlignment') {
+                        mqttKey = `slideshow_date_alignment`;
                     } else if (property === 'showClock') {
                         mqttKey = `slideshow_show_clock`;
                     } else if (property === 'showDate') {
@@ -3855,6 +3989,13 @@
                 // Apply general opacity
                 clock.style.opacity = config.clockOpacity || 1.0;
 
+                // Apply text alignment
+                if (config.clockAlignment) {
+                    clock.style.textAlign = config.clockAlignment;
+                } else {
+                    clock.style.textAlign = 'left'; // Default to left alignment
+                }
+
                 // Apply advanced styling options
                 if (config.clockBorderRadius && config.clockBorderRadius.trim() !== '') {
                     clock.style.borderRadius = config.clockBorderRadius;
@@ -3980,6 +4121,13 @@
 
                 // Apply general opacity
                 date.style.opacity = config.dateOpacity || 0.8;
+
+                // Apply text alignment
+                if (config.dateAlignment) {
+                    date.style.textAlign = config.dateAlignment;
+                } else {
+                    date.style.textAlign = 'left'; // Default to left alignment
+                }
 
                 // Apply advanced styling options
                 if (config.dateBorderRadius && config.dateBorderRadius.trim() !== '') {
@@ -4164,7 +4312,7 @@
             }
 
             // Re-apply date styling if any date option changed
-            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateBackgroundOpacity || newConfig.dateBorderRadius || newConfig.datePadding || newConfig.dateShadow || newConfig.dateCustomX || newConfig.dateCustomY || newConfig.showDate !== undefined) {
+            if (newConfig.dateFontSize || newConfig.dateCustomFontSize || newConfig.dateColor || newConfig.dateBackground || newConfig.dateSize || newConfig.dateOpacity || newConfig.datePosition || newConfig.dateAlignment || newConfig.dateBackgroundOpacity || newConfig.dateBorderRadius || newConfig.datePadding || newConfig.dateShadow || newConfig.dateCustomX || newConfig.dateCustomY || newConfig.showDate !== undefined) {
                 applyDate();
             }
 
