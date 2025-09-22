@@ -786,11 +786,36 @@
             function updateClock() {
                 const now = new Date();
                 const use12Hour = config.clockFormat === '12hour';
-                const timeString = now.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: use12Hour
-                });
+
+                if (use12Hour) {
+                    // Custom 12-hour formatting to control AM/PM case and size
+                    const hour12 = now.getHours() % 12 || 12;
+                    const minute = now.getMinutes().toString().padStart(2, '0');
+                    const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+
+                    // Apply AM/PM case preference
+                    const ampmFormatted = config.clockAmPmCase === 'lowercase' ? ampm.toLowerCase() : ampm;
+
+                    // Create time with custom AM/PM styling
+                    const timeBase = `${hour12}:${minute}`;
+
+                    if (config.clockAmPmSize && config.clockAmPmSize !== '80') {
+                        // Use HTML with custom AM/PM size as percentage of clock font
+                        const ampmSize = (config.clockAmPmSize / 100) + 'em';
+                        elements.clock.innerHTML = `${timeBase} <span style="font-size: ${ampmSize};">${ampmFormatted}</span>`;
+                    } else {
+                        elements.clock.textContent = `${timeBase} ${ampmFormatted}`;
+                    }
+                } else {
+                    // 24-hour format
+                    const timeString = now.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    elements.clock.textContent = timeString;
+                }
+
                 const dateString = now.toLocaleDateString([], {
                     weekday: 'long',
                     year: 'numeric',
@@ -798,7 +823,6 @@
                     day: 'numeric'
                 });
 
-                elements.clock.textContent = timeString;
                 elements.date.textContent = dateString;
             }
 
@@ -1953,6 +1977,8 @@
 
             // Get current format
             const currentFormat = config.clockFormat || '24hour';
+            const currentAmPmCase = config.clockAmPmCase || 'uppercase';
+            const currentAmPmSize = config.clockAmPmSize || '80';
 
             // Create time format menu
             const menu = document.createElement('div');
@@ -1996,6 +2022,25 @@
                     </label>
                 </div>
 
+                <div id="ampm-options" style="margin-bottom: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: ${currentFormat === '12hour' ? 'block' : 'none'};">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">🅰️ AM/PM Options</h4>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Case Style:</label>
+                            <select id="ampm-case" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px;">
+                                <option value="uppercase" ${(config.clockAmPmCase || 'uppercase') === 'uppercase' ? 'selected' : ''}>UPPERCASE (AM/PM)</option>
+                                <option value="lowercase" ${(config.clockAmPmCase || 'uppercase') === 'lowercase' ? 'selected' : ''}>lowercase (am/pm)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Size (% of clock):</label>
+                            <input type="number" id="ampm-size" value="${config.clockAmPmSize || '80'}" min="30" max="150" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px;">
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button id="format-cancel-btn" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; cursor: pointer; font-size: 14px;">Cancel</button>
                     <button id="format-apply-btn" style="padding: 8px 16px; background: #4A90E2; border: 1px solid #4A90E2; border-radius: 4px; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">Apply</button>
@@ -2020,17 +2065,46 @@
             document.body.appendChild(menu);
 
             let selectedFormat = currentFormat;
+            let selectedAmPmCase = currentAmPmCase;
+            let selectedAmPmSize = currentAmPmSize;
 
             // Handle format selection
             menu.querySelectorAll('input[name="timeFormat"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     selectedFormat = e.target.value;
+                    // Show/hide AM/PM options based on format
+                    const amPmOptions = document.getElementById('amPmOptions');
+                    if (selectedFormat === '12hour') {
+                        amPmOptions.style.display = 'block';
+                    } else {
+                        amPmOptions.style.display = 'none';
+                    }
                 });
             });
+
+            // Handle AM/PM case selection
+            const amPmCaseSelect = document.getElementById('ampm-case');
+            if (amPmCaseSelect) {
+                amPmCaseSelect.addEventListener('change', (e) => {
+                    selectedAmPmCase = e.target.value;
+                });
+            }
+
+            // Handle AM/PM size input
+            const amPmSizeInput = document.getElementById('ampm-size');
+            if (amPmSizeInput) {
+                amPmSizeInput.addEventListener('input', (e) => {
+                    selectedAmPmSize = e.target.value;
+                });
+            }
 
             // Handle apply button
             document.getElementById('format-apply-btn').addEventListener('click', () => {
                 addPendingChange(elementId, 'clockFormat', selectedFormat);
+                if (selectedFormat === '12hour') {
+                    addPendingChange(elementId, 'clockAmPmCase', selectedAmPmCase);
+                    addPendingChange(elementId, 'clockAmPmSize', selectedAmPmSize);
+                }
                 menu.remove();
                 style.remove();
             });
@@ -3014,6 +3088,10 @@
                         mqttKey = `slideshow_${mqttElementId}_shadow`;
                     } else if (property === 'clockFormat') {
                         mqttKey = `slideshow_clock_format`;
+                    } else if (property === 'clockAmPmCase') {
+                        mqttKey = `slideshow_clock_am_pm_case`;
+                    } else if (property === 'clockAmPmSize') {
+                        mqttKey = `slideshow_clock_am_pm_size`;
                     } else if (property === 'showClock') {
                         mqttKey = `slideshow_show_clock`;
                     } else if (property === 'showDate') {
