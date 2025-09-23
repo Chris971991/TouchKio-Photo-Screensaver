@@ -962,7 +962,7 @@
         }
 
         function showMetadataOverlay() {
-            updateMetadataStyles();
+            applyMetadata();
             elements.metadataOverlay.style.display = 'block';
             // Force reflow before adding visible class
             elements.metadataOverlay.offsetHeight;
@@ -1080,110 +1080,165 @@
             }
         }
 
-        function updateMetadataStyles() {
-            const overlay = elements.metadataOverlay;
+        function applyMetadata() {
+            const metadata = elements.metadataOverlay;
+            if (!metadata) return;
 
-            // Preserve the visible state
-            const wasVisible = overlay.classList.contains('visible');
+            if (config.showMetadata === false) {
+                metadata.style.display = 'none';
+                return;
+            }
 
-            // Clear existing classes
-            overlay.className = 'metadata-overlay';
+            metadata.style.display = 'block';
+            const metadataPos = config.metadataPosition || 'bottom-center';
+            const metadataBackground = config.metadataBackground || 'dark';
 
-            // Check if custom coordinates are provided
-            const hasCustomX = config.metadataCustomX && config.metadataCustomX.trim() !== '';
-            const hasCustomY = config.metadataCustomY && config.metadataCustomY.trim() !== '';
+            // Apply classes for background (if no custom background is set)
+            if (config.metadataCustomFontSize) {
+                metadata.className = `metadata-overlay background-${metadataBackground}`;
+                metadata.style.fontSize = config.metadataCustomFontSize;
+            } else {
+                metadata.className = `metadata-overlay background-${metadataBackground}`;
+            }
+
+            // Apply positioning - EXACT same structure as clock
+            metadata.style.position = 'absolute';
+            metadata.style.zIndex = '10';
+            metadata.style.top = 'auto';
+            metadata.style.right = 'auto';
+            metadata.style.bottom = 'auto';
+            metadata.style.left = 'auto';
+            metadata.style.transform = 'none';
+
+            // Check if custom coordinates are provided (handle empty strings and undefined)
+            const hasCustomX = config.metadataCustomX && config.metadataCustomX.toString().trim() !== '';
+            const hasCustomY = config.metadataCustomY && config.metadataCustomY.toString().trim() !== '';
+
+            console.log('Metadata positioning debug:', {
+                metadataCustomX: config.metadataCustomX,
+                metadataCustomY: config.metadataCustomY,
+                hasCustomX,
+                hasCustomY
+            });
 
             if (hasCustomX || hasCustomY) {
-                // Use custom positioning - apply directly with proper cleanup
-                // CRITICAL: Must set position to absolute and clear ALL directional properties
-                overlay.style.position = 'absolute';
-                overlay.style.top = 'auto';
-                overlay.style.right = 'auto';
-                overlay.style.bottom = 'auto';  // CRITICAL: Must clear bottom
-                overlay.style.left = 'auto';
-                overlay.style.transform = 'none';  // CRITICAL: Must clear transform
+                // Use custom positioning - clear preset styles first
+                metadata.style.top = 'auto';
+                metadata.style.right = 'auto';
+                metadata.style.bottom = 'auto';
+                metadata.style.left = 'auto';
+                metadata.style.transform = 'none';
 
-                // Apply custom positions
                 if (hasCustomX) {
-                    overlay.style.left = config.metadataCustomX;
+                    metadata.style.left = config.metadataCustomX;
+                    console.log('Applied custom metadata X:', config.metadataCustomX);
                 }
                 if (hasCustomY) {
-                    overlay.style.top = config.metadataCustomY;
+                    metadata.style.top = config.metadataCustomY;
+                    console.log('Applied custom metadata Y:', config.metadataCustomY);
                 }
             } else {
-                // Use preset position with CSS classes
-                overlay.classList.add(`pos-${config.metadataPosition || 'bottom-center'}`);
-                // Clear ALL inline positioning to let CSS classes work properly
-                overlay.style.position = '';
-                overlay.style.top = '';
-                overlay.style.right = '';
-                overlay.style.bottom = '';
-                overlay.style.left = '';
-                overlay.style.transform = '';
-            }
+                // Use preset position - clear all custom positioning first
+                metadata.style.top = 'auto';
+                metadata.style.right = 'auto';
+                metadata.style.bottom = 'auto';
+                metadata.style.left = 'auto';
+                metadata.style.transform = 'none';
 
-            // Apply background
-            overlay.classList.add(`background-${config.metadataBackground || 'dark'}`);
-
-            // Apply custom font size if specified
-            if (config.metadataCustomFontSize && config.metadataCustomFontSize.trim() !== '') {
-                overlay.style.fontSize = config.metadataCustomFontSize;
-            } else {
-                overlay.style.fontSize = ''; // Clear custom font size
-            }
-
-            // Restore visible state if it was visible
-            // In editor mode, respect the showMetadata setting
-            if (wasVisible && config.showMetadata !== false) {
-                overlay.classList.add('visible');
-                overlay.style.display = 'block';
-                overlay.style.opacity = '1';
-            } else if (config.showMetadata === false) {
-                // Hide metadata when disabled
-                overlay.style.display = 'none';
-            }
-
-            // Apply custom opacity if set
-            if (config.metadataBackgroundOpacity !== undefined) {
-                const opacity = config.metadataBackgroundOpacity / 100;
-                if (config.metadataBackground === 'dark') {
-                    overlay.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
-                } else if (config.metadataBackground === 'light') {
-                    overlay.style.backgroundColor = `rgba(255, 255, 255, ${opacity * 0.4})`;
-                } else if (config.metadataBackground === 'blue') {
-                    overlay.style.backgroundColor = `rgba(52, 152, 219, ${opacity})`;
-                } else if (config.metadataBackground === 'green') {
-                    overlay.style.backgroundColor = `rgba(52, 168, 83, ${opacity})`;
-                } else if (config.metadataBackground === 'red') {
-                    overlay.style.backgroundColor = `rgba(231, 76, 60, ${opacity})`;
-                } else if (config.metadataBackground === 'purple') {
-                    overlay.style.backgroundColor = `rgba(155, 89, 182, ${opacity})`;
+                switch(metadataPos) {
+                    case 'top-left':
+                        metadata.style.top = '20px';
+                        metadata.style.left = '20px';
+                        break;
+                    case 'top-center':
+                        metadata.style.top = '20px';
+                        metadata.style.left = '50%';
+                        metadata.style.transform = 'translateX(-50%)';
+                        break;
+                    case 'top-right':
+                        metadata.style.top = '20px';
+                        metadata.style.right = '20px';
+                        break;
+                    case 'left':
+                        metadata.style.top = '50%';
+                        metadata.style.left = '20px';
+                        metadata.style.transform = 'translateY(-50%)';
+                        break;
+                    case 'center':
+                        metadata.style.top = '50%';
+                        metadata.style.left = '50%';
+                        metadata.style.transform = 'translate(-50%, -50%)';
+                        break;
+                    case 'right':
+                        metadata.style.top = '50%';
+                        metadata.style.right = '20px';
+                        metadata.style.transform = 'translateY(-50%)';
+                        break;
+                    case 'bottom-left':
+                        metadata.style.bottom = '20px';
+                        metadata.style.left = '20px';
+                        break;
+                    case 'bottom-center':
+                        metadata.style.bottom = '20px';
+                        metadata.style.left = '50%';
+                        metadata.style.transform = 'translateX(-50%)';
+                        break;
+                    case 'bottom-right':
+                        metadata.style.bottom = '20px';
+                        metadata.style.right = '20px';
+                        break;
+                    case 'custom':
+                        // Custom position handled above, do nothing here
+                        break;
                 }
             }
 
             // Apply custom color if specified
             if (config.metadataColor) {
-                overlay.style.color = config.metadataColor;
+                metadata.style.color = config.metadataColor;
             }
 
-            // Apply advanced styling options
-            if (config.metadataBorderRadius && config.metadataBorderRadius.trim() !== '') {
-                overlay.style.borderRadius = config.metadataBorderRadius;
-            } else {
-                overlay.style.borderRadius = ''; // Clear custom border radius
+            // Apply background opacity if background is not 'none'
+            if (metadataBackground !== 'none' && config.metadataBackgroundOpacity !== undefined) {
+                const opacity = config.metadataBackgroundOpacity / 100;
+                if (config.metadataBackground === 'dark') {
+                    metadata.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+                } else if (config.metadataBackground === 'light') {
+                    metadata.style.backgroundColor = `rgba(255, 255, 255, ${opacity * 0.4})`;
+                } else if (config.metadataBackground === 'blue') {
+                    metadata.style.backgroundColor = `rgba(52, 152, 219, ${opacity})`;
+                } else if (config.metadataBackground === 'green') {
+                    metadata.style.backgroundColor = `rgba(52, 168, 83, ${opacity})`;
+                } else if (config.metadataBackground === 'red') {
+                    metadata.style.backgroundColor = `rgba(231, 76, 60, ${opacity})`;
+                } else if (config.metadataBackground === 'purple') {
+                    metadata.style.backgroundColor = `rgba(155, 89, 182, ${opacity})`;
+                }
             }
 
-            if (config.metadataPadding && config.metadataPadding.trim() !== '') {
-                overlay.style.padding = config.metadataPadding;
-            } else {
-                overlay.style.padding = ''; // Clear custom padding
+            // Apply spacing (border radius and padding)
+            if (config.metadataBorderRadius !== undefined) {
+                metadata.style.borderRadius = config.metadataBorderRadius + 'px';
             }
 
-            if (config.metadataShadow && config.metadataShadow.trim() !== '') {
-                overlay.style.boxShadow = config.metadataShadow;
-            } else {
-                overlay.style.boxShadow = ''; // Clear custom shadow
+            if (config.metadataPadding !== undefined) {
+                metadata.style.padding = config.metadataPadding + 'px';
             }
+
+            // Apply shadow effects
+            if (config.metadataShadow !== undefined) {
+                const shadowIntensity = config.metadataShadow / 100;
+                if (shadowIntensity > 0) {
+                    metadata.style.textShadow = `2px 2px ${4 * shadowIntensity}px rgba(0, 0, 0, 0.8)`;
+                    metadata.style.boxShadow = `0 ${2 * shadowIntensity}px ${8 * shadowIntensity}px rgba(0, 0, 0, 0.3)`;
+                } else {
+                    metadata.style.textShadow = 'none';
+                    metadata.style.boxShadow = 'none';
+                }
+            }
+
+            // Apply general opacity
+            metadata.style.opacity = config.metadataOpacity || 1.0;
         }
 
         function showLoading() {
@@ -3068,11 +3123,14 @@
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             `;
 
-            // Get current background settings
-            const currentBorderRadius = config[`${elementId}BorderRadius`] || 0;
-            const currentPadding = config[`${elementId}Padding`] || 0;
-            const currentShadow = config[`${elementId}Shadow`] || 0;
-            const currentBackground = config[`${elementId}Background`] || 'dark';
+            // Map elementId to config property prefix (handle metadata special case)
+            const configPrefix = elementId === 'metadataOverlay' ? 'metadata' : elementId;
+
+            // Get current background settings (parse px values)
+            const currentBorderRadius = parseInt(config[`${configPrefix}BorderRadius`]) || 0;
+            const currentPadding = parseInt(config[`${configPrefix}Padding`]) || 0;
+            const currentShadow = parseInt(config[`${configPrefix}Shadow`]) || 0;
+            const currentBackground = config[`${configPrefix}Background`] || 'dark';
             const backgroundEnabled = currentBackground !== 'none';
 
             menu.innerHTML = `
@@ -3223,7 +3281,7 @@
                 updateBgPreview();
                 // Live preview
                 const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
-                addPendingChange(elementId, `${elementId}Background`, backgroundValue);
+                addPendingChange(elementId, `${configPrefix}Background`, backgroundValue);
             });
 
             // Border radius slider
@@ -3232,7 +3290,7 @@
                 document.getElementById('border-radius-display').textContent = selectedBorderRadius + 'px';
                 updateBgPreview();
                 // Live preview
-                addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
+                addPendingChange(elementId, `${configPrefix}BorderRadius`, selectedBorderRadius);
             });
 
             // Padding slider
@@ -3241,7 +3299,7 @@
                 document.getElementById('padding-display').textContent = selectedPadding + 'px';
                 updateBgPreview();
                 // Live preview
-                addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
+                addPendingChange(elementId, `${configPrefix}Padding`, selectedPadding);
             });
 
             // Shadow slider
@@ -3250,7 +3308,7 @@
                 document.getElementById('shadow-display').textContent = selectedShadow + 'px';
                 updateBgPreview();
                 // Live preview
-                addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
+                addPendingChange(elementId, `${configPrefix}Shadow`, selectedShadow);
             });
 
             // Preset buttons
@@ -3278,10 +3336,10 @@
 
                     // Live preview all changes
                     const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
-                    addPendingChange(elementId, `${elementId}Background`, backgroundValue);
-                    addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
-                    addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
-                    addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
+                    addPendingChange(elementId, `${configPrefix}Background`, backgroundValue);
+                    addPendingChange(elementId, `${configPrefix}BorderRadius`, selectedBorderRadius);
+                    addPendingChange(elementId, `${configPrefix}Padding`, selectedPadding);
+                    addPendingChange(elementId, `${configPrefix}Shadow`, selectedShadow);
                 });
             });
 
@@ -3289,10 +3347,10 @@
             document.getElementById('bg-apply-btn').addEventListener('click', () => {
                 // Convert boolean to proper background value
                 const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
-                addPendingChange(elementId, `${elementId}Background`, backgroundValue);
-                addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
-                addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
-                addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
+                addPendingChange(elementId, `${configPrefix}Background`, backgroundValue);
+                addPendingChange(elementId, `${configPrefix}BorderRadius`, selectedBorderRadius);
+                addPendingChange(elementId, `${configPrefix}Padding`, selectedPadding);
+                addPendingChange(elementId, `${configPrefix}Shadow`, selectedShadow);
                 menu.remove();
             });
 
@@ -3525,6 +3583,13 @@
                 pendingChanges[elementId] = {};
             }
             pendingChanges[elementId][property] = value;
+
+            // Apply change immediately for live preview
+            applyChangePreview(elementId, property, value);
+
+            // Update UI state
+            updateSaveButtonState();
+            updateStatusText();
         }
 
         function applyChangePreview(elementId, property, value) {
@@ -3541,7 +3606,7 @@
             } else if (elementId === 'counter') {
                 applyPhotoCounterPosition();
             } else if (elementId === 'metadataOverlay') {
-                updateMetadataStyles();
+                applyMetadata();
             }
         }
 
@@ -3716,7 +3781,7 @@
             applyDate();
             applySourceIndicatorPosition();
             applyPhotoCounterPosition();
-            updateMetadataStyles();
+            applyMetadata();
 
             // Send settings to integration.js for MQTT persistence BEFORE clearing
             const settingsUpdate = {};
@@ -3904,7 +3969,7 @@
                     applyDate();
                     applySourceIndicatorPosition();
                     applyPhotoCounterPosition();
-                    updateMetadataStyles();
+                    applyMetadata();
 
                     console.log(`Discarded ${changeCount} pending changes`);
                 } catch (error) {
@@ -4106,7 +4171,7 @@
                                 // Apply current positioning BEFORE making draggable
                                 // This ensures metadata has proper position styles
                                 if (id === 'metadataOverlay') {
-                                    updateMetadataStyles();
+                                    applyMetadata();
                                 }
 
                                 // Make element context menu enabled
@@ -4234,7 +4299,7 @@
                 const metadataOverlay = document.querySelector('.metadata-overlay');
                 if (config.showMetadata) {
                     // Update all metadata styles when config changes
-                    updateMetadataStyles();
+                    applyMetadata();
                     // Metadata visibility will be handled by updateMetadataDisplay when photos are shown
                 } else {
                     // Hide metadata when disabled
@@ -4986,9 +5051,10 @@
             }
 
             // Re-apply metadata styling if any metadata option changed
-            if (newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataBackgroundOpacity || newConfig.metadataBorderRadius || newConfig.metadataPadding || newConfig.metadataShadow || newConfig.metadataCustomX || newConfig.metadataCustomY) {
-                if (currentPhotoIndex !== -1) {
-                    updateMetadataOverlay();
+            if (newConfig.metadataPosition || newConfig.metadataCustomX || newConfig.metadataCustomY || newConfig.showMetadata !== undefined || newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataCustomFontSize || newConfig.metadataBackgroundOpacity || newConfig.metadataBorderRadius || newConfig.metadataPadding || newConfig.metadataShadow || newConfig.metadataOpacity) {
+                applyMetadata();
+                if (currentPhotoIndex !== -1 && photos[currentPhotoIndex]) {
+                    updateMetadataContent(photos[currentPhotoIndex]);
                 }
             }
 
