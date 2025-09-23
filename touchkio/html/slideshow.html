@@ -3047,6 +3047,12 @@
                 selectedTextOpacity = parseInt(e.target.value);
                 document.getElementById('text-opacity-display').textContent = selectedTextOpacity + '%';
                 updateOpacityPreview();
+                // Live preview on actual element
+                if (elementId === 'metadataOverlay') {
+                    addPendingChange(elementId, 'metadataOpacity', selectedTextOpacity);
+                } else {
+                    addPendingChange(elementId, `${elementId}Opacity`, selectedTextOpacity);
+                }
             });
 
             // Background opacity slider
@@ -3054,6 +3060,12 @@
                 selectedBgOpacity = parseInt(e.target.value);
                 document.getElementById('bg-opacity-display').textContent = selectedBgOpacity + '%';
                 updateOpacityPreview();
+                // Live preview on actual element
+                if (elementId === 'metadataOverlay') {
+                    addPendingChange(elementId, 'metadataBackgroundOpacity', selectedBgOpacity);
+                } else {
+                    addPendingChange(elementId, `${elementId}BackgroundOpacity`, selectedBgOpacity);
+                }
             });
 
             // Preset buttons
@@ -3069,13 +3081,26 @@
                     document.getElementById('bg-opacity-display').textContent = selectedBgOpacity + '%';
 
                     updateOpacityPreview();
+                    // Live preview on actual element
+                    if (elementId === 'metadataOverlay') {
+                        addPendingChange(elementId, 'metadataOpacity', selectedTextOpacity);
+                        addPendingChange(elementId, 'metadataBackgroundOpacity', selectedBgOpacity);
+                    } else {
+                        addPendingChange(elementId, `${elementId}Opacity`, selectedTextOpacity);
+                        addPendingChange(elementId, `${elementId}BackgroundOpacity`, selectedBgOpacity);
+                    }
                 });
             });
 
             // Handle apply button
             document.getElementById('opacity-apply-btn').addEventListener('click', () => {
-                addPendingChange(elementId, `${elementId}Opacity`, selectedTextOpacity);
-                addPendingChange(elementId, `${elementId}BackgroundOpacity`, selectedBgOpacity);
+                if (elementId === 'metadataOverlay') {
+                    addPendingChange(elementId, 'metadataOpacity', selectedTextOpacity);
+                    addPendingChange(elementId, 'metadataBackgroundOpacity', selectedBgOpacity);
+                } else {
+                    addPendingChange(elementId, `${elementId}Opacity`, selectedTextOpacity);
+                    addPendingChange(elementId, `${elementId}BackgroundOpacity`, selectedBgOpacity);
+                }
                 menu.remove();
             });
 
@@ -3485,6 +3510,12 @@
 
                 console.log(`Pending changes: ${this.changes.size}/${this.maxSize} (${Math.round((this.changes.size / this.maxSize) * 100)}% utilized)`);
 
+                // Show warning when buffer is 75% full
+                const utilizationPercent = Math.round((this.changes.size / this.maxSize) * 100);
+                if (utilizationPercent >= 75) {
+                    showChangeWarningPopup(this.changes.size);
+                }
+
                 // Apply preview and update UI
                 applyChangePreview(elementId, property, value);
                 updateSaveButtonState();
@@ -3554,7 +3585,7 @@
         }
 
         // Initialize enhanced pending changes manager
-        const pendingChangesManager = new PendingChangesManager(25);
+        const pendingChangesManager = new PendingChangesManager(100);
         let pendingChanges = {}; // Keep for backward compatibility
         let originalConfig = {};
 
@@ -3630,7 +3661,8 @@
                 if (changeCount === 0) {
                     statusElement.textContent = 'Editor Mode Active - Right-click elements to customize';
                 } else {
-                    statusElement.textContent = `${changeCount} unsaved change${changeCount === 1 ? '' : 's'} (${memoryUsage.utilizationPercent}% buffer) - Right-click to continue editing`;
+                    const remaining = memoryUsage.maxSize - changeCount;
+                    statusElement.textContent = `${changeCount} unsaved change${changeCount === 1 ? '' : 's'} (${remaining} remaining) - Right-click to continue editing`;
                 }
             }
         }
@@ -3649,8 +3681,8 @@
                 <div class="warning-content">
                     <div class="warning-icon">⚠️</div>
                     <div class="warning-text">
-                        <h3>Approaching Change Limit</h3>
-                        <p>${changeCount} changes pending. Save now to prevent performance issues.</p>
+                        <h3>Many Changes Pending</h3>
+                        <p>${changeCount} changes made. Consider saving soon to avoid losing work.</p>
                     </div>
                     <div class="warning-buttons">
                         <button id="warning-save-btn" class="warning-btn save">Save Now</button>
