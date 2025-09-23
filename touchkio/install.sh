@@ -551,6 +551,18 @@ else
     echo "TouchKio config not found - setup may not have completed properly."
 fi
 
+# Install uninstaller script for easy removal
+echo ""
+echo "Installing TouchKio uninstaller script..."
+if [ -f "uninstall.sh" ]; then
+    sudo cp uninstall.sh /usr/local/bin/touchkio-uninstall
+    sudo chmod +x /usr/local/bin/touchkio-uninstall
+    echo "✓ Uninstaller installed to /usr/local/bin/touchkio-uninstall"
+    echo "  To uninstall TouchKio completely, run: touchkio-uninstall"
+else
+    echo "⚠️  Uninstaller script not found in source directory"
+fi
+
 echo ""
 echo "✓ TouchKio enhanced slideshow installer completed!"
 echo ""
