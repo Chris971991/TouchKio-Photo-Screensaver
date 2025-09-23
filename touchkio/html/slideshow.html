@@ -508,12 +508,26 @@
             transform: translateX(-50%);
         }
         .metadata-overlay.pos-bottom-right { bottom: 20px; right: 20px; left: auto; top: auto; transform: none; }
+        .metadata-overlay.pos-left {
+            top: 50%;
+            left: 20px;
+            right: auto;
+            bottom: auto;
+            transform: translateY(-50%);
+        }
         .metadata-overlay.pos-center {
             top: 50%;
             left: 50%;
             right: auto;
             bottom: auto;
             transform: translate(-50%, -50%);
+        }
+        .metadata-overlay.pos-right {
+            top: 50%;
+            right: 20px;
+            left: auto;
+            bottom: auto;
+            transform: translateY(-50%);
         }
 
         /* Font size classes for metadata */
@@ -4070,22 +4084,42 @@
                             sourceIndicator.style.top = '20px';
                             sourceIndicator.style.left = '20px';
                             break;
+                        case 'top-center':
+                            sourceIndicator.style.top = '20px';
+                            sourceIndicator.style.left = '50%';
+                            sourceIndicator.style.transform = 'translateX(-50%)';
+                            break;
                         case 'top-right':
                             sourceIndicator.style.top = '20px';
                             sourceIndicator.style.right = '20px';
                             break;
-                        case 'bottom-left':
-                            sourceIndicator.style.bottom = '20px';
+                        case 'left':
+                            sourceIndicator.style.top = '50%';
                             sourceIndicator.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            sourceIndicator.style.bottom = '20px';
-                            sourceIndicator.style.right = '20px';
+                            sourceIndicator.style.transform = 'translateY(-50%)';
                             break;
                         case 'center':
                             sourceIndicator.style.top = '50%';
                             sourceIndicator.style.left = '50%';
                             sourceIndicator.style.transform = 'translate(-50%, -50%)';
+                            break;
+                        case 'right':
+                            sourceIndicator.style.top = '50%';
+                            sourceIndicator.style.right = '20px';
+                            sourceIndicator.style.transform = 'translateY(-50%)';
+                            break;
+                        case 'bottom-left':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.left = '20px';
+                            break;
+                        case 'bottom-center':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.left = '50%';
+                            sourceIndicator.style.transform = 'translateX(-50%)';
+                            break;
+                        case 'bottom-right':
+                            sourceIndicator.style.bottom = '20px';
+                            sourceIndicator.style.right = '20px';
                             break;
                         case 'custom':
                             // Custom position handled above, do nothing here
@@ -4204,22 +4238,42 @@
                             clock.style.top = '20px';
                             clock.style.left = '20px';
                             break;
+                        case 'top-center':
+                            clock.style.top = '20px';
+                            clock.style.left = '50%';
+                            clock.style.transform = 'translateX(-50%)';
+                            break;
                         case 'top-right':
                             clock.style.top = '20px';
                             clock.style.right = '20px';
                             break;
-                        case 'bottom-left':
-                            clock.style.bottom = '20px';
+                        case 'left':
+                            clock.style.top = '50%';
                             clock.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            clock.style.bottom = '20px';
-                            clock.style.right = '20px';
+                            clock.style.transform = 'translateY(-50%)';
                             break;
                         case 'center':
                             clock.style.top = '50%';
                             clock.style.left = '50%';
                             clock.style.transform = 'translate(-50%, -50%)';
+                            break;
+                        case 'right':
+                            clock.style.top = '50%';
+                            clock.style.right = '20px';
+                            clock.style.transform = 'translateY(-50%)';
+                            break;
+                        case 'bottom-left':
+                            clock.style.bottom = '20px';
+                            clock.style.left = '20px';
+                            break;
+                        case 'bottom-center':
+                            clock.style.bottom = '20px';
+                            clock.style.left = '50%';
+                            clock.style.transform = 'translateX(-50%)';
+                            break;
+                        case 'bottom-right':
+                            clock.style.bottom = '20px';
+                            clock.style.right = '20px';
                             break;
                         case 'custom':
                             // Custom position handled above, do nothing here
@@ -4337,22 +4391,42 @@
                             date.style.top = '20px';
                             date.style.left = '20px';
                             break;
+                        case 'top-center':
+                            date.style.top = '20px';
+                            date.style.left = '50%';
+                            date.style.transform = 'translateX(-50%)';
+                            break;
                         case 'top-right':
                             date.style.top = '20px';
                             date.style.right = '20px';
                             break;
-                        case 'bottom-left':
-                            date.style.bottom = '20px';
+                        case 'left':
+                            date.style.top = '50%';
                             date.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            date.style.bottom = '20px';
-                            date.style.right = '20px';
+                            date.style.transform = 'translateY(-50%)';
                             break;
                         case 'center':
                             date.style.top = '50%';
                             date.style.left = '50%';
                             date.style.transform = 'translate(-50%, -50%)';
+                            break;
+                        case 'right':
+                            date.style.top = '50%';
+                            date.style.right = '20px';
+                            date.style.transform = 'translateY(-50%)';
+                            break;
+                        case 'bottom-left':
+                            date.style.bottom = '20px';
+                            date.style.left = '20px';
+                            break;
+                        case 'bottom-center':
+                            date.style.bottom = '20px';
+                            date.style.left = '50%';
+                            date.style.transform = 'translateX(-50%)';
+                            break;
+                        case 'bottom-right':
+                            date.style.bottom = '20px';
+                            date.style.right = '20px';
                             break;
                         case 'custom':
                             // Custom position handled above, do nothing here
@@ -4477,22 +4551,42 @@
                             photoCounter.style.top = '20px';
                             photoCounter.style.left = '20px';
                             break;
+                        case 'top-center':
+                            photoCounter.style.top = '20px';
+                            photoCounter.style.left = '50%';
+                            photoCounter.style.transform = 'translateX(-50%)';
+                            break;
                         case 'top-right':
                             photoCounter.style.top = '20px';
                             photoCounter.style.right = '20px';
                             break;
-                        case 'bottom-left':
-                            photoCounter.style.bottom = '20px';
+                        case 'left':
+                            photoCounter.style.top = '50%';
                             photoCounter.style.left = '20px';
-                            break;
-                        case 'bottom-right':
-                            photoCounter.style.bottom = '20px';
-                            photoCounter.style.right = '20px';
+                            photoCounter.style.transform = 'translateY(-50%)';
                             break;
                         case 'center':
                             photoCounter.style.top = '50%';
                             photoCounter.style.left = '50%';
                             photoCounter.style.transform = 'translate(-50%, -50%)';
+                            break;
+                        case 'right':
+                            photoCounter.style.top = '50%';
+                            photoCounter.style.right = '20px';
+                            photoCounter.style.transform = 'translateY(-50%)';
+                            break;
+                        case 'bottom-left':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.left = '20px';
+                            break;
+                        case 'bottom-center':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.left = '50%';
+                            photoCounter.style.transform = 'translateX(-50%)';
+                            break;
+                        case 'bottom-right':
+                            photoCounter.style.bottom = '20px';
+                            photoCounter.style.right = '20px';
                             break;
                         case 'custom':
                             // Custom position handled above, do nothing here
