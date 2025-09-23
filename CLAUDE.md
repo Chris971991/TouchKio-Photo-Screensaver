@@ -397,6 +397,129 @@ ssh pi@kiosk.local "mosquitto_pub -h 192.168.50.45 -u mqtt_user -P mqtt_password
 
 **💡 Pro Tip**: If ANY step fails, the feature is incomplete. Don't commit until all checkboxes are verified working on Pi hardware.
 
+## 🎯 Critical Fix: Making Elements Draggable in Editor Mode
+
+### **The Metadata Drag Bug Solution (September 2025)**
+
+**Problem**: Metadata container had multiple issues when dragging in editor mode:
+1. Bottom edge stuck to screen bottom during drag
+2. Element disappeared after releasing drag
+3. Position reset to original location after drag
+
+**Root Causes Identified**:
+1. **CSS Default Conflicts**: `.metadata-overlay` CSS had `bottom: 20px`, `right: 50%`, and `transform: translateX(50%)` that weren't cleared during drag
+2. **Property Name Mismatch**: Drag code set `metadataOverlayCustomX/Y` but config expected `metadataCustomX/Y`
+3. **Incomplete Position Clearing**: Position styles weren't fully reset when drag started
+
+### **Complete Fix for Draggable Elements**
+
+When implementing drag functionality for ANY element in editor mode, follow these critical steps:
+
+#### **1. Clear ALL CSS Positioning on Drag Start**
+```javascript
+element.addEventListener('mousedown', (e) => {
+    // ... validation checks ...
+
+    // CRITICAL: Clear ALL positioning from CSS defaults BEFORE drag starts
+    element.style.position = 'fixed';
+    element.style.left = startLeft + 'px';
+    element.style.top = startTop + 'px';
+    element.style.right = 'auto';      // MUST clear
+    element.style.bottom = 'auto';     // MUST clear
+    element.style.transform = 'none';  // MUST clear
+
+    // ... rest of drag setup ...
+});
+```
+
+#### **2. Maintain Clean Position During Drag**
+```javascript
+function handleMouseMove(e) {
+    // Keep clearing CSS properties during drag
+    element.style.position = 'fixed';
+    element.style.left = newLeft + 'px';
+    element.style.top = newTop + 'px';
+    element.style.right = 'auto';
+    element.style.bottom = 'auto';
+    element.style.transform = 'none';
+}
+```
+
+#### **3. Properly Handle Element After Drag**
+```javascript
+function handleMouseUp(e) {
+    // Reset to absolute positioning
+    element.style.position = 'absolute';
+    element.style.left = x + 'px';
+    element.style.top = y + 'px';
+    element.style.bottom = 'auto';
+    element.style.right = 'auto';
+    element.style.transform = 'none';
+
+    // Special handling for metadata to keep visible
+    if (elementId === 'metadataOverlay') {
+        element.style.display = 'block';
+        element.style.opacity = '1';
+    }
+}
+```
+
+#### **4. Use Consistent Property Names**
+```javascript
+// CRITICAL: Metadata uses different property naming
+if (elementId === 'metadataOverlay') {
+    propNameX = 'metadataCustomX';        // NOT metadataOverlayCustomX
+    propNameY = 'metadataCustomY';        // NOT metadataOverlayCustomY
+    propNamePos = 'metadataPosition';     // NOT metadataOverlayPosition
+} else {
+    propNameX = `${elementId}CustomX`;
+    propNameY = `${elementId}CustomY`;
+    propNamePos = `${elementId}Position`;
+}
+```
+
+#### **5. Respect Visibility Settings in Editor Mode**
+```javascript
+// When entering editor mode, respect element visibility
+const visibilityMap = {
+    'clock': config.showClock !== false,
+    'date': config.showDate !== false,
+    'source': config.showSourceIndicator !== false,
+    'counter': config.showPhotoCounter !== false,
+    'metadataOverlay': config.showMetadata !== false
+};
+
+if (visibilityMap[id]) {
+    element.style.display = 'block';
+    element.style.opacity = '1';
+} else {
+    element.style.display = 'none';
+}
+```
+
+### **Common Pitfalls When Adding New Draggable Elements**
+
+1. **❌ DON'T** assume CSS defaults won't interfere - always clear ALL positioning properties
+2. **❌ DON'T** forget that some elements have `opacity: 0` in CSS by default
+3. **❌ DON'T** use inconsistent property names between drag code and config updates
+4. **❌ DON'T** clear opacity without checking if element needs explicit visibility
+
+### **Testing Checklist for New Draggable Elements**
+
+- [ ] Element can be dragged without sticking to any edge
+- [ ] Element stays where dropped after releasing mouse
+- [ ] Position persists after saving and restarting TouchKio
+- [ ] Element respects visibility toggle in editor mode
+- [ ] Custom coordinates saved correctly to Arguments.json
+- [ ] No CSS default properties interfere with positioning
+
+### **Key Lessons Learned**
+
+1. **CSS Defaults Are Persistent**: Browser CSS properties like `bottom`, `right`, and `transform` MUST be explicitly cleared
+2. **Metadata Is Special**: Has different property naming convention and visibility requirements
+3. **Test Every State**: Always test drag, drop, save, restart, and visibility toggle
+4. **Debug with Logs**: Use console.log to verify property names and values during development
+
 ## Essential Pi Commands
 
 **Pi Connection**:
