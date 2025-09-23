@@ -1139,7 +1139,7 @@
                 overlay.style.display = 'block';
                 overlay.style.opacity = '1';
             } else if (config.showMetadata === false) {
-                // If metadata is disabled, hide it even in editor mode
+                // Hide metadata when disabled
                 overlay.style.display = 'none';
             }
 
@@ -2143,14 +2143,9 @@
                         element.style.opacity = '';
                         element.classList.remove('editor-hidden');
                     } else {
-                        // In editor mode, keep hidden elements visible but semi-transparent
-                        if (config.editorMode) {
-                            element.style.opacity = '0.3';
-                            element.classList.add('editor-hidden');
-                            // Keep display property so element is still interactable
-                        } else {
-                            element.style.display = 'none';
-                        }
+                        // Hide the element completely
+                        element.style.display = 'none';
+                        element.classList.remove('editor-hidden');
                     }
                 }
 
@@ -3212,9 +3207,9 @@
                 // Convert boolean to proper background value
                 const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
                 addPendingChange(elementId, `${elementId}Background`, backgroundValue);
-                addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius);
-                addPendingChange(elementId, `${elementId}Padding`, selectedPadding);
-                addPendingChange(elementId, `${elementId}Shadow`, selectedShadow);
+                addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
+                addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
+                addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
                 menu.remove();
             });
 
@@ -4159,6 +4154,7 @@
                     updateMetadataStyles();
                     // Metadata visibility will be handled by updateMetadataDisplay when photos are shown
                 } else {
+                    // Hide metadata when disabled
                     metadataOverlay.style.display = 'none';
                 }
 
