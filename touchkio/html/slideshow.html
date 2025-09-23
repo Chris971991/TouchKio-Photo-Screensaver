@@ -1462,6 +1462,7 @@
             element.addEventListener('contextmenu', (e) => {
                 if (!config.editorMode) return;
                 e.preventDefault();
+                e.stopPropagation(); // CRITICAL: Stop event from bubbling to global handler
                 showContextMenu(elementId, e.clientX, e.clientY);
             });
 
@@ -1472,6 +1473,8 @@
 
                 touchHoldTimer = setTimeout(() => {
                     const touch = e.touches[0];
+                    e.preventDefault();
+                    e.stopPropagation(); // Stop event from bubbling to global handler
                     showContextMenu(elementId, touch.clientX, touch.clientY);
                     // Add haptic feedback if available
                     if (navigator.vibrate) navigator.vibrate(50);
@@ -3818,13 +3821,17 @@
                         document.addEventListener('contextmenu', function(e) {
                             if (!config.editorMode) return;
 
-                            // Check if click is on empty space (not on an element)
+                            // Improved detection: check if click is on a UI element or its children
                             const clickedElement = e.target;
-                            const isEmptySpace = !clickedElement.classList.contains('editor-element') &&
-                                                !clickedElement.closest('.editor-element') &&
-                                                !clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/);
+                            const isOnUIElement = clickedElement.closest('#clock, #date, #source, #counter, #metadataOverlay') ||
+                                                clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/) ||
+                                                clickedElement.classList.contains('source-indicator') ||
+                                                clickedElement.classList.contains('photo-counter') ||
+                                                clickedElement.classList.contains('metadata-overlay') ||
+                                                clickedElement.closest('.source-indicator, .photo-counter, .metadata-overlay');
 
-                            if (isEmptySpace) {
+                            // Only show global menu if NOT on a UI element
+                            if (!isOnUIElement) {
                                 e.preventDefault();
                                 showGlobalElementMenu(e.clientX, e.clientY);
                             }
@@ -3837,11 +3844,17 @@
 
                             const touch = e.touches[0];
                             const clickedElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                            const isEmptySpace = !clickedElement.classList.contains('editor-element') &&
-                                                !clickedElement.closest('.editor-element') &&
-                                                !clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/);
 
-                            if (isEmptySpace) {
+                            // Improved detection: check if touch is on a UI element
+                            const isOnUIElement = clickedElement.closest('#clock, #date, #source, #counter, #metadataOverlay') ||
+                                                clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/) ||
+                                                clickedElement.classList.contains('source-indicator') ||
+                                                clickedElement.classList.contains('photo-counter') ||
+                                                clickedElement.classList.contains('metadata-overlay') ||
+                                                clickedElement.closest('.source-indicator, .photo-counter, .metadata-overlay');
+
+                            // Only show global menu if NOT on a UI element
+                            if (!isOnUIElement) {
                                 globalTouchTimer = setTimeout(() => {
                                     showGlobalElementMenu(touch.clientX, touch.clientY);
                                     if (navigator.vibrate) navigator.vibrate(50);
