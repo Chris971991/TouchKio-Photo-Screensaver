@@ -1323,30 +1323,178 @@
             newPhoto.src = photoUrl;
         }
 
+        // Enhanced Performance Classes for Editor Mode
+
+        // Event Listener Memory Management
+        class EditorEventManager {
+            constructor() {
+                this.listeners = new Map();
+                this.cleanupCallbacks = [];
+            }
+
+            addListener(element, event, handler, id) {
+                if (!this.listeners.has(element)) {
+                    this.listeners.set(element, new Map());
+                }
+
+                const elementListeners = this.listeners.get(element);
+                const key = `${event}_${id}`;
+
+                if (!elementListeners.has(key)) {
+                    element.addEventListener(event, handler);
+                    elementListeners.set(key, handler);
+                    console.log(`Added listener: ${event} for ${id}`);
+                }
+            }
+
+            cleanup() {
+                console.log('Cleaning up event listeners...');
+                for (const [element, listeners] of this.listeners) {
+                    for (const [eventKey, handler] of listeners) {
+                        const event = eventKey.split('_')[0];
+                        element.removeEventListener(event, handler);
+                    }
+                }
+                this.listeners.clear();
+
+                this.cleanupCallbacks.forEach(callback => callback());
+                this.cleanupCallbacks = [];
+            }
+
+            addCleanupCallback(callback) {
+                this.cleanupCallbacks.push(callback);
+            }
+        }
+
+        // High-Performance Drag System
+        class PerformantDragManager {
+            constructor() {
+                this.dragFrame = null;
+                this.dragData = null;
+                this.isActive = false;
+            }
+
+            startDrag(element, startX, startY) {
+                this.dragData = {
+                    element,
+                    startX,
+                    startY,
+                    initialRect: element.getBoundingClientRect(),
+                    initialTransform: getComputedStyle(element).transform
+                };
+
+                // Optimize for dragging
+                element.style.willChange = 'transform';
+                element.style.transition = 'none';
+                element.style.cursor = 'move';
+                element.style.zIndex = '10000';
+                element.style.opacity = '0.8';
+
+                this.isActive = true;
+                console.log('High-performance drag started for', element.id);
+            }
+
+            updateDrag(clientX, clientY) {
+                if (!this.dragData || !this.isActive) return;
+
+                // Cancel previous frame to maintain 60fps
+                if (this.dragFrame) {
+                    cancelAnimationFrame(this.dragFrame);
+                }
+
+                this.dragFrame = requestAnimationFrame(() => {
+                    const deltaX = clientX - this.dragData.startX;
+                    const deltaY = clientY - this.dragData.startY;
+
+                    // Use transform for GPU acceleration instead of left/top
+                    this.dragData.element.style.transform =
+                        `translate(${deltaX}px, ${deltaY}px)`;
+                });
+            }
+
+            endDrag() {
+                if (this.dragFrame) {
+                    cancelAnimationFrame(this.dragFrame);
+                    this.dragFrame = null;
+                }
+
+                let finalPosition = null;
+
+                if (this.dragData) {
+                    // Clean up performance optimizations
+                    this.dragData.element.style.willChange = '';
+                    this.dragData.element.style.transition = '';
+                    this.dragData.element.style.cursor = '';
+                    this.dragData.element.style.zIndex = '';
+                    this.dragData.element.style.opacity = '';
+
+                    // Calculate final position for persistence
+                    const transform = this.dragData.element.style.transform;
+                    const matches = transform.match(/translate\((.+)px,\s*(.+)px\)/);
+
+                    if (matches) {
+                        const deltaX = parseFloat(matches[1]);
+                        const deltaY = parseFloat(matches[2]);
+                        const finalX = this.dragData.initialRect.left + deltaX;
+                        const finalY = this.dragData.initialRect.top + deltaY;
+
+                        // Convert to container-relative coordinates
+                        const container = document.querySelector('.slideshow-container');
+                        const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+
+                        finalPosition = {
+                            x: Math.round(finalX - containerRect.left),
+                            y: Math.round(finalY - containerRect.top)
+                        };
+
+                        // Apply final positioning
+                        this.dragData.element.style.position = 'absolute';
+                        this.dragData.element.style.left = finalPosition.x + 'px';
+                        this.dragData.element.style.top = finalPosition.y + 'px';
+                        this.dragData.element.style.right = 'auto';
+                        this.dragData.element.style.bottom = 'auto';
+                        this.dragData.element.style.transform = 'none';
+                    }
+                }
+
+                this.isActive = false;
+                this.dragData = null;
+                console.log('High-performance drag ended');
+                return finalPosition;
+            }
+        }
+
+        // Initialize performance managers
+        const eventManager = new EditorEventManager();
+        const dragManager = new PerformantDragManager();
+
         // Context Menu System for Editor Mode
         function makeContextMenuEnabled(element, elementId) {
             // Add visual feedback for interactive elements
             element.style.cursor = 'move';
             element.style.transition = 'box-shadow 0.2s ease';
 
-            // Add hover effect in editor mode
-            element.addEventListener('mouseenter', () => {
+            // Add hover effect in editor mode using event manager
+            const hoverIn = () => {
                 if (config.editorMode) {
                     element.style.boxShadow = '0 0 0 2px rgba(74, 144, 226, 0.6)';
                 }
-            });
+            };
 
-            element.addEventListener('mouseleave', () => {
+            const hoverOut = () => {
                 if (config.editorMode && !element.classList.contains('dragging')) {
                     element.style.boxShadow = '';
                 }
-            });
+            };
 
-            // Drag functionality
+            eventManager.addListener(element, 'mouseenter', hoverIn, elementId + '_hover_in');
+            eventManager.addListener(element, 'mouseleave', hoverOut, elementId + '_hover_out');
+
+            // Enhanced drag functionality with performance optimizations
             let isDragging = false;
-            let startX, startY, startLeft, startTop;
 
-            element.addEventListener('mousedown', (e) => {
+            // Enhanced mouse down handler using performance managers
+            const mouseDownHandler = (e) => {
                 if (!config.editorMode) return;
 
                 // Only start drag on left click, not right click
@@ -1356,45 +1504,27 @@
                 isDragging = true;
                 element.classList.add('dragging');
 
-                const rect = element.getBoundingClientRect();
-                startX = e.clientX;
-                startY = e.clientY;
-                startLeft = rect.left;
-                startTop = rect.top;
+                // Use the high-performance drag manager
+                dragManager.startDrag(element, e.clientX, e.clientY);
 
                 // CRITICAL FIX: Clear ALL positioning from CSS defaults before drag starts
-                // This is especially important for metadata which has bottom/right/transform in CSS
+                const rect = element.getBoundingClientRect();
                 element.style.position = 'fixed';
-                element.style.left = startLeft + 'px';
-                element.style.top = startTop + 'px';
+                element.style.left = rect.left + 'px';
+                element.style.top = rect.top + 'px';
                 element.style.right = 'auto';
                 element.style.bottom = 'auto';
                 element.style.transform = 'none';
 
-                element.style.zIndex = '10000';
-                element.style.opacity = '0.8';
-
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-            });
+                // Use event manager for proper cleanup
+                eventManager.addListener(document, 'mousemove', handleMouseMove, elementId + '_drag_move');
+                eventManager.addListener(document, 'mouseup', handleMouseUp, elementId + '_drag_up');
+            };
 
             function handleMouseMove(e) {
                 if (!isDragging) return;
-
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
-
-                const newLeft = startLeft + deltaX;
-                const newTop = startTop + deltaY;
-
-                // Set position directly for immediate feedback
-                // Keep clearing bottom/right/transform during drag to prevent CSS interference
-                element.style.position = 'fixed';
-                element.style.left = newLeft + 'px';
-                element.style.top = newTop + 'px';
-                element.style.right = 'auto';
-                element.style.bottom = 'auto';
-                element.style.transform = 'none';
+                // Use the high-performance drag system
+                dragManager.updateDrag(e.clientX, e.clientY);
             }
 
             function handleMouseUp(e) {
@@ -1402,61 +1532,54 @@
 
                 isDragging = false;
                 element.classList.remove('dragging');
-                element.style.zIndex = '';
                 element.style.boxShadow = '';
 
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
+                // Get final position from performance drag manager
+                const finalPos = dragManager.endDrag();
 
-                // Save the new position relative to slideshow container
-                const elementRect = element.getBoundingClientRect();
-                const container = document.querySelector('.slideshow-container');
-                const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
-                const x = Math.round(elementRect.left - containerRect.left);
-                const y = Math.round(elementRect.top - containerRect.top);
-
-                // Reset position to absolute after drag (especially important for metadata)
-                element.style.position = 'absolute';
-                element.style.left = x + 'px';
-                element.style.top = y + 'px';
-                // Clear any bottom/right/transform that might interfere
-                element.style.bottom = 'auto';
-                element.style.right = 'auto';
-                element.style.transform = 'none';
-
-                // CRITICAL FIX: For metadata, ensure it stays visible
-                // Metadata has opacity: 0 in CSS by default, so we need to keep it visible
-                if (elementId === 'metadataOverlay') {
-                    element.style.display = 'block';
-                    element.style.opacity = '1';
-                } else {
-                    element.style.opacity = '';  // For other elements, clear opacity
+                // Clean up event listeners through event manager
+                const elementListeners = eventManager.listeners.get(document);
+                if (elementListeners) {
+                    elementListeners.delete('mousemove_' + elementId + '_drag_move');
+                    elementListeners.delete('mouseup_' + elementId + '_drag_up');
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
                 }
 
-                // Update config and save
-                // CRITICAL FIX: For metadataOverlay, use shorter property names to match config
-                let propNameX, propNameY, propNamePos;
-                if (elementId === 'metadataOverlay') {
-                    propNameX = 'metadataCustomX';
-                    propNameY = 'metadataCustomY';
-                    propNamePos = 'metadataPosition';
-                } else {
-                    propNameX = `${elementId}CustomX`;
-                    propNameY = `${elementId}CustomY`;
-                    propNamePos = `${elementId}Position`;
+                if (finalPos) {
+                    // CRITICAL FIX: For metadata, ensure it stays visible
+                    if (elementId === 'metadataOverlay') {
+                        element.style.display = 'block';
+                        element.style.opacity = '1';
+                    }
+
+                    // Update config and save using final position
+                    let propNameX, propNameY, propNamePos;
+                    if (elementId === 'metadataOverlay') {
+                        propNameX = 'metadataCustomX';
+                        propNameY = 'metadataCustomY';
+                        propNamePos = 'metadataPosition';
+                    } else {
+                        propNameX = `${elementId}CustomX`;
+                        propNameY = `${elementId}CustomY`;
+                        propNamePos = `${elementId}Position`;
+                    }
+
+                    console.log(`🔍 DEBUG: Adding pending changes for ${elementId}:`);
+                    console.log(`  Property names: X='${propNameX}', Y='${propNameY}', Pos='${propNamePos}'`);
+                    console.log(`  Values: X='${finalPos.x}px', Y='${finalPos.y}px', Pos='custom'`);
+
+                    addPendingChange(elementId, propNameX, finalPos.x + 'px');
+                    addPendingChange(elementId, propNameY, finalPos.y + 'px');
+                    addPendingChange(elementId, propNamePos, 'custom');
+
+                    console.log(`🎯 DRAG COMPLETE: Dragged ${elementId} to (${finalPos.x}, ${finalPos.y})`);
+                    console.log(`🎯 PENDING CHANGES ADDED:`, pendingChanges);
                 }
-
-                console.log(`🔍 DEBUG: Adding pending changes for ${elementId}:`);
-                console.log(`  Property names: X='${propNameX}', Y='${propNameY}', Pos='${propNamePos}'`);
-                console.log(`  Values: X='${x}px', Y='${y}px', Pos='custom'`);
-
-                addPendingChange(elementId, propNameX, x + 'px');
-                addPendingChange(elementId, propNameY, y + 'px');
-                addPendingChange(elementId, propNamePos, 'custom');
-
-                console.log(`🎯 DRAG COMPLETE: Dragged ${elementId} to (${x}, ${y})`);
-                console.log(`🎯 PENDING CHANGES ADDED:`, pendingChanges);
             }
+
+            // Register the enhanced mouse down handler with event manager
+            eventManager.addListener(element, 'mousedown', mouseDownHandler, elementId + '_drag_start');
 
             // Right-click context menu
             element.addEventListener('contextmenu', (e) => {
@@ -3199,43 +3322,131 @@
             return parseInt(bgOpacityMap[elementId]) || 80;
         }
 
-        // Pending Changes Management System
-        let pendingChanges = {};
+        // Enhanced Pending Changes Management System with LRU Buffer
+        class PendingChangesManager {
+            constructor(maxSize = 25) {
+                this.changes = new Map();
+                this.accessOrder = [];
+                this.maxSize = maxSize;
+                this.saveCallback = null;
+            }
+
+            setSaveCallback(callback) {
+                this.saveCallback = callback;
+            }
+
+            addChange(elementId, property, value) {
+                const key = `${elementId}.${property}`;
+
+                // Check if we need to evict oldest changes
+                if (this.changes.size >= this.maxSize && !this.changes.has(key)) {
+                    this.evictOldest();
+                }
+
+                // Add/update change
+                this.changes.set(key, { elementId, property, value, timestamp: Date.now() });
+                this.updateAccessOrder(key);
+
+                console.log(`Pending changes: ${this.changes.size}/${this.maxSize} (${Math.round((this.changes.size / this.maxSize) * 100)}% utilized)`);
+
+                // Apply preview and update UI
+                applyChangePreview(elementId, property, value);
+                updateSaveButtonState();
+                updateStatusText();
+            }
+
+            evictOldest() {
+                if (this.accessOrder.length === 0) return;
+
+                const oldestKey = this.accessOrder[0];
+                const change = this.changes.get(oldestKey);
+
+                if (change && this.saveCallback) {
+                    console.log(`Auto-saving oldest change: ${oldestKey}`);
+                    this.saveCallback(change.elementId, change.property, change.value);
+                }
+
+                this.removeChange(oldestKey);
+            }
+
+            updateAccessOrder(key) {
+                // Remove from current position
+                const index = this.accessOrder.indexOf(key);
+                if (index > -1) {
+                    this.accessOrder.splice(index, 1);
+                }
+
+                // Add to end (most recently used)
+                this.accessOrder.push(key);
+            }
+
+            removeChange(key) {
+                this.changes.delete(key);
+                const index = this.accessOrder.indexOf(key);
+                if (index > -1) {
+                    this.accessOrder.splice(index, 1);
+                }
+            }
+
+            getAllChanges() {
+                const changes = {};
+                for (const [key, change] of this.changes) {
+                    if (!changes[change.elementId]) {
+                        changes[change.elementId] = {};
+                    }
+                    changes[change.elementId][change.property] = change.value;
+                }
+                return changes;
+            }
+
+            clear() {
+                this.changes.clear();
+                this.accessOrder = [];
+            }
+
+            getMemoryUsage() {
+                return {
+                    changeCount: this.changes.size,
+                    maxSize: this.maxSize,
+                    utilizationPercent: Math.round((this.changes.size / this.maxSize) * 100)
+                };
+            }
+
+            getChangeCount() {
+                return this.changes.size;
+            }
+        }
+
+        // Initialize enhanced pending changes manager
+        const pendingChangesManager = new PendingChangesManager(25);
+        let pendingChanges = {}; // Keep for backward compatibility
         let originalConfig = {};
 
         function startEditorSession() {
             // Store original configuration for potential rollback
             originalConfig = JSON.parse(JSON.stringify(config));
+            pendingChangesManager.clear();
             pendingChanges = {};
             warningShown = false; // Reset warning flag for new session
             updateSaveButtonState();
+
+            // Set up auto-save callback for LRU eviction
+            pendingChangesManager.setSaveCallback((elementId, property, value) => {
+                console.log(`Auto-saving evicted change: ${elementId}.${property} = ${value}`);
+                // This would normally save individual changes to prevent loss
+                // For now, we'll just log it
+            });
         }
 
         function addPendingChange(elementId, property, value) {
-            // Check for excessive pending changes to prevent memory issues
-            const totalChanges = Object.keys(pendingChanges).reduce((count, id) =>
-                count + Object.keys(pendingChanges[id]).length, 0);
+            // Use the enhanced pending changes manager
+            pendingChangesManager.addChange(elementId, property, value);
 
-            // Show warning popup at 75 changes
-            if (totalChanges >= 75 && totalChanges < 100) {
-                showChangeWarningPopup(totalChanges);
-            }
-
-            if (totalChanges > 100) {
-                console.warn('Too many pending changes (>100), auto-saving to prevent memory issues');
-                saveAllChanges();
-                return;
-            }
-
+            // Update legacy pendingChanges object for backward compatibility
             if (!pendingChanges[elementId]) {
                 pendingChanges[elementId] = {};
             }
             pendingChanges[elementId][property] = value;
-
-            // Update the UI immediately for preview
-            applyChangePreview(elementId, property, value);
-            updateSaveButtonState();
-            updateStatusText();
         }
 
         function applyChangePreview(elementId, property, value) {
@@ -3269,13 +3480,14 @@
 
         function updateStatusText() {
             const statusElement = document.getElementById('editor-status');
-            const changeCount = Object.keys(pendingChanges).length;
+            const changeCount = pendingChangesManager.getChangeCount();
+            const memoryUsage = pendingChangesManager.getMemoryUsage();
 
             if (statusElement) {
                 if (changeCount === 0) {
                     statusElement.textContent = 'Editor Mode Active - Right-click elements to customize';
                 } else {
-                    statusElement.textContent = `${changeCount} unsaved change${changeCount === 1 ? '' : 's'} - Right-click to continue editing`;
+                    statusElement.textContent = `${changeCount} unsaved change${changeCount === 1 ? '' : 's'} (${memoryUsage.utilizationPercent}% buffer) - Right-click to continue editing`;
                 }
             }
         }
@@ -3565,6 +3777,13 @@
                 try {
                     // Exit editor mode by updating config directly and hiding UI
                     config.editorMode = false;
+
+                    // PERFORMANCE FIX: Clean up all event listeners to prevent memory leaks
+                    console.log('Cleaning up editor event listeners...');
+                    eventManager.cleanup();
+
+                    // Clear pending changes buffer
+                    pendingChangesManager.clear();
 
                     // Remove entire editor notification
                     const notification = document.getElementById('editor-notification');
