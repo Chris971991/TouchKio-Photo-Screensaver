@@ -1217,28 +1217,51 @@
             }
 
             // Apply spacing (border radius and padding)
-            if (config.metadataBorderRadius !== undefined) {
-                metadata.style.borderRadius = config.metadataBorderRadius + 'px';
+            if (config.metadataBorderRadius && config.metadataBorderRadius.toString().trim() !== '') {
+                // Handle both string and number values consistently
+                const radius = config.metadataBorderRadius.toString().includes('px')
+                    ? config.metadataBorderRadius
+                    : config.metadataBorderRadius + 'px';
+                metadata.style.borderRadius = radius;
+            } else {
+                metadata.style.borderRadius = '';
             }
 
-            if (config.metadataPadding !== undefined) {
-                metadata.style.padding = config.metadataPadding + 'px';
+            if (config.metadataPadding && config.metadataPadding.toString().trim() !== '') {
+                // Handle both string and number values consistently
+                const padding = config.metadataPadding.toString().includes('px')
+                    ? config.metadataPadding
+                    : config.metadataPadding + 'px';
+                metadata.style.padding = padding;
+            } else {
+                metadata.style.padding = '';
             }
 
-            // Apply shadow effects
-            if (config.metadataShadow !== undefined) {
-                const shadowIntensity = config.metadataShadow / 100;
-                if (shadowIntensity > 0) {
-                    metadata.style.textShadow = `2px 2px ${4 * shadowIntensity}px rgba(0, 0, 0, 0.8)`;
-                    metadata.style.boxShadow = `0 ${2 * shadowIntensity}px ${8 * shadowIntensity}px rgba(0, 0, 0, 0.3)`;
+            // Apply shadow effects - handle both direct CSS values and percentage values
+            if (config.metadataShadow !== undefined && config.metadataShadow.toString().trim() !== '') {
+                const shadowValue = config.metadataShadow.toString();
+                if (shadowValue.includes('px') || shadowValue.includes('rgba')) {
+                    // Direct CSS shadow value
+                    metadata.style.boxShadow = shadowValue;
                 } else {
-                    metadata.style.textShadow = 'none';
-                    metadata.style.boxShadow = 'none';
+                    // Percentage-based shadow (0-100)
+                    const shadowIntensity = parseInt(shadowValue) / 100;
+                    if (shadowIntensity > 0) {
+                        metadata.style.textShadow = `2px 2px ${4 * shadowIntensity}px rgba(0, 0, 0, 0.8)`;
+                        metadata.style.boxShadow = `0 ${2 * shadowIntensity}px ${8 * shadowIntensity}px rgba(0, 0, 0, 0.3)`;
+                    } else {
+                        metadata.style.textShadow = 'none';
+                        metadata.style.boxShadow = 'none';
+                    }
                 }
+            } else {
+                metadata.style.textShadow = 'none';
+                metadata.style.boxShadow = 'none';
             }
 
             // Apply general opacity
-            metadata.style.opacity = config.metadataOpacity || 1.0;
+            const metadataOpacity = config.metadataOpacity ? (config.metadataOpacity / 100) : 1.0;
+            metadata.style.opacity = metadataOpacity;
         }
 
         function showLoading() {
@@ -2499,14 +2522,16 @@
                 radio.addEventListener('change', (e) => {
                     selectedFormat = e.target.value;
                     // Show/hide AM/PM options based on format
-                    const amPmOptions = document.getElementById('amPmOptions');
+                    const amPmOptions = document.getElementById('ampm-options');
                     if (selectedFormat === '12hour') {
                         amPmOptions.style.display = 'block';
                     } else {
                         amPmOptions.style.display = 'none';
                     }
                     // Live preview
-                    addPendingChange(elementId, 'clockTimeFormat', selectedFormat);
+                    addPendingChange(elementId, 'clockFormat', selectedFormat);
+                    // Force immediate clock update to show format change
+                    updateClock();
                 });
             });
 
@@ -2517,6 +2542,8 @@
                     selectedAmPmCase = e.target.value;
                     // Live preview
                     addPendingChange(elementId, 'clockAmPmCase', selectedAmPmCase);
+                    // Force immediate clock update to show AM/PM case change
+                    updateClock();
                 });
             }
 
@@ -2527,6 +2554,8 @@
                     selectedAmPmSize = e.target.value;
                     // Live preview
                     addPendingChange(elementId, 'clockAmPmSize', selectedAmPmSize);
+                    // Force immediate clock update to show AM/PM size change
+                    updateClock();
                 });
             }
 
@@ -2537,6 +2566,8 @@
                     selectedAmPmSpacing = e.target.value;
                     // Live preview
                     addPendingChange(elementId, 'clockAmPmSpacing', selectedAmPmSpacing);
+                    // Force immediate clock update to show AM/PM spacing change
+                    updateClock();
                 });
             }
 
@@ -2547,6 +2578,8 @@
                     selectedClockAlignment = e.target.value;
                     // Live preview
                     addPendingChange(elementId, 'clockAlignment', selectedClockAlignment);
+                    // Force immediate clock update to show alignment change
+                    applyClock();
                 });
             }
 
@@ -2656,6 +2689,8 @@
                     selectedDateAlignment = e.target.value;
                     // Live preview
                     addPendingChange(elementId, 'dateAlignment', selectedDateAlignment);
+                    // Force immediate date update to show alignment change
+                    applyDate();
                 });
             }
 
@@ -3414,15 +3449,17 @@
         }
 
         function getCurrentElementFontSize(elementId) {
-            // Map elementId to config font size property
+            // Map elementId to config font size property (handle px suffix)
             const sizeMap = {
-                'clock': config.clockCustomFontSize || 24,
-                'date': config.dateCustomFontSize || 18,
-                'source': config.sourceCustomFontSize || 14,
-                'counter': config.counterCustomFontSize || 16,
-                'metadataOverlay': config.metadataCustomFontSize || 14
+                'clock': config.clockCustomFontSize || '24px',
+                'date': config.dateCustomFontSize || '18px',
+                'source': config.sourceCustomFontSize || '14px',
+                'counter': config.counterCustomFontSize || '16px',
+                'metadataOverlay': config.metadataCustomFontSize || '14px'
             };
-            return parseInt(sizeMap[elementId]) || 18;
+            // Parse value and remove px suffix if present
+            const value = sizeMap[elementId];
+            return parseInt(value.toString().replace('px', '')) || 18;
         }
 
         function getCurrentElementTextColor(elementId) {
@@ -4559,7 +4596,8 @@
                 }
 
                 // Apply general opacity
-                sourceIndicator.style.opacity = config.sourceOpacity || 0.8;
+                const sourceOpacity = config.sourceOpacity ? (config.sourceOpacity / 100) : 0.8;
+                sourceIndicator.style.opacity = sourceOpacity;
 
                 // Apply advanced styling options
                 if (config.sourceBorderRadius && config.sourceBorderRadius.trim() !== '') {
@@ -4713,7 +4751,8 @@
                 }
 
                 // Apply general opacity
-                clock.style.opacity = config.clockOpacity || 1.0;
+                const clockOpacity = config.clockOpacity ? (config.clockOpacity / 100) : 1.0;
+                clock.style.opacity = clockOpacity;
 
                 // Apply text alignment
                 if (config.clockAlignment) {
@@ -4866,7 +4905,8 @@
                 }
 
                 // Apply general opacity
-                date.style.opacity = config.dateOpacity || 0.8;
+                const dateOpacity = config.dateOpacity ? (config.dateOpacity / 100) : 0.8;
+                date.style.opacity = dateOpacity;
 
                 // Apply text alignment
                 if (config.dateAlignment) {
@@ -5026,7 +5066,8 @@
                 }
 
                 // Apply general opacity
-                photoCounter.style.opacity = config.counterOpacity || 0.8;
+                const counterOpacity = config.counterOpacity ? (config.counterOpacity / 100) : 0.8;
+                photoCounter.style.opacity = counterOpacity;
 
                 // Apply advanced styling options
                 if (config.counterBorderRadius && config.counterBorderRadius.trim() !== '') {
@@ -5604,7 +5645,7 @@
 
             // Show all UI elements for editing
             showAllElements() {
-                const elements = ['clock', 'date', 'source', 'counter', 'metadata'];
+                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
@@ -5616,7 +5657,7 @@
 
             // Make elements interactive
             makeElementsInteractive() {
-                const elements = ['clock', 'date', 'source', 'counter', 'metadata'];
+                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
