@@ -1080,14 +1080,16 @@
             const hasCustomY = config.metadataCustomY && config.metadataCustomY.trim() !== '';
 
             if (hasCustomX || hasCustomY) {
-                // Use custom positioning - don't add position class, apply directly
+                // Use custom positioning - apply directly with proper cleanup
+                // CRITICAL: Must set position to absolute and clear ALL directional properties
                 overlay.style.position = 'absolute';
                 overlay.style.top = 'auto';
                 overlay.style.right = 'auto';
-                overlay.style.bottom = 'auto';
+                overlay.style.bottom = 'auto';  // CRITICAL: Must clear bottom
                 overlay.style.left = 'auto';
-                overlay.style.transform = 'none';
+                overlay.style.transform = 'none';  // CRITICAL: Must clear transform
 
+                // Apply custom positions
                 if (hasCustomX) {
                     overlay.style.left = config.metadataCustomX;
                 }
@@ -1097,7 +1099,7 @@
             } else {
                 // Use preset position with CSS classes
                 overlay.classList.add(`pos-${config.metadataPosition || 'bottom-center'}`);
-                // Clear any custom positioning
+                // Clear ALL inline positioning to let CSS classes work properly
                 overlay.style.position = '';
                 overlay.style.top = '';
                 overlay.style.right = '';
@@ -1117,8 +1119,14 @@
             }
 
             // Restore visible state if it was visible
-            if (wasVisible) {
+            // In editor mode, respect the showMetadata setting
+            if (wasVisible && config.showMetadata !== false) {
                 overlay.classList.add('visible');
+                overlay.style.display = 'block';
+                overlay.style.opacity = '1';
+            } else if (config.showMetadata === false) {
+                // If metadata is disabled, hide it even in editor mode
+                overlay.style.display = 'none';
             }
 
             // Apply custom opacity if set
@@ -1340,6 +1348,15 @@
                 startLeft = rect.left;
                 startTop = rect.top;
 
+                // CRITICAL FIX: Clear ALL positioning from CSS defaults before drag starts
+                // This is especially important for metadata which has bottom/right/transform in CSS
+                element.style.position = 'fixed';
+                element.style.left = startLeft + 'px';
+                element.style.top = startTop + 'px';
+                element.style.right = 'auto';
+                element.style.bottom = 'auto';
+                element.style.transform = 'none';
+
                 element.style.zIndex = '10000';
                 element.style.opacity = '0.8';
 
@@ -1357,9 +1374,13 @@
                 const newTop = startTop + deltaY;
 
                 // Set position directly for immediate feedback
+                // Keep clearing bottom/right/transform during drag to prevent CSS interference
                 element.style.position = 'fixed';
                 element.style.left = newLeft + 'px';
                 element.style.top = newTop + 'px';
+                element.style.right = 'auto';
+                element.style.bottom = 'auto';
+                element.style.transform = 'none';
             }
 
             function handleMouseUp(e) {
@@ -1368,7 +1389,6 @@
                 isDragging = false;
                 element.classList.remove('dragging');
                 element.style.zIndex = '';
-                element.style.opacity = '';
                 element.style.boxShadow = '';
 
                 document.removeEventListener('mousemove', handleMouseMove);
@@ -1381,10 +1401,36 @@
                 const x = Math.round(elementRect.left - containerRect.left);
                 const y = Math.round(elementRect.top - containerRect.top);
 
+                // Reset position to absolute after drag (especially important for metadata)
+                element.style.position = 'absolute';
+                element.style.left = x + 'px';
+                element.style.top = y + 'px';
+                // Clear any bottom/right/transform that might interfere
+                element.style.bottom = 'auto';
+                element.style.right = 'auto';
+                element.style.transform = 'none';
+
+                // CRITICAL FIX: For metadata, ensure it stays visible
+                // Metadata has opacity: 0 in CSS by default, so we need to keep it visible
+                if (elementId === 'metadataOverlay') {
+                    element.style.display = 'block';
+                    element.style.opacity = '1';
+                } else {
+                    element.style.opacity = '';  // For other elements, clear opacity
+                }
+
                 // Update config and save
-                const propNameX = `${elementId}CustomX`;
-                const propNameY = `${elementId}CustomY`;
-                const propNamePos = `${elementId}Position`;
+                // CRITICAL FIX: For metadataOverlay, use shorter property names to match config
+                let propNameX, propNameY, propNamePos;
+                if (elementId === 'metadataOverlay') {
+                    propNameX = 'metadataCustomX';
+                    propNameY = 'metadataCustomY';
+                    propNamePos = 'metadataPosition';
+                } else {
+                    propNameX = `${elementId}CustomX`;
+                    propNameY = `${elementId}CustomY`;
+                    propNamePos = `${elementId}Position`;
+                }
 
                 console.log(`🔍 DEBUG: Adding pending changes for ${elementId}:`);
                 console.log(`  Property names: X='${propNameX}', Y='${propNameY}', Pos='${propNamePos}'`);
@@ -1673,16 +1719,29 @@
                 if (activePreset) {
                     // Apply preset position
                     const position = activePreset.dataset.position;
-                    addPendingChange(elementId, `${elementId}Position`, position);
-
-                    // Clear custom coordinates when using preset
-                    addPendingChange(elementId, `${elementId}CustomX`, '');
-                    addPendingChange(elementId, `${elementId}CustomY`, '');
+                    // Use correct property names for metadata
+                    if (elementId === 'metadataOverlay') {
+                        addPendingChange(elementId, 'metadataPosition', position);
+                        // Clear custom coordinates when using preset
+                        addPendingChange(elementId, 'metadataCustomX', '');
+                        addPendingChange(elementId, 'metadataCustomY', '');
+                    } else {
+                        addPendingChange(elementId, `${elementId}Position`, position);
+                        // Clear custom coordinates when using preset
+                        addPendingChange(elementId, `${elementId}CustomX`, '');
+                        addPendingChange(elementId, `${elementId}CustomY`, '');
+                    }
                 } else if (customX || customY) {
                     // Apply custom coordinates
-                    addPendingChange(elementId, `${elementId}Position`, 'custom');
-                    if (customX) addPendingChange(elementId, `${elementId}CustomX`, customX);
-                    if (customY) addPendingChange(elementId, `${elementId}CustomY`, customY);
+                    if (elementId === 'metadataOverlay') {
+                        addPendingChange(elementId, 'metadataPosition', 'custom');
+                        if (customX) addPendingChange(elementId, 'metadataCustomX', customX);
+                        if (customY) addPendingChange(elementId, 'metadataCustomY', customY);
+                    } else {
+                        addPendingChange(elementId, `${elementId}Position`, 'custom');
+                        if (customX) addPendingChange(elementId, `${elementId}CustomX`, customX);
+                        if (customY) addPendingChange(elementId, `${elementId}CustomY`, customY);
+                    }
                 }
 
                 menu.remove();
@@ -3709,12 +3768,32 @@
                             console.log('ERROR: Editor grid overlay element not found');
                         }
 
-                        // Show all elements and make them draggable
+                        // Show elements based on their visibility settings and make them draggable
                         ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
-                                element.style.display = 'block';
-                                element.style.opacity = '1';
+                                // Check if element should be visible based on config
+                                const visibilityMap = {
+                                    'clock': config.showClock !== false,
+                                    'date': config.showDate !== false,
+                                    'source': config.showSourceIndicator !== false,
+                                    'counter': config.showPhotoCounter !== false,
+                                    'metadataOverlay': config.showMetadata !== false
+                                };
+
+                                if (visibilityMap[id]) {
+                                    element.style.display = 'block';
+                                    element.style.opacity = '1';
+                                } else {
+                                    // Keep hidden elements hidden but still editable
+                                    element.style.display = 'none';
+                                }
+
+                                // Apply current positioning BEFORE making draggable
+                                // This ensures metadata has proper position styles
+                                if (id === 'metadataOverlay') {
+                                    updateMetadataStyles();
+                                }
 
                                 // Make element context menu enabled
                                 makeContextMenuEnabled(element, id);
