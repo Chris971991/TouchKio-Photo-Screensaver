@@ -1847,6 +1847,18 @@
                     // Clear custom inputs when preset is selected
                     document.getElementById('custom-x-input').value = '';
                     document.getElementById('custom-y-input').value = '';
+
+                    // Live preview position change
+                    const position = btn.dataset.position;
+                    if (elementId === 'metadataOverlay') {
+                        addPendingChange(elementId, 'metadataPosition', position);
+                        addPendingChange(elementId, 'metadataCustomX', '');
+                        addPendingChange(elementId, 'metadataCustomY', '');
+                    } else {
+                        addPendingChange(elementId, `${elementId}Position`, position);
+                        addPendingChange(elementId, `${elementId}CustomX`, '');
+                        addPendingChange(elementId, `${elementId}CustomY`, '');
+                    }
                 });
             });
 
@@ -1885,6 +1897,49 @@
                 }
 
                 menu.remove();
+            });
+
+            // Live preview for custom X/Y inputs
+            document.getElementById('custom-x-input').addEventListener('input', (e) => {
+                const customX = e.target.value.trim();
+                const customY = document.getElementById('custom-y-input').value.trim();
+
+                if (customX || customY) {
+                    // Clear preset selection when typing custom coordinates
+                    menu.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+
+                    // Apply live preview
+                    if (elementId === 'metadataOverlay') {
+                        addPendingChange(elementId, 'metadataPosition', 'custom');
+                        if (customX) addPendingChange(elementId, 'metadataCustomX', customX);
+                        if (customY) addPendingChange(elementId, 'metadataCustomY', customY);
+                    } else {
+                        addPendingChange(elementId, `${elementId}Position`, 'custom');
+                        if (customX) addPendingChange(elementId, `${elementId}CustomX`, customX);
+                        if (customY) addPendingChange(elementId, `${elementId}CustomY`, customY);
+                    }
+                }
+            });
+
+            document.getElementById('custom-y-input').addEventListener('input', (e) => {
+                const customY = e.target.value.trim();
+                const customX = document.getElementById('custom-x-input').value.trim();
+
+                if (customX || customY) {
+                    // Clear preset selection when typing custom coordinates
+                    menu.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+
+                    // Apply live preview
+                    if (elementId === 'metadataOverlay') {
+                        addPendingChange(elementId, 'metadataPosition', 'custom');
+                        if (customX) addPendingChange(elementId, 'metadataCustomX', customX);
+                        if (customY) addPendingChange(elementId, 'metadataCustomY', customY);
+                    } else {
+                        addPendingChange(elementId, `${elementId}Position`, 'custom');
+                        if (customX) addPendingChange(elementId, `${elementId}CustomX`, customX);
+                        if (customY) addPendingChange(elementId, `${elementId}CustomY`, customY);
+                    }
+                }
             });
 
             // Handle cancel button
@@ -2395,6 +2450,8 @@
                     } else {
                         amPmOptions.style.display = 'none';
                     }
+                    // Live preview
+                    addPendingChange(elementId, 'clockTimeFormat', selectedFormat);
                 });
             });
 
@@ -2403,6 +2460,8 @@
             if (amPmCaseSelect) {
                 amPmCaseSelect.addEventListener('change', (e) => {
                     selectedAmPmCase = e.target.value;
+                    // Live preview
+                    addPendingChange(elementId, 'clockAmPmCase', selectedAmPmCase);
                 });
             }
 
@@ -2411,6 +2470,8 @@
             if (amPmSizeInput) {
                 amPmSizeInput.addEventListener('input', (e) => {
                     selectedAmPmSize = e.target.value;
+                    // Live preview
+                    addPendingChange(elementId, 'clockAmPmSize', selectedAmPmSize);
                 });
             }
 
@@ -2419,6 +2480,8 @@
             if (amPmSpacingInput) {
                 amPmSpacingInput.addEventListener('input', (e) => {
                     selectedAmPmSpacing = e.target.value;
+                    // Live preview
+                    addPendingChange(elementId, 'clockAmPmSpacing', selectedAmPmSpacing);
                 });
             }
 
@@ -2427,6 +2490,8 @@
             if (clockAlignmentSelect) {
                 clockAlignmentSelect.addEventListener('change', (e) => {
                     selectedClockAlignment = e.target.value;
+                    // Live preview
+                    addPendingChange(elementId, 'clockAlignment', selectedClockAlignment);
                 });
             }
 
@@ -2534,6 +2599,8 @@
             if (dateAlignmentSelect) {
                 dateAlignmentSelect.addEventListener('change', (e) => {
                     selectedDateAlignment = e.target.value;
+                    // Live preview
+                    addPendingChange(elementId, 'dateAlignment', selectedDateAlignment);
                 });
             }
 
@@ -3154,6 +3221,9 @@
             document.getElementById('bg-enable-checkbox').addEventListener('change', (e) => {
                 bgEnabled = e.target.checked;
                 updateBgPreview();
+                // Live preview
+                const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
+                addPendingChange(elementId, `${elementId}Background`, backgroundValue);
             });
 
             // Border radius slider
@@ -3161,6 +3231,8 @@
                 selectedBorderRadius = parseInt(e.target.value);
                 document.getElementById('border-radius-display').textContent = selectedBorderRadius + 'px';
                 updateBgPreview();
+                // Live preview
+                addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
             });
 
             // Padding slider
@@ -3168,6 +3240,8 @@
                 selectedPadding = parseInt(e.target.value);
                 document.getElementById('padding-display').textContent = selectedPadding + 'px';
                 updateBgPreview();
+                // Live preview
+                addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
             });
 
             // Shadow slider
@@ -3175,6 +3249,8 @@
                 selectedShadow = parseInt(e.target.value);
                 document.getElementById('shadow-display').textContent = selectedShadow + 'px';
                 updateBgPreview();
+                // Live preview
+                addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
             });
 
             // Preset buttons
@@ -3199,6 +3275,13 @@
                     }
 
                     updateBgPreview();
+
+                    // Live preview all changes
+                    const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
+                    addPendingChange(elementId, `${elementId}Background`, backgroundValue);
+                    addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
+                    addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
+                    addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
                 });
             });
 
