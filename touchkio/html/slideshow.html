@@ -4295,7 +4295,11 @@
         document.addEventListener('mousedown', triggerUserActivity, true);
         document.addEventListener('mouseup', triggerUserActivity, true);
 
+        // Enhanced keyboard activity detection
         document.addEventListener('keydown', triggerUserActivity);
+        document.addEventListener('keyup', triggerUserActivity);
+        document.addEventListener('keypress', triggerUserActivity);
+        document.addEventListener('input', triggerUserActivity, true);
 
         // Throttled mousemove to prevent too many events
         let mouseMoveTimeout;
