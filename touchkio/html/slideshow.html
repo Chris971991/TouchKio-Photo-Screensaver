@@ -702,6 +702,75 @@
             animation: smoothFadeOut var(--animation-duration, 0.35s) ease-out forwards;
         }
 
+        /* Simple fade animations for metadata (no zoom) */
+        .element-animate-fade-in {
+            animation: smoothFadeIn 0.8s ease-out forwards;
+            animation-delay: 0.5s; /* Same delay as other metadata */
+            opacity: 0;
+        }
+
+        .element-animate-fade-out {
+            animation: smoothFadeOut 0.4s ease-out forwards;
+        }
+
+        /* Elegant element entrance animations - start large, shrink to position */
+        @keyframes elementElegantIn {
+            0% {
+                opacity: 0;
+                transform: scale(2.5) translateZ(0); /* Start very large */
+                filter: blur(8px);
+            }
+            60% {
+                opacity: 0.8;
+                transform: scale(1.1) translateZ(0);
+                filter: blur(2px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateZ(0); /* End at natural size */
+                filter: blur(0px);
+            }
+        }
+
+        @keyframes elementElegantOut {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateZ(0);
+                filter: blur(0px);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.8) translateZ(0);
+                filter: blur(4px);
+            }
+        }
+
+        /* Element animation classes with staggered delays */
+        .element-animate-in {
+            animation: elementElegantIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            transform-origin: center center;
+            will-change: transform, opacity, filter;
+        }
+
+        .element-animate-out {
+            animation: elementElegantOut 0.4s ease-out forwards;
+            will-change: transform, opacity, filter;
+        }
+
+        /* Staggered delays for beautiful cascading effect */
+        .element-delay-1 { animation-delay: 0.1s; }
+        .element-delay-2 { animation-delay: 0.2s; }
+        .element-delay-3 { animation-delay: 0.3s; }
+        .element-delay-4 { animation-delay: 0.4s; }
+        .element-delay-5 { animation-delay: 0.5s; }
+
+        /* Initially hide elements for entrance animation */
+        .element-hidden {
+            opacity: 0;
+            transform: scale(2.5);
+        }
+
+
         .error-message {
             position: absolute;
             top: 50%;
@@ -1141,6 +1210,13 @@
         function applyMetadata() {
             const metadata = elements.metadataOverlay;
             if (!metadata) return;
+
+            console.log('applyMetadata called - current config:', {
+                metadataPosition: config.metadataPosition,
+                metadataCustomX: config.metadataCustomX,
+                metadataCustomY: config.metadataCustomY,
+                showMetadata: config.showMetadata
+            });
 
             if (config.showMetadata === false) {
                 metadata.style.display = 'none';
@@ -5241,6 +5317,11 @@
             const useZoom = config.entranceEffect !== 'fade-only';
             container.classList.add(useZoom ? 'animate-iphone-in' : 'animate-fade-in');
 
+            // Start elegant element animations after a short delay
+            window.animationController.scheduleTimeout(() => {
+                animateElementsIn();
+            }, 100, 'element_entrance_trigger');
+
             // Clean up after animation
             window.animationController.scheduleTimeout(() => {
                 container.classList.remove('animate-iphone-in', 'animate-fade-in');
@@ -5277,9 +5358,14 @@
             // Prepare background for exit animation
             document.body.style.backgroundColor = 'transparent';
 
-            // Apply iPhone-style exit
-            const useZoom = config.entranceEffect !== 'fade-only';
-            container.classList.add(useZoom ? 'animate-iphone-out' : 'animate-fade-out');
+            // Start element exit animations first
+            animateElementsOut();
+
+            // Apply iPhone-style exit after slight delay
+            window.animationController.scheduleTimeout(() => {
+                const useZoom = config.entranceEffect !== 'fade-only';
+                container.classList.add(useZoom ? 'animate-iphone-out' : 'animate-fade-out');
+            }, 50, 'container_exit_trigger');
 
             // Clean up after animation
             window.animationController.scheduleTimeout(() => {
@@ -5288,6 +5374,81 @@
                 document.body.style.backgroundColor = 'transparent';
                 console.log('Exit animation complete');
             }, duration + 50, 'exit_cleanup');
+        }
+
+        // Elegant UI element animations
+        function animateElementsIn() {
+            console.log('Starting elegant UI element entrance animations');
+
+            // Get all UI elements in animation order (excluding metadata to avoid positioning conflicts)
+            const elements = [
+                { el: document.querySelector('.clock'), name: 'clock', delay: 1 },
+                { el: document.querySelector('.date'), name: 'date', delay: 2 },
+                { el: document.querySelector('.source-indicator'), name: 'source', delay: 3 },
+                { el: document.querySelector('.photo-counter'), name: 'counter', delay: 4 }
+            ];
+
+            elements.forEach(({ el, name, delay }) => {
+                if (el && el.style.display !== 'none') {
+                    // Reset any existing animations
+                    el.classList.remove('element-animate-in', 'element-animate-out', `element-delay-${delay}`);
+                    el.classList.add('element-hidden');
+
+
+                    // Force reflow
+                    void el.offsetHeight;
+
+                    // Start animation with staggered delay
+                    el.classList.add('element-animate-in', `element-delay-${delay}`);
+
+                    console.log(`Starting ${name} element animation with delay ${delay * 100}ms`);
+                }
+            });
+
+            // Clean up classes after animations complete
+            window.animationController.scheduleTimeout(() => {
+                elements.forEach(({ el, name, delay }) => {
+                    if (el) {
+                        el.classList.remove('element-animate-in', 'element-hidden', `element-delay-${delay}`);
+
+                        el.style.opacity = '';
+                        el.style.transform = '';
+                    }
+                });
+
+                console.log('Element entrance animations complete');
+            }, 1300, 'element_cleanup'); // 800ms animation + 500ms max delay
+        }
+
+        function animateElementsOut() {
+            console.log('Starting elegant UI element exit animations');
+
+            const elements = [
+                document.querySelector('.clock'),
+                document.querySelector('.date'),
+                document.querySelector('.source-indicator'),
+                document.querySelector('.photo-counter')
+            ];
+
+            elements.forEach(el => {
+                if (el && el.style.display !== 'none') {
+                    el.classList.remove('element-animate-in', 'element-hidden');
+
+
+                    el.classList.add('element-animate-out');
+                }
+            });
+
+            // Clean up after exit animations
+            window.animationController.scheduleTimeout(() => {
+                elements.forEach(el => {
+                    if (el) {
+                        el.classList.remove('element-animate-out');
+
+                    }
+                });
+                console.log('Element exit animations complete');
+            }, 400, 'element_exit_cleanup');
         }
 
         // Listen for animation events from backend
