@@ -1481,6 +1481,12 @@
                 window.memoryManager.trackImage(nextPhoto, `display_photo_${nextPhotoElement}`);
                 window.memoryManager.trackImage(nextBg, `display_bg_${nextPhotoElement}`);
 
+                // Set black background on first photo load to prevent black screen during entrance
+                if (document.body.style.backgroundColor !== 'black') {
+                    document.body.style.backgroundColor = 'black';
+                    console.log('First photo loaded - setting black background for photo transitions');
+                }
+
                 // Add transitioning background during photo change
                 const container = document.querySelector('.slideshow-container');
                 container.classList.add('transitioning');
@@ -5327,9 +5333,16 @@
                 container.classList.remove('animate-iphone-in', 'animate-fade-in');
                 container.style.opacity = '1';
                 container.style.transform = 'scale(1)';
-                // Set black background AFTER entrance completes to hide photo transitions
-                document.body.style.backgroundColor = 'black';
-                console.log('Entrance animation complete - background now black for photo transitions');
+                // Don't set black background here - wait for first photo to load
+                console.log('Entrance animation complete - waiting for photo load to set black background');
+
+                // Fallback: Set black background after 2 seconds if no photo has loaded yet
+                window.animationController.scheduleTimeout(() => {
+                    if (document.body.style.backgroundColor !== 'black') {
+                        document.body.style.backgroundColor = 'black';
+                        console.log('Fallback: Setting black background after timeout');
+                    }
+                }, 2000, 'background_fallback');
             }, duration + 50, 'entrance_cleanup');
         }
 
