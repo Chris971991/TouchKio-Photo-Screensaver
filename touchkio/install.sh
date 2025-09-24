@@ -455,7 +455,8 @@ if [ -f "$CONFIG_FILE" ]; then
                 "slideshow_metadata_padding": "12px",
                 "slideshow_metadata_shadow": "4px",
 
-                "slideshow_entrance_effect": "fade",
+                "slideshow_transition_type": "fade",
+                "slideshow_entrance_effect": "zoom+fade",
                 "slideshow_animation_speed": "1.0",
                 "slideshow_animation_enabled": "true"
             }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
@@ -556,7 +557,8 @@ try:
         'slideshow_metadata_padding': '12px',
         'slideshow_metadata_shadow': '4px',
 
-        'slideshow_entrance_effect': 'fade',
+        'slideshow_transition_type': 'fade',
+        'slideshow_entrance_effect': 'zoom+fade',
         'slideshow_animation_speed': '1.0',
         'slideshow_animation_enabled': 'true'
     }
