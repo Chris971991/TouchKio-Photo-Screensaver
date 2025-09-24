@@ -1088,7 +1088,7 @@ const initSlideshow = () => {
   initSlideshowShowLocation();
 
   // === ANIMATION SETTINGS ===
-  initAnimationTheme();
+  initSlideshowEntranceEffect();
   initAnimationSpeed();
   initAnimationEnabled();
 
@@ -4495,28 +4495,28 @@ const initSlideshowMetadataCustomY = () => {
 };
 
 /**
- * Initializes the animation theme selector.
+ * Initializes the slideshow entrance effect selector.
  */
-const initAnimationTheme = () => {
-  const root = `${INTEGRATION.root}/animation_theme`;
+const initSlideshowEntranceEffect = () => {
+  const root = `${INTEGRATION.root}/slideshow_entrance_effect`;
   const config = {
-    name: "Animation Theme",
-    unique_id: `${INTEGRATION.node}_animation_theme`,
+    name: "Slideshow Entrance Effect",
+    unique_id: `${INTEGRATION.node}_slideshow_entrance_effect`,
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     icon: "mdi:animation",
-    options: ["default", "elegant", "dynamic", "minimal", "playful"],
+    options: ["none", "fade"],
     device: INTEGRATION.device,
   };
 
   publishConfig("select", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
-        const animationTheme = message.toString();
-        console.log("Set Animation Theme:", animationTheme);
-        updateSlideshowSetting("slideshow_animation_theme", animationTheme);
-        slideshow.updateConfig({ animationTheme });
-        publishState(config.state_topic, animationTheme);
+        const entranceEffect = message.toString();
+        console.log("Set Slideshow Entrance Effect:", entranceEffect);
+        updateSlideshowSetting("slideshow_entrance_effect", entranceEffect);
+        slideshow.updateConfig({ entranceEffect });
+        publishState(config.state_topic, entranceEffect);
       }
     })
     .subscribe(config.command_topic);

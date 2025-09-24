@@ -147,22 +147,22 @@
 
         /* Slide transition */
         .transition-slide .photo {
-            transform: translateX(100%);
+            transform: translate(-50%, -50%) translateX(100%);
             transition: transform 2s ease-in-out, opacity 2s ease-in-out;
         }
 
         .transition-slide .photo.visible {
-            transform: translateX(0);
+            transform: translate(-50%, -50%) translateX(0);
         }
 
         /* Zoom transition */
         .transition-zoom .photo {
-            transform: scale(0.8);
+            transform: translate(-50%, -50%) scale(0.8);
             transition: transform 2s ease-in-out, opacity 2s ease-in-out;
         }
 
         .transition-zoom .photo.visible {
-            transform: scale(1);
+            transform: translate(-50%, -50%) scale(1);
         }
 
         /* Blur transition */
@@ -177,11 +177,39 @@
 
         /* Rotate transition */
         .transition-rotate .photo {
-            transform: rotate(-10deg) scale(0.9);
+            transform: translate(-50%, -50%) rotate(-10deg) scale(0.9);
             transition: transform 2s ease-in-out, opacity 2s ease-in-out;
         }
 
         .transition-rotate .photo.visible {
+            transform: translate(-50%, -50%) rotate(0deg) scale(1);
+        }
+
+        /* Special handling for fit-cover and fit-fill which don't use centering transform */
+        .transition-slide .photo.fit-cover,
+        .transition-slide .photo.fit-fill {
+            transform: translateX(100%);
+        }
+        .transition-slide .photo.fit-cover.visible,
+        .transition-slide .photo.fit-fill.visible {
+            transform: translateX(0);
+        }
+
+        .transition-zoom .photo.fit-cover,
+        .transition-zoom .photo.fit-fill {
+            transform: scale(0.8);
+        }
+        .transition-zoom .photo.fit-cover.visible,
+        .transition-zoom .photo.fit-fill.visible {
+            transform: scale(1);
+        }
+
+        .transition-rotate .photo.fit-cover,
+        .transition-rotate .photo.fit-fill {
+            transform: rotate(-10deg) scale(0.9);
+        }
+        .transition-rotate .photo.fit-cover.visible,
+        .transition-rotate .photo.fit-fill.visible {
             transform: rotate(0deg) scale(1);
         }
 
