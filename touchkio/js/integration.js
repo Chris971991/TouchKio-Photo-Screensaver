@@ -4505,7 +4505,7 @@ const initSlideshowEntranceEffect = () => {
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     icon: "mdi:animation",
-    options: ["none", "fade"],
+    options: ["none", "fade", "zoom+fade"],
     device: INTEGRATION.device,
   };
 

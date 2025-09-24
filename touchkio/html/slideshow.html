@@ -636,40 +636,70 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Elegant animation keyframes - fade with background control */
-        @keyframes elegantIn {
+        /* iPhone-style zoom + fade animations with hardware acceleration */
+        @keyframes iPhoneIn {
             0% {
                 opacity: 0;
-                background-color: transparent;
+                transform: scale(1.25); /* Start 25% larger for prominent zoom in effect */
             }
             100% {
                 opacity: 1;
-                background-color: transparent;
+                transform: scale(1);
             }
         }
 
-        @keyframes elegantOut {
+        @keyframes iPhoneOut {
             0% {
                 opacity: 1;
-                background-color: black;
-            }
-            1% {
-                opacity: 1;
-                background-color: transparent;
+                transform: scale(1);
             }
             100% {
                 opacity: 0;
-                background-color: transparent;
+                transform: scale(1.2); /* End 20% larger for prominent zoom out effect */
             }
         }
 
-        /* Animation classes - timing will be set dynamically */
-        .animate-elegant-in {
-            animation: elegantIn var(--animation-duration, 0.4s) ease-out forwards;
+        /* Smooth fade-only animations as fallback */
+        @keyframes smoothFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
 
-        .animate-elegant-out {
-            animation: elegantOut var(--animation-duration, 0.4s) ease-out forwards;
+        @keyframes smoothFadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Animation container for better performance */
+        .animation-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            will-change: transform, opacity;
+            transform-origin: center center;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            perspective: 1000px;
+            transform: translateZ(0);
+        }
+
+        /* Animation classes with cubic-bezier for smoother feel */
+        .animate-iphone-in {
+            animation: iPhoneIn var(--animation-duration, 0.5s) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        .animate-iphone-out {
+            animation: iPhoneOut var(--animation-duration, 0.5s) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        .animate-fade-in {
+            animation: smoothFadeIn var(--animation-duration, 0.35s) ease-out forwards;
+        }
+
+        .animate-fade-out {
+            animation: smoothFadeOut var(--animation-duration, 0.35s) ease-out forwards;
         }
 
         .error-message {
@@ -5173,45 +5203,91 @@
             console.log('Slideshow content ready - backend will handle elegant animations');
         });
 
-        // Animation functions
-        function applySlideshowEntranceAnimation(duration = 400) {
-            console.log('Applying elegant entrance animation with duration:', duration + 'ms');
+        // Enhanced animation functions with iPhone-style effects
+        function applySlideshowEntranceAnimation(duration = 500) {
+            console.log('Applying iPhone-style entrance animation:', duration + 'ms');
 
-            // Set animation duration via CSS custom property
+            // Cancel any pending animation cleanup
+            window.animationController.cancelTimeout('entrance_cleanup');
+            window.animationController.cancelTimeout('exit_cleanup');
+
+            // Create animation container if needed
+            let container = document.querySelector('.animation-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'animation-container';
+                document.body.appendChild(container);
+
+                // Move all slideshow content into container
+                while (document.body.firstChild && document.body.firstChild !== container) {
+                    container.appendChild(document.body.firstChild);
+                }
+            }
+
+            // Set animation duration
             document.documentElement.style.setProperty('--animation-duration', duration + 'ms');
 
-            document.body.classList.add('animate-elegant-in');
-            document.body.classList.remove('animate-elegant-out');
+            // Start with transparent background for smooth entrance
+            document.body.style.backgroundColor = 'transparent';
+            container.style.opacity = '0';
 
-            // Remove the animation class after it completes and ensure background stays black
+            // Remove all animation classes
+            container.classList.remove('animate-iphone-in', 'animate-iphone-out', 'animate-fade-in', 'animate-fade-out');
+
+            // Force reflow to ensure clean animation start
+            void container.offsetHeight;
+
+            // Apply iPhone-style entrance
+            const useZoom = config.entranceEffect !== 'fade-only';
+            container.classList.add(useZoom ? 'animate-iphone-in' : 'animate-fade-in');
+
+            // Clean up after animation
             window.animationController.scheduleTimeout(() => {
-                document.body.classList.remove('animate-elegant-in');
-                // Ensure background is black for normal slideshow operation (hide image transitions)
+                container.classList.remove('animate-iphone-in', 'animate-fade-in');
+                container.style.opacity = '1';
+                container.style.transform = 'scale(1)';
+                // Set black background AFTER entrance completes to hide photo transitions
                 document.body.style.backgroundColor = 'black';
-                console.log('Entrance animation complete - background set to black for slideshow operation');
-            }, duration, 'entrance_cleanup');
+                console.log('Entrance animation complete - background now black for photo transitions');
+            }, duration + 50, 'entrance_cleanup');
         }
 
-        function applySlideshowExitAnimation(duration = 400) {
-            console.log('Applying elegant exit animation with duration:', duration + 'ms');
+        function applySlideshowExitAnimation(duration = 500) {
+            console.log('Applying iPhone-style exit animation:', duration + 'ms');
 
-            // Set animation duration via CSS custom property
+            // Cancel any pending animation cleanup
+            window.animationController.cancelTimeout('entrance_cleanup');
+            window.animationController.cancelTimeout('exit_cleanup');
+
+            const container = document.querySelector('.animation-container');
+            if (!container) {
+                console.warn('No animation container found for exit animation');
+                return;
+            }
+
+            // Set animation duration
             document.documentElement.style.setProperty('--animation-duration', duration + 'ms');
 
-            // Prepare for exit by making background transparent for smooth fade out
-            console.log('Preparing exit animation - making background transparent for smooth fade');
+            // Remove all animation classes
+            container.classList.remove('animate-iphone-in', 'animate-iphone-out', 'animate-fade-in', 'animate-fade-out');
+
+            // Force reflow
+            void container.offsetHeight;
+
+            // Prepare background for exit animation
             document.body.style.backgroundColor = 'transparent';
 
-            document.body.classList.add('animate-elegant-out');
-            document.body.classList.remove('animate-elegant-in');
+            // Apply iPhone-style exit
+            const useZoom = config.entranceEffect !== 'fade-only';
+            container.classList.add(useZoom ? 'animate-iphone-out' : 'animate-fade-out');
 
-            // Remove the animation class after it completes and ensure background stays transparent
+            // Clean up after animation
             window.animationController.scheduleTimeout(() => {
-                document.body.classList.remove('animate-elegant-out');
-                // Keep background transparent after exit
+                container.classList.remove('animate-iphone-out', 'animate-fade-out');
+                container.style.opacity = '0';
                 document.body.style.backgroundColor = 'transparent';
-                console.log('Exit animation complete - background remains transparent');
-            }, duration, 'exit_cleanup');
+                console.log('Exit animation complete');
+            }, duration + 50, 'exit_cleanup');
         }
 
         // Listen for animation events from backend
@@ -5305,6 +5381,11 @@
                     cancelAnimationFrame(this.activeAnimations.get(id));
                     this.activeAnimations.delete(id);
                 }
+            }
+
+            // Cancel timeout (alias for clearTimer for clarity)
+            cancelTimeout(id) {
+                this.clearTimer(id);
             }
 
             // Clear all animations and timers
