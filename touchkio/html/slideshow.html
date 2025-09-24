@@ -37,11 +37,13 @@
             z-index: 1;
             background: transparent;
             transition: background-color 0.3s ease-in-out;
-            /* GPU acceleration */
-            contain: strict;
+            /* Enhanced GPU acceleration */
+            contain: layout style paint;
             isolation: isolate;
             will-change: background-color;
-            transform: translateZ(0);
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .slideshow-container.transitioning {
@@ -55,10 +57,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* GPU acceleration */
+            /* Enhanced GPU acceleration */
             will-change: transform, opacity;
-            transform: translateZ(0);
+            transform: translate3d(0, 0, 0);
             contain: layout style paint;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            perspective: 1000px;
         }
 
         .photo-background {
@@ -69,26 +74,29 @@
             height: 100%;
             object-fit: cover;
             filter: blur(20px) brightness(0.3);
-            transform: scale(1.1);
+            transform: scale3d(1.1, 1.1, 1) translate3d(0, 0, 0);
             opacity: 0;
             transition: opacity 2s ease-in-out;
-            /* GPU acceleration */
+            /* Enhanced GPU acceleration */
             will-change: opacity, filter, transform;
             backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
             transform-style: preserve-3d;
         }
 
         .photo {
             position: absolute;
             opacity: 0;
-            transform: scale(1);
+            transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
             filter: blur(0px);
             transition: all 2s ease-in-out;
             z-index: 1;
-            /* GPU acceleration */
+            /* Enhanced GPU acceleration */
             will-change: transform, opacity, filter;
             backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
             transform-style: preserve-3d;
+            transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
         }
 
         .photo.fit-contain {
@@ -201,7 +209,7 @@
         }
         .transition-zoom .photo.fit-cover.visible,
         .transition-zoom .photo.fit-fill.visible {
-            transform: scale(1);
+            transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
         }
 
         .transition-rotate .photo.fit-cover,
@@ -640,22 +648,22 @@
         @keyframes iPhoneIn {
             0% {
                 opacity: 0;
-                transform: scale(1.25); /* Start 25% larger for prominent zoom in effect */
+                transform: scale3d(1.25, 1.25, 1) translate3d(0, 0, 0); /* GPU-accelerated 3D transform */
             }
             100% {
                 opacity: 1;
-                transform: scale(1);
+                transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
             }
         }
 
         @keyframes iPhoneOut {
             0% {
                 opacity: 1;
-                transform: scale(1);
+                transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
             }
             100% {
                 opacity: 0;
-                transform: scale(1.2); /* End 20% larger for prominent zoom out effect */
+                transform: scale3d(1.2, 1.2, 1) translate3d(0, 0, 0); /* GPU-accelerated 3D transform */
             }
         }
 
@@ -683,6 +691,26 @@
             -webkit-backface-visibility: hidden;
             perspective: 1000px;
             transform: translateZ(0);
+        }
+
+        /* Adaptive quality settings */
+        .quality-low * {
+            filter: none !important; /* Disable all blur effects */
+            transition-duration: 0.3s !important; /* Faster transitions */
+        }
+
+        .quality-low .animate-iphone-in,
+        .quality-low .animate-iphone-out {
+            animation-duration: 0.3s !important;
+        }
+
+        .quality-medium * {
+            transition-duration: 0.5s !important;
+        }
+
+        .quality-medium .animate-iphone-in,
+        .quality-medium .animate-iphone-out {
+            animation-duration: 0.4s !important;
         }
 
         /* Animation classes with cubic-bezier for smoother feel */
@@ -717,17 +745,17 @@
         @keyframes elementElegantIn {
             0% {
                 opacity: 0;
-                transform: scale(2.5) translateZ(0); /* Start very large */
+                transform: scale3d(2.5, 2.5, 1) translate3d(0, 0, 0); /* GPU-accelerated */
                 filter: blur(8px);
             }
             60% {
                 opacity: 0.8;
-                transform: scale(1.1) translateZ(0);
+                transform: scale3d(1.1, 1.1, 1) translate3d(0, 0, 0);
                 filter: blur(2px);
             }
             100% {
                 opacity: 1;
-                transform: scale(1) translateZ(0); /* End at natural size */
+                transform: scale3d(1, 1, 1) translate3d(0, 0, 0); /* End at natural size */
                 filter: blur(0px);
             }
         }
@@ -735,7 +763,7 @@
         @keyframes elementElegantOut {
             0% {
                 opacity: 1;
-                transform: scale(1) translateZ(0);
+                transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
                 filter: blur(0px);
             }
             100% {
@@ -1529,13 +1557,34 @@
                 preloadNextPhoto(index);
             };
 
-            newPhoto.onerror = () => {
-                console.error('Failed to load photo:', photoUrl);
-                showError(`Failed to load: ${photo.title || 'Unknown photo'}`);
+            // Enhanced error handling with retry logic
+            let retryCount = 0;
+            const maxRetries = 3;
+            const retryDelays = [1000, 2000, 4000]; // Exponential backoff
 
-                setTimeout(() => {
-                    hideError();
-                }, 3000);
+            newPhoto.onerror = () => {
+                console.error(`Failed to load photo (attempt ${retryCount + 1}/${maxRetries}):`, photoUrl);
+
+                if (retryCount < maxRetries) {
+                    // Retry with exponential backoff
+                    setTimeout(() => {
+                        retryCount++;
+                        console.log(`Retrying photo load (attempt ${retryCount + 1})...`);
+                        newPhoto.src = photoUrl + (photoUrl.includes('?') ? '&' : '?') + 'retry=' + retryCount;
+                    }, retryDelays[retryCount]);
+                } else {
+                    // All retries failed - show error and move to next photo
+                    showError(`Failed to load: ${photo.title || 'Unknown photo'}`);
+
+                    // Try to load the next photo after a delay
+                    setTimeout(() => {
+                        hideError();
+                        // Request next photo from backend
+                        if (window.ipcRenderer) {
+                            window.ipcRenderer.send('request-next-photo-fallback');
+                        }
+                    }, 3000);
+                }
             };
 
             newPhoto.src = photoUrl;
@@ -2967,7 +3016,7 @@
                 }
                 .color-preset:hover, .bg-color-preset:hover {
                     border-color: #4A90E2;
-                    transform: scale(1.1);
+                    transform: scale3d(1.1, 1.1, 1) translate3d(0, 0, 0);
                 }
                 .color-preset.active, .bg-color-preset.active {
                     border-color: #4A90E2;
@@ -5285,13 +5334,263 @@
             console.log('Slideshow content ready - backend will handle elegant animations');
         });
 
+        // Animation state machine for bulletproof transitions
+        const AnimationState = {
+            IDLE: 'idle',
+            PREPARING: 'preparing',
+            LOADING: 'loading',
+            READY: 'ready',
+            ANIMATING: 'animating',
+            VISIBLE: 'visible',
+            ERROR: 'error'
+        };
+
+        let currentAnimationState = AnimationState.IDLE;
+        let animationStateLock = false;
+
+        // Network status monitoring
+        class NetworkMonitor {
+            constructor() {
+                this.isOnline = navigator.onLine;
+                this.connectionQuality = 'good'; // good, slow, offline
+                this.lastCheckTime = Date.now();
+                this.failureCount = 0;
+                this.setupListeners();
+            }
+
+            setupListeners() {
+                window.addEventListener('online', () => {
+                    console.log('Network connection restored');
+                    this.isOnline = true;
+                    this.connectionQuality = 'good';
+                    this.failureCount = 0;
+                });
+
+                window.addEventListener('offline', () => {
+                    console.log('Network connection lost');
+                    this.isOnline = false;
+                    this.connectionQuality = 'offline';
+                });
+            }
+
+            recordFailure() {
+                this.failureCount++;
+                if (this.failureCount > 3) {
+                    this.connectionQuality = 'slow';
+                }
+                if (this.failureCount > 5) {
+                    this.connectionQuality = 'offline';
+                }
+            }
+
+            recordSuccess() {
+                this.failureCount = Math.max(0, this.failureCount - 1);
+                if (this.failureCount <= 2) {
+                    this.connectionQuality = 'good';
+                }
+            }
+
+            getRecommendedTimeout() {
+                switch (this.connectionQuality) {
+                    case 'good': return 5000;
+                    case 'slow': return 10000;
+                    case 'offline': return 2000; // Quick fail when offline
+                    default: return 5000;
+                }
+            }
+        }
+
+        const networkMonitor = new NetworkMonitor();
+
+        // Promise-based photo preloading with network awareness
+        function ensureFirstPhotoReady() {
+            return new Promise((resolve, reject) => {
+                // Check if we already have a visible photo
+                const visiblePhoto = document.querySelector('.photo.visible');
+                if (visiblePhoto && visiblePhoto.src && visiblePhoto.complete) {
+                    console.log('First photo already loaded and visible');
+                    networkMonitor.recordSuccess();
+                    resolve();
+                    return;
+                }
+
+                // Wait for the first photo to be loaded
+                const checkPhotoReady = () => {
+                    const photo1 = elements.photo1;
+                    const photo2 = elements.photo2;
+
+                    if ((photo1.src && photo1.complete) || (photo2.src && photo2.complete)) {
+                        console.log('First photo ready for animation');
+                        networkMonitor.recordSuccess();
+                        resolve();
+                    } else {
+                        // Keep checking
+                        setTimeout(checkPhotoReady, 100);
+                    }
+                };
+
+                // Start checking with network-aware timeout
+                checkPhotoReady();
+
+                // Adjust timeout based on network quality
+                const timeout = networkMonitor.getRecommendedTimeout();
+                setTimeout(() => {
+                    console.warn(`First photo loading timeout after ${timeout}ms - proceeding anyway`);
+                    networkMonitor.recordFailure();
+                    resolve();
+                }, timeout);
+            });
+        }
+
+        // Adaptive Quality System for performance optimization
+        class AdaptiveQualityManager {
+            constructor() {
+                this.qualityLevel = 'high'; // high, medium, low
+                this.performanceScore = 100;
+                this.frameDropThreshold = 30; // Below 30 FPS triggers quality reduction
+                this.isMonitoring = false;
+                this.qualityCheckInterval = null;
+            }
+
+            startMonitoring() {
+                if (this.isMonitoring) return;
+                this.isMonitoring = true;
+
+                // Check performance every 2 seconds during animations
+                this.qualityCheckInterval = setInterval(() => {
+                    const metrics = window.performanceMonitor.getMetrics();
+
+                    // Calculate performance score
+                    this.performanceScore = this.calculatePerformanceScore(metrics);
+
+                    // Adjust quality based on score
+                    this.adjustQualityLevel();
+                }, 2000);
+            }
+
+            calculatePerformanceScore(metrics) {
+                let score = 100;
+
+                // Penalize for low frame rate
+                if (metrics.frameRate < 60) {
+                    score -= (60 - metrics.frameRate) * 1.5;
+                }
+
+                // Penalize for high memory usage
+                if (metrics.heapUsed > 100) {
+                    score -= Math.min((metrics.heapUsed - 100) * 0.5, 30);
+                }
+
+                // Penalize for long frame times
+                if (metrics.averageFrameTime > 20) {
+                    score -= Math.min((metrics.averageFrameTime - 16.67) * 2, 30);
+                }
+
+                return Math.max(0, Math.min(100, score));
+            }
+
+            adjustQualityLevel() {
+                const previousLevel = this.qualityLevel;
+
+                if (this.performanceScore >= 80) {
+                    this.qualityLevel = 'high';
+                } else if (this.performanceScore >= 50) {
+                    this.qualityLevel = 'medium';
+                } else {
+                    this.qualityLevel = 'low';
+                }
+
+                if (previousLevel !== this.qualityLevel) {
+                    console.log(`Adaptive quality changed: ${previousLevel} → ${this.qualityLevel} (score: ${this.performanceScore})`);
+                    this.applyQualitySettings();
+                }
+            }
+
+            applyQualitySettings() {
+                const container = document.querySelector('.animation-container');
+                if (!container) return;
+
+                // Remove all quality classes
+                container.classList.remove('quality-high', 'quality-medium', 'quality-low');
+
+                // Apply new quality class
+                container.classList.add(`quality-${this.qualityLevel}`);
+
+                // Adjust animation settings based on quality
+                switch (this.qualityLevel) {
+                    case 'high':
+                        // Full quality animations
+                        document.documentElement.style.setProperty('--blur-amount', '8px');
+                        document.documentElement.style.setProperty('--animation-steps', '60');
+                        break;
+                    case 'medium':
+                        // Reduced blur and steps
+                        document.documentElement.style.setProperty('--blur-amount', '4px');
+                        document.documentElement.style.setProperty('--animation-steps', '30');
+                        break;
+                    case 'low':
+                        // Minimal effects for best performance
+                        document.documentElement.style.setProperty('--blur-amount', '0px');
+                        document.documentElement.style.setProperty('--animation-steps', '15');
+                        break;
+                }
+            }
+
+            getAnimationDuration() {
+                // Adjust duration based on quality
+                const baseDuration = 500;
+                switch (this.qualityLevel) {
+                    case 'high': return baseDuration;
+                    case 'medium': return baseDuration * 0.8;
+                    case 'low': return baseDuration * 0.5;
+                    default: return baseDuration;
+                }
+            }
+
+            stopMonitoring() {
+                if (this.qualityCheckInterval) {
+                    clearInterval(this.qualityCheckInterval);
+                    this.qualityCheckInterval = null;
+                }
+                this.isMonitoring = false;
+            }
+        }
+
+        // Initialize adaptive quality manager
+        window.adaptiveQuality = new AdaptiveQualityManager();
+
         // Enhanced animation functions with iPhone-style effects
-        function applySlideshowEntranceAnimation(duration = 500) {
-            console.log('Applying iPhone-style entrance animation:', duration + 'ms');
+        async function applySlideshowEntranceAnimation(duration = 500) {
+            // Use adaptive duration
+            duration = window.adaptiveQuality.getAnimationDuration();
+            console.log(`Applying entrance animation: ${duration}ms (quality: ${window.adaptiveQuality.qualityLevel})`);
+
+            // State validation
+            if (animationStateLock) {
+                console.warn('Animation already in progress, skipping entrance');
+                return;
+            }
+
+            animationStateLock = true;
+            currentAnimationState = AnimationState.PREPARING;
 
             // Cancel any pending animation cleanup
             window.animationController.cancelTimeout('entrance_cleanup');
             window.animationController.cancelTimeout('exit_cleanup');
+
+            // Wait for first photo to be ready (but skip if we're re-entering)
+            currentAnimationState = AnimationState.LOADING;
+
+            // Check if this is a re-entry (photos might already be displayed)
+            const hasExistingPhotos = document.querySelector('.photo[src]') !== null;
+
+            if (hasExistingPhotos) {
+                console.log('Re-entry detected - skipping photo wait');
+                currentAnimationState = AnimationState.READY;
+            } else {
+                await ensureFirstPhotoReady();
+                currentAnimationState = AnimationState.READY;
+            }
 
             // Create animation container if needed
             let container = document.querySelector('.animation-container');
@@ -5313,6 +5612,14 @@
             document.body.style.backgroundColor = 'transparent';
             container.style.opacity = '0';
 
+            // If re-entering with photos, set background immediately to prevent flicker
+            if (hasExistingPhotos) {
+                // Use a very brief delay to let animation container be ready
+                setTimeout(() => {
+                    document.body.style.backgroundColor = 'black';
+                }, 50);
+            }
+
             // Remove all animation classes
             container.classList.remove('animate-iphone-in', 'animate-iphone-out', 'animate-fade-in', 'animate-fade-out');
 
@@ -5328,26 +5635,41 @@
                 animateElementsIn();
             }, 100, 'element_entrance_trigger');
 
+            currentAnimationState = AnimationState.ANIMATING;
+
+            // Start performance monitoring during animation
+            window.performanceMonitor.startMonitoring();
+            window.adaptiveQuality.startMonitoring();
+
             // Clean up after animation
             window.animationController.scheduleTimeout(() => {
                 container.classList.remove('animate-iphone-in', 'animate-fade-in');
                 container.style.opacity = '1';
                 container.style.transform = 'scale(1)';
-                // Don't set black background here - wait for first photo to load
-                console.log('Entrance animation complete - waiting for photo load to set black background');
 
-                // Fallback: Set black background after 2 seconds if no photo has loaded yet
-                window.animationController.scheduleTimeout(() => {
-                    if (document.body.style.backgroundColor !== 'black') {
-                        document.body.style.backgroundColor = 'black';
-                        console.log('Fallback: Setting black background after timeout');
-                    }
-                }, 2000, 'background_fallback');
+                // Set black background immediately since photo is already loaded
+                document.body.style.backgroundColor = 'black';
+
+                currentAnimationState = AnimationState.VISIBLE;
+                animationStateLock = false;
+                console.log('Entrance animation complete - state: VISIBLE');
+
+                // Stop intensive monitoring after animation
+                window.performanceMonitor.stopMonitoring();
             }, duration + 50, 'entrance_cleanup');
         }
 
-        function applySlideshowExitAnimation(duration = 500) {
+        async function applySlideshowExitAnimation(duration = 500) {
             console.log('Applying iPhone-style exit animation:', duration + 'ms');
+
+            // State validation
+            if (animationStateLock) {
+                console.warn('Animation already in progress, skipping exit');
+                return;
+            }
+
+            animationStateLock = true;
+            currentAnimationState = AnimationState.ANIMATING;
 
             // Cancel any pending animation cleanup
             window.animationController.cancelTimeout('entrance_cleanup');
@@ -5385,7 +5707,10 @@
                 container.classList.remove('animate-iphone-out', 'animate-fade-out');
                 container.style.opacity = '0';
                 document.body.style.backgroundColor = 'transparent';
-                console.log('Exit animation complete');
+
+                currentAnimationState = AnimationState.IDLE;
+                animationStateLock = false;
+                console.log('Exit animation complete - state: IDLE');
             }, duration + 50, 'exit_cleanup');
         }
 
