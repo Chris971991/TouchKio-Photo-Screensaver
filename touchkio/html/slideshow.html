@@ -1169,6 +1169,39 @@
             }, halfDuration);
         }
 
+        function isGibberishFilename(filename) {
+            if (!filename) return true;
+
+            // Remove file extension for analysis
+            const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+
+            // Check for Google Photos style IDs (mix of uppercase, lowercase, numbers, hyphens)
+            // Examples: ADsZ27JERGOeO8RGIeeRpIo-2, AF1QipNKmZT9pO_2
+            const googlePhotosPattern = /^[A-Za-z0-9_-]{20,}$/;
+            if (googlePhotosPattern.test(nameWithoutExt)) return true;
+
+            // Check for UUID-style names
+            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (uuidPattern.test(nameWithoutExt)) return true;
+
+            // Check for timestamp-only filenames (e.g., 20231225_143052)
+            const timestampPattern = /^\d{8}_\d{6}$/;
+            if (timestampPattern.test(nameWithoutExt)) return true;
+
+            // Check for random alphanumeric strings (at least 16 chars with no spaces or readable words)
+            if (nameWithoutExt.length >= 16 && !/[\s]/.test(nameWithoutExt)) {
+                // Check if it has too many consecutive consonants (likely not a real word)
+                const hasExcessiveConsonants = /[bcdfghjklmnpqrstvwxyz]{5,}/i.test(nameWithoutExt);
+                if (hasExcessiveConsonants) return true;
+
+                // Check if it's mostly random characters without clear word boundaries
+                const hasWordBoundaries = /[_\-\s.]+/.test(nameWithoutExt);
+                if (!hasWordBoundaries && /^[a-zA-Z0-9]+$/.test(nameWithoutExt)) return true;
+            }
+
+            return false;
+        }
+
         function updateMetadataContent(photo) {
             const metadata = photo.metadata;
             let hasContent = false;
@@ -1180,8 +1213,8 @@
             elements.metadataExposure.textContent = '';
             elements.metadataLocation.textContent = '';
 
-            // Show/hide filename
-            if (config.showFilename && metadata.filename) {
+            // Show/hide filename - but skip if it's gibberish
+            if (config.showFilename && metadata.filename && !isGibberishFilename(metadata.filename)) {
                 elements.metadataFilename.textContent = metadata.filename;
                 elements.metadataFilename.style.display = 'block';
                 hasContent = true;
