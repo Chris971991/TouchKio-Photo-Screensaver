@@ -343,12 +343,13 @@
             border-radius: 50%;
         }
 
+        /* Circle color is now controlled by user settings in updateSourceIndicator() */
         .source-icon.google {
-            background: #4285f4;
+            /* Background controlled by user settings */
         }
 
         .source-icon.local {
-            background: #34a853;
+            /* Background controlled by user settings */
         }
 
         .photo-counter {
@@ -450,18 +451,22 @@
             bottom: 20px;
             right: 50%;
             transform: translateX(50%);
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            backdrop-filter: blur(10px);
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            /* Removed backdrop-filter to improve text sharpness */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
             z-index: 10;
             text-align: center;
             max-width: 80%;
             display: none;
             transition: opacity 1s ease-in-out;
             opacity: 0;
+            /* Improve text rendering for better sharpness */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
         }
 
         .metadata-overlay.background-dark {
@@ -495,13 +500,16 @@
 
         .metadata-overlay.background-none {
             background: none !important;
-            backdrop-filter: none !important;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            /* No backdrop-filter for better text sharpness */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
         }
 
         .metadata-line {
             margin: 2px 0;
-            line-height: 1.2;
+            line-height: 1.3;
+            /* Improve text rendering for individual lines */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .metadata-filename {
@@ -594,7 +602,7 @@
 
         .metadata-line.blur-out {
             opacity: 0;
-            filter: blur(3px);
+            /* Removed blur filter to prevent text blurring - use fade instead */
         }
 
         .metadata-line.slide-up-out {
@@ -1102,12 +1110,27 @@
         }
 
         function updateSourceIndicator(photo) {
+            // Update text based on photo type
             if (photo.type === 'google') {
-                elements.sourceIcon.className = 'source-icon google';
                 elements.sourceText.textContent = 'Google Photos';
             } else {
-                elements.sourceIcon.className = 'source-icon local';
                 elements.sourceText.textContent = 'Local Photos';
+            }
+
+            // Update circle indicator based on user settings
+            const sourceIcon = elements.sourceIcon;
+            if (sourceIcon) {
+                const showCircle = config.sourceShowCircle !== false && config.sourceShowCircle !== 'OFF'; // Default true
+                const circleColor = config.sourceCircleColor || '#4285f4'; // Default Google blue
+
+                if (showCircle) {
+                    sourceIcon.style.display = 'block';
+                    sourceIcon.style.background = circleColor;
+                    // Set base class for circle styling
+                    sourceIcon.className = 'source-icon';
+                } else {
+                    sourceIcon.style.display = 'none';
+                }
             }
         }
 
@@ -1976,6 +1999,11 @@
             // Add date-specific format option
             if (elementId === 'date') {
                 menuItems.splice(2, 0, { label: 'Date Format', action: () => showDateFormatMenu(elementId) });
+            }
+
+            // Add source-specific circle toggle option
+            if (elementId === 'source') {
+                menuItems.splice(2, 0, { label: 'Circle Indicator', action: () => showSourceCircleMenu(elementId) });
             }
 
             menuItems.forEach(item => {
@@ -3785,6 +3813,208 @@
             }, 100);
         }
 
+        // Source Circle Menu
+        function showSourceCircleMenu(elementId) {
+            console.log(`Show source circle menu for ${elementId}`);
+
+            // Remove any existing menu
+            const existingMenu = document.getElementById('source-circle-menu');
+            if (existingMenu) existingMenu.remove();
+
+            // Get current settings
+            const currentShowCircle = config.sourceShowCircle !== false && config.sourceShowCircle !== 'OFF'; // Default true
+            const currentCircleColor = config.sourceCircleColor || '#4285f4'; // Default Google blue
+
+            // Create menu
+            const menu = document.createElement('div');
+            menu.id = 'source-circle-menu';
+            menu.style.cssText = `
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 20px;
+                width: 320px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                z-index: 10002;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            `;
+
+            menu.innerHTML = `
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Circle Indicator Options</h3>
+
+                <!-- Show Circle Toggle -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px;">
+                        <input type="checkbox" id="show-circle" ${currentShowCircle ? 'checked' : ''} style="
+                            width: 16px; height: 16px; accent-color: #4A90E2;
+                        ">
+                        Show Circle Indicator
+                    </label>
+                    <div style="margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.7);">
+                        Toggle the colored circle next to source text
+                    </div>
+                </div>
+
+                <!-- Circle Color (only shown when circle is enabled) -->
+                <div id="circle-color-section" style="margin-bottom: 20px; ${!currentShowCircle ? 'display: none;' : ''}">
+                    <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500;">Circle Color:</div>
+
+                    <!-- Custom Color Picker -->
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                        <input type="color" id="circle-color-picker" value="${currentCircleColor}"
+                               style="width: 40px; height: 40px; border: none; border-radius: 6px; cursor: pointer; background: none;">
+                        <input type="text" id="circle-color-hex" value="${currentCircleColor}" placeholder="#4285f4"
+                               style="flex: 1; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px; font-family: monospace;">
+                    </div>
+
+                    <!-- Color Presets -->
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;">
+                        <div class="circle-color-preset" data-color="#4285f4" style="background: #4285f4;" title="Google Blue"></div>
+                        <div class="circle-color-preset" data-color="#34a853" style="background: #34a853;" title="Google Green"></div>
+                        <div class="circle-color-preset" data-color="#ea4335" style="background: #ea4335;" title="Google Red"></div>
+                        <div class="circle-color-preset" data-color="#fbbc04" style="background: #fbbc04;" title="Google Yellow"></div>
+                        <div class="circle-color-preset" data-color="#9c27b0" style="background: #9c27b0;" title="Purple"></div>
+                        <div class="circle-color-preset" data-color="#ffffff" style="background: #ffffff; border: 1px solid #555;" title="White"></div>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                        <div id="circle-preview" style="
+                            width: 16px; height: 16px; border-radius: 50%; background: ${currentCircleColor};
+                            ${!currentShowCircle ? 'display: none;' : ''}
+                        "></div>
+                        <span>Local Photos</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button id="circle-cancel-btn" style="padding: 10px 20px; background: transparent; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
+                    <button id="circle-apply-btn" style="padding: 10px 20px; background: #4A90E2; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">Apply</button>
+                </div>
+            `;
+
+            // Add preset styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .circle-color-preset {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    border: 2px solid transparent;
+                    transition: all 0.2s ease;
+                }
+                .circle-color-preset:hover {
+                    border-color: #4A90E2;
+                    transform: scale3d(1.1, 1.1, 1) translate3d(0, 0, 0);
+                }
+                .circle-color-preset.active {
+                    border-color: #4A90E2;
+                    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(menu);
+
+            let selectedShowCircle = currentShowCircle;
+            let selectedCircleColor = currentCircleColor;
+
+            // Update preview function
+            function updatePreview() {
+                const circlePreview = document.getElementById('circle-preview');
+                const circleColorSection = document.getElementById('circle-color-section');
+
+                circlePreview.style.display = selectedShowCircle ? 'block' : 'none';
+                circlePreview.style.background = selectedCircleColor;
+                circleColorSection.style.display = selectedShowCircle ? 'block' : 'none';
+            }
+
+            // Show circle toggle
+            document.getElementById('show-circle').addEventListener('change', (e) => {
+                selectedShowCircle = e.target.checked;
+                updatePreview();
+                // Live preview
+                addPendingChange(elementId, 'sourceShowCircle', selectedShowCircle);
+                applySourceIndicatorPosition();
+            });
+
+            // Circle color picker sync
+            document.getElementById('circle-color-picker').addEventListener('input', (e) => {
+                selectedCircleColor = e.target.value;
+                document.getElementById('circle-color-hex').value = selectedCircleColor;
+                updatePreview();
+                // Live preview
+                addPendingChange(elementId, 'sourceCircleColor', selectedCircleColor);
+                applySourceIndicatorPosition();
+            });
+
+            document.getElementById('circle-color-hex').addEventListener('input', (e) => {
+                const color = e.target.value;
+                if (/^#[0-9A-F]{6}$/i.test(color)) {
+                    selectedCircleColor = color;
+                    document.getElementById('circle-color-picker').value = selectedCircleColor;
+                    updatePreview();
+                    // Live preview
+                    addPendingChange(elementId, 'sourceCircleColor', selectedCircleColor);
+                    applySourceIndicatorPosition();
+                }
+            });
+
+            // Color presets
+            document.querySelectorAll('.circle-color-preset').forEach(preset => {
+                if (preset.dataset.color === selectedCircleColor) {
+                    preset.classList.add('active');
+                }
+
+                preset.addEventListener('click', () => {
+                    document.querySelectorAll('.circle-color-preset').forEach(p => p.classList.remove('active'));
+                    preset.classList.add('active');
+                    selectedCircleColor = preset.dataset.color;
+                    document.getElementById('circle-color-picker').value = selectedCircleColor;
+                    document.getElementById('circle-color-hex').value = selectedCircleColor;
+                    updatePreview();
+                    // Live preview
+                    addPendingChange(elementId, 'sourceCircleColor', selectedCircleColor);
+                    applySourceIndicatorPosition();
+                });
+            });
+
+            // Handle apply button
+            document.getElementById('circle-apply-btn').addEventListener('click', () => {
+                addPendingChange(elementId, 'sourceShowCircle', selectedShowCircle);
+                addPendingChange(elementId, 'sourceCircleColor', selectedCircleColor);
+                menu.remove();
+                style.remove();
+            });
+
+            // Handle cancel button
+            document.getElementById('circle-cancel-btn').addEventListener('click', () => {
+                menu.remove();
+                style.remove();
+            });
+
+            // Close menu when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeCircleMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        style.remove();
+                        document.removeEventListener('click', closeCircleMenu);
+                    }
+                });
+            }, 100);
+        }
+
         // Color Menu
         function showColorMenu(elementId) {
             console.log(`Show color menu for ${elementId}`);
@@ -3842,35 +4072,11 @@
                     </div>
                 </div>
 
-                <!-- Background Color -->
-                <div style="margin-bottom: 16px;">
-                    <div style="margin-bottom: 8px; font-size: 13px; color: #ccc;">Background Color:</div>
-                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
-                        <input type="color" id="bg-color-picker" value="${currentBgColor}"
-                               style="width: 40px; height: 40px; border: none; border-radius: 6px; cursor: pointer; background: none;">
-                        <input type="text" id="bg-color-hex" value="${currentBgColor}" placeholder="#000000"
-                               style="flex: 1; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 14px; font-family: monospace;">
-                        <label style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
-                            <input type="checkbox" id="bg-enabled" ${currentBgColor !== 'transparent' ? 'checked' : ''}>
-                            Enable
-                        </label>
-                    </div>
-                    <!-- Background Color Presets -->
-                    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;">
-                        <div class="bg-color-preset" data-color="transparent" style="background: repeating-linear-gradient(45deg, #555, #555 4px, #333 4px, #333 8px);" title="Transparent"></div>
-                        <div class="bg-color-preset" data-color="#000000" style="background: #000000; border: 1px solid #555;" title="Black"></div>
-                        <div class="bg-color-preset" data-color="#333333" style="background: #333333;" title="Dark Gray"></div>
-                        <div class="bg-color-preset" data-color="#666666" style="background: #666666;" title="Gray"></div>
-                        <div class="bg-color-preset" data-color="#ffffff" style="background: #ffffff;" title="White"></div>
-                        <div class="bg-color-preset" data-color="#4A90E2" style="background: #4A90E2;" title="Blue"></div>
-                        <div class="bg-color-preset" data-color="#7ED321" style="background: #7ED321;" title="Green"></div>
-                        <div class="bg-color-preset" data-color="#F5A623" style="background: #F5A623;" title="Orange"></div>
-                    </div>
-                </div>
+                <!-- Background settings removed - use Background menu instead -->
 
                 <!-- Preview -->
                 <div style="margin-bottom: 16px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 6px; text-align: center;">
-                    <div id="color-preview" style="color: ${currentTextColor}; background: ${currentBgColor}; padding: 8px; border-radius: 4px; transition: all 0.2s ease;">Sample Text</div>
+                    <div id="color-preview" style="color: ${currentTextColor}; padding: 8px; border-radius: 4px; transition: all 0.2s ease;">Sample Text</div>
                 </div>
 
                 <!-- Action Buttons -->
@@ -3907,12 +4113,10 @@
             let selectedTextColor = currentTextColor;
             let selectedBgColor = currentBgColor;
 
-            // Update preview function
+            // Update preview function - only shows text color now
             function updatePreview() {
                 const preview = document.getElementById('color-preview');
-                const bgEnabled = document.getElementById('bg-enabled').checked;
                 preview.style.color = selectedTextColor;
-                preview.style.background = bgEnabled ? selectedBgColor : 'transparent';
             }
 
             // Text color picker sync
@@ -3920,6 +4124,9 @@
                 selectedTextColor = e.target.value;
                 document.getElementById('text-color-hex').value = selectedTextColor;
                 updatePreview();
+                // Live preview
+                addPendingChange(elementId, `${elementId}Color`, selectedTextColor);
+                applyChangePreview(elementId, `${elementId}Color`, selectedTextColor);
             });
 
             document.getElementById('text-color-hex').addEventListener('input', (e) => {
@@ -3928,28 +4135,14 @@
                     selectedTextColor = color;
                     document.getElementById('text-color-picker').value = selectedTextColor;
                     updatePreview();
+                    // Live preview
+                    addPendingChange(elementId, `${elementId}Color`, selectedTextColor);
+                    applyChangePreview(elementId, `${elementId}Color`, selectedTextColor);
                 }
             });
 
             // Background color picker sync
-            document.getElementById('bg-color-picker').addEventListener('input', (e) => {
-                selectedBgColor = e.target.value;
-                document.getElementById('bg-color-hex').value = selectedBgColor;
-                document.getElementById('bg-enabled').checked = true;
-                updatePreview();
-            });
-
-            document.getElementById('bg-color-hex').addEventListener('input', (e) => {
-                const color = e.target.value;
-                if (/^#[0-9A-F]{6}$/i.test(color)) {
-                    selectedBgColor = color;
-                    document.getElementById('bg-color-picker').value = selectedBgColor;
-                    updatePreview();
-                }
-            });
-
-            // Background enable/disable
-            document.getElementById('bg-enabled').addEventListener('change', updatePreview);
+            // Background controls removed - use Background menu instead
 
             // Text color presets
             menu.querySelectorAll('.color-preset').forEach(preset => {
@@ -3958,36 +4151,19 @@
                     document.getElementById('text-color-picker').value = selectedTextColor;
                     document.getElementById('text-color-hex').value = selectedTextColor;
                     updatePreview();
+                    // Live preview
+                    addPendingChange(elementId, `${elementId}Color`, selectedTextColor);
+                    applyChangePreview(elementId, `${elementId}Color`, selectedTextColor);
                 });
             });
 
-            // Background color presets
-            menu.querySelectorAll('.bg-color-preset').forEach(preset => {
-                preset.addEventListener('click', () => {
-                    selectedBgColor = preset.dataset.color;
-                    if (selectedBgColor === 'transparent') {
-                        document.getElementById('bg-enabled').checked = false;
-                    } else {
-                        document.getElementById('bg-color-picker').value = selectedBgColor;
-                        document.getElementById('bg-color-hex').value = selectedBgColor;
-                        document.getElementById('bg-enabled').checked = true;
-                    }
-                    updatePreview();
-                });
-            });
+            // Background color presets removed - use Background menu instead
 
             // Handle apply button
             document.getElementById('color-apply-btn').addEventListener('click', () => {
+                // ONLY change font color - don't touch background settings at all
+                console.log(`[COLOR APPLY] Saving ${elementId}Color = ${selectedTextColor}`);
                 addPendingChange(elementId, `${elementId}Color`, selectedTextColor);
-
-                const bgEnabled = document.getElementById('bg-enabled').checked;
-                if (bgEnabled) {
-                    addPendingChange(elementId, `${elementId}Background`, true);
-                    addPendingChange(elementId, `${elementId}BackgroundColor`, selectedBgColor);
-                } else {
-                    addPendingChange(elementId, `${elementId}Background`, false);
-                }
-
                 menu.remove();
             });
 
@@ -4405,9 +4581,9 @@
             document.getElementById('bg-enable-checkbox').addEventListener('change', (e) => {
                 bgEnabled = e.target.checked;
                 updateBgPreview();
-                // Live preview
+                // Live preview - apply changes immediately for preview
                 const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
-                addPendingChange(elementId, `${configPrefix}Background`, backgroundValue);
+                applyChangePreview(elementId, `${elementId}Background`, backgroundValue);
             });
 
             // Border radius slider
@@ -4462,21 +4638,19 @@
 
                     // Live preview all changes
                     const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
-                    addPendingChange(elementId, `${configPrefix}Background`, backgroundValue);
-                    addPendingChange(elementId, `${configPrefix}BorderRadius`, selectedBorderRadius);
-                    addPendingChange(elementId, `${configPrefix}Padding`, selectedPadding);
-                    addPendingChange(elementId, `${configPrefix}Shadow`, selectedShadow);
+                    applyChangePreview(elementId, `${elementId}Background`, backgroundValue);
+                    applyChangePreview(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
+                    applyChangePreview(elementId, `${elementId}Padding`, selectedPadding + 'px');
+                    applyChangePreview(elementId, `${elementId}Shadow`, selectedShadow + 'px');
                 });
             });
 
             // Handle apply button
             document.getElementById('bg-apply-btn').addEventListener('click', () => {
-                // Convert boolean to proper background value
-                const backgroundValue = bgEnabled ? (currentBackground === 'none' ? 'dark' : currentBackground) : 'none';
-                addPendingChange(elementId, `${configPrefix}Background`, backgroundValue);
-                addPendingChange(elementId, `${configPrefix}BorderRadius`, selectedBorderRadius);
-                addPendingChange(elementId, `${configPrefix}Padding`, selectedPadding);
-                addPendingChange(elementId, `${configPrefix}Shadow`, selectedShadow);
+                addPendingChange(elementId, `${elementId}Background`, bgEnabled ? 'dark' : 'none');
+                addPendingChange(elementId, `${elementId}BorderRadius`, selectedBorderRadius + 'px');
+                addPendingChange(elementId, `${elementId}Padding`, selectedPadding + 'px');
+                addPendingChange(elementId, `${elementId}Shadow`, selectedShadow + 'px');
                 menu.remove();
             });
 
@@ -4584,6 +4758,23 @@
                 'metadataOverlay': config.metadataBackgroundOpacity || 80
             };
             return parseInt(bgOpacityMap[elementId]) || 80;
+        }
+
+        function getCurrentElementBgStyle(elementId) {
+            // Map elementId to config background style property
+            try {
+                const bgStyleMap = {
+                    'clock': config.clockBackground || 'dark',
+                    'date': config.dateBackground || 'dark',
+                    'source': config.sourceBackground || 'dark',
+                    'counter': config.counterBackground || 'dark',
+                    'metadataOverlay': config.metadataBackground || 'dark'
+                };
+                return bgStyleMap[elementId] || 'dark';
+            } catch (error) {
+                console.error('Error in getCurrentElementBgStyle:', error);
+                return 'dark';
+            }
         }
 
         // Enhanced Pending Changes Management System with LRU Buffer
@@ -4997,6 +5188,11 @@
                         mqttKey = `slideshow_google_album_4`;
                     } else if (property === 'googleAlbum5') {
                         mqttKey = `slideshow_google_album_5`;
+                    } else if (property === 'sourceShowCircle') {
+                        mqttKey = `slideshow_source_show_circle`;
+                        value = value ? 'ON' : 'OFF';
+                    } else if (property === 'sourceCircleColor') {
+                        mqttKey = `slideshow_source_circle_color`;
                     }
 
                     if (mqttKey) {
@@ -5570,7 +5766,7 @@
             if (config.showSourceIndicator && sourceIndicator) {
                 sourceIndicator.style.display = 'flex';
                 const sourcePos = config.sourcePosition || 'top-left';
-                const sourceBackground = config.sourceBackground || 'dark';
+                const sourceBackground = config.sourceBackground !== undefined ? config.sourceBackground : 'dark';
 
                 // Apply classes for background only (no size/font-size classes needed)
                 sourceIndicator.className = `source-indicator background-${sourceBackground}`;
@@ -5580,6 +5776,20 @@
                     sourceIndicator.style.fontSize = config.sourceCustomFontSize;
                 } else {
                     sourceIndicator.style.fontSize = ''; // Clear custom font size
+                }
+
+                // Handle circle indicator visibility and color
+                const sourceIcon = document.getElementById('sourceIcon');
+                if (sourceIcon) {
+                    const showCircle = config.sourceShowCircle !== false && config.sourceShowCircle !== 'OFF'; // Default true
+                    const circleColor = config.sourceCircleColor || '#4285f4'; // Default Google blue
+
+                    if (showCircle) {
+                        sourceIcon.style.display = 'block';
+                        sourceIcon.style.background = circleColor;
+                    } else {
+                        sourceIcon.style.display = 'none';
+                    }
                 }
 
                 sourceIndicator.style.position = 'absolute';
@@ -6199,7 +6409,7 @@
 
             // Re-apply source indicator styling if any source option changed
             if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
-                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow || newConfig.sourceCustomX || newConfig.sourceCustomY)) {
+                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow || newConfig.sourceCustomX || newConfig.sourceCustomY || newConfig.sourceShowCircle || newConfig.sourceCircleColor)) {
                 applySourceIndicatorPosition();
             }
 

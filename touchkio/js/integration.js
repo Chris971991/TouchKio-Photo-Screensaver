@@ -1190,6 +1190,10 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_counter_color) savedCustomConfig.counterColor = ARGS.slideshow_counter_color;
   if (ARGS.slideshow_metadata_color) savedCustomConfig.metadataColor = ARGS.slideshow_metadata_color;
 
+  // Load saved source circle settings
+  if (ARGS.slideshow_source_show_circle) savedCustomConfig.sourceShowCircle = ARGS.slideshow_source_show_circle;
+  if (ARGS.slideshow_source_circle_color) savedCustomConfig.sourceCircleColor = ARGS.slideshow_source_circle_color;
+
   // Load saved background colors for all elements
   if (ARGS.slideshow_clock_background_color) savedCustomConfig.clockBackgroundColor = ARGS.slideshow_clock_background_color;
   if (ARGS.slideshow_date_background_color) savedCustomConfig.dateBackgroundColor = ARGS.slideshow_date_background_color;
