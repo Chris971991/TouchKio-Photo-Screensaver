@@ -1556,24 +1556,20 @@
                 const container = document.querySelector('.slideshow-container');
                 container.classList.add('transitioning');
 
-                // Start transition: fade in new photo while keeping current at full opacity
-                setTimeout(() => {
-                    nextPhoto.classList.add('visible');
-                    nextBg.classList.add('visible');
-                    // Don't fade out current photo yet - wait for transition to complete
-                }, 50); // Small delay to ensure src is set
-
                 // Get actual transition duration from config
                 const transitionDuration = config.transitionDuration || 2000;
 
                 // Track transition performance
                 window.performanceMonitor.logTransition(transitionDuration);
 
-                // Only fade out old photo after new photo is fully visible
+                // Start simultaneous transition: fade in new photo and fade out current photo at the same time
                 setTimeout(() => {
+                    nextPhoto.classList.add('visible');
+                    nextBg.classList.add('visible');
+                    // Fade out current photo simultaneously to prevent aspect ratio overlap issues
                     currentPhoto.classList.remove('visible');
                     currentBg.classList.remove('visible');
-                }, transitionDuration / 2 + 50); // Halfway through transition + delay
+                }, 50); // Small delay to ensure src is set
 
                 // Release old images from memory AFTER fade out transition completes
                 setTimeout(() => {
@@ -5476,6 +5472,24 @@
                 if (data.config.transitionType !== undefined) {
                     const container = document.querySelector('.slideshow-container');
                     container.className = `slideshow-container transition-${config.transitionType || 'fade'}`;
+                }
+
+                // Apply dynamic transition duration
+                if (data.config.transitionDuration !== undefined) {
+                    const duration = (config.transitionDuration || 2000) / 1000; // Convert to seconds
+                    const style = document.getElementById('dynamic-transition-style') || document.createElement('style');
+                    style.id = 'dynamic-transition-style';
+                    style.textContent = `
+                        .transition-fade .photo {
+                            transition: opacity ${duration}s ease-in-out !important;
+                        }
+                        .transition-fade .photo-background {
+                            transition: opacity ${duration}s ease-in-out !important;
+                        }
+                    `;
+                    if (!document.getElementById('dynamic-transition-style')) {
+                        document.head.appendChild(style);
+                    }
                 }
             }
 
