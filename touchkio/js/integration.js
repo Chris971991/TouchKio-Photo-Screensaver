@@ -2934,9 +2934,9 @@ const updateSlideshow = async () => {
   publishState("slideshow_clock_custom_font_size", status.config.clockCustomFontSize || ARGS.slideshow_clock_custom_font_size || "");
   publishState("slideshow_clock_background_opacity", convertOpacityToMqtt(status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity));
   publishState("slideshow_clock_format", status.config.clockFormat || ARGS.slideshow_clock_format || "24hour");
-  publishState("slideshow_clock_ampm_case", status.config.clockAmPmCase || ARGS.slideshow_clock_am_pm_case || "uppercase");
-  publishState("slideshow_clock_ampm_size", parseInt(status.config.clockAmPmSize || ARGS.slideshow_clock_am_pm_size || 80));
-  publishState("slideshow_clock_ampm_spacing", status.config.clockAmPmSpacing || ARGS.slideshow_clock_am_pm_spacing || "1");
+  publishState("slideshow_clock_am_pm_case", status.config.clockAmPmCase || ARGS.slideshow_clock_am_pm_case || "uppercase");
+  publishState("slideshow_clock_am_pm_size", parseInt(status.config.clockAmPmSize || ARGS.slideshow_clock_am_pm_size || 80));
+  publishState("slideshow_clock_am_pm_spacing", status.config.clockAmPmSpacing || ARGS.slideshow_clock_am_pm_spacing || "1");
   publishState("slideshow_clock_alignment", status.config.clockAlignment || ARGS.slideshow_clock_alignment || "left");
 
   // Date settings - independent from clock
@@ -3620,10 +3620,10 @@ const initSlideshowClockFormat = () => {
  * Initializes the slideshow clock AM/PM case control.
  */
 const initSlideshowClockAmPmCase = () => {
-  const root = `${INTEGRATION.root}/slideshow_clock_ampm_case`;
+  const root = `${INTEGRATION.root}/slideshow_clock_am_pm_case`;
   const config = {
     name: "Slideshow Clock AM/PM Case",
-    unique_id: `${INTEGRATION.node}_slideshow_clock_ampm_case`,
+    unique_id: `${INTEGRATION.node}_slideshow_clock_am_pm_case`,
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value }}",
@@ -3648,10 +3648,10 @@ const initSlideshowClockAmPmCase = () => {
  * Initializes the slideshow clock AM/PM size control.
  */
 const initSlideshowClockAmPmSize = () => {
-  const root = `${INTEGRATION.root}/slideshow_clock_ampm_size`;
+  const root = `${INTEGRATION.root}/slideshow_clock_am_pm_size`;
   const config = {
     name: "Slideshow Clock AM/PM Size",
-    unique_id: `${INTEGRATION.node}_slideshow_clock_ampm_size`,
+    unique_id: `${INTEGRATION.node}_slideshow_clock_am_pm_size`,
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value | int }}",
@@ -3679,10 +3679,10 @@ const initSlideshowClockAmPmSize = () => {
  * Initializes the slideshow clock AM/PM spacing control.
  */
 const initSlideshowClockAmPmSpacing = () => {
-  const root = `${INTEGRATION.root}/slideshow_clock_ampm_spacing`;
+  const root = `${INTEGRATION.root}/slideshow_clock_am_pm_spacing`;
   const config = {
     name: "Slideshow Clock AM/PM Spacing",
-    unique_id: `${INTEGRATION.node}_slideshow_clock_ampm_spacing`,
+    unique_id: `${INTEGRATION.node}_slideshow_clock_am_pm_spacing`,
     command_topic: `${root}/set`,
     state_topic: `${root}/state`,
     value_template: "{{ value | float }}",
