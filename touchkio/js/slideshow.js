@@ -638,6 +638,31 @@ const initSlideshowView = async () => {
       }
     });
 
+    ipcMain.on("reload-photos-immediately", (event) => {
+      console.log("Received immediate photo reload request via IPC");
+
+      // Clear current photo cache and reload from configured sources
+      if (SLIDESHOW.visible && SLIDESHOW.photos && SLIDESHOW.photos.length > 0) {
+        console.log("Clearing current photo cache and reloading photos immediately");
+
+        // Reset photo cache
+        SLIDESHOW.photos = [];
+        SLIDESHOW.photoIndex = 0;
+        SLIDESHOW.preloadedPhotos = [];
+
+        // Force reload photos
+        reloadPhotos();
+
+        // Show immediate feedback
+        if (SLIDESHOW.photos && SLIDESHOW.photos.length > 0) {
+          console.log(`Successfully reloaded ${SLIDESHOW.photos.length} photos from new source`);
+          showNextPhoto(); // Immediately show first photo from new source
+        }
+      } else {
+        console.log("Slideshow not active, photo reload will happen when slideshow starts");
+      }
+    });
+
     ipcMain.on("editor-mode-disable", (event) => {
       console.log("Received editor mode disable request via IPC");
 

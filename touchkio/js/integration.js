@@ -1235,6 +1235,14 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_metadata_padding) savedCustomConfig.metadataPadding = ARGS.slideshow_metadata_padding;
   if (ARGS.slideshow_metadata_shadow) savedCustomConfig.metadataShadow = ARGS.slideshow_metadata_shadow;
 
+  // Load Google Photos settings
+  if (ARGS.slideshow_photos_dir) savedCustomConfig.photosDirectory = ARGS.slideshow_photos_dir;
+  if (ARGS.slideshow_google_album_1) savedCustomConfig.googleAlbum1 = ARGS.slideshow_google_album_1;
+  if (ARGS.slideshow_google_album_2) savedCustomConfig.googleAlbum2 = ARGS.slideshow_google_album_2;
+  if (ARGS.slideshow_google_album_3) savedCustomConfig.googleAlbum3 = ARGS.slideshow_google_album_3;
+  if (ARGS.slideshow_google_album_4) savedCustomConfig.googleAlbum4 = ARGS.slideshow_google_album_4;
+  if (ARGS.slideshow_google_album_5) savedCustomConfig.googleAlbum5 = ARGS.slideshow_google_album_5;
+
   if (Object.keys(savedCustomConfig).length > 0) {
     console.log("Applying saved custom config to slideshow:", savedCustomConfig);
     slideshow.updateConfig(savedCustomConfig);
@@ -2854,6 +2862,19 @@ const updateSlideshowRuntimeConfig = (key, value) => {
 };
 
 /**
+ * Convert user-friendly values to MQTT-compatible values
+ */
+function convertOpacityToMqtt(value) {
+  if (value === null || value === undefined || value === '') return 0.8;
+  const numValue = parseFloat(value);
+  if (numValue > 1) {
+    // Convert percentage (0-100) to decimal (0-1)
+    return Math.max(0.1, Math.min(1.0, numValue / 100));
+  }
+  return Math.max(0.1, Math.min(1.0, numValue));
+}
+
+/**
  * Updates the slideshow status via the mqtt connection.
  */
 const updateSlideshow = async () => {
@@ -2904,13 +2925,13 @@ const updateSlideshow = async () => {
   console.log(`Clock background state: runtime="${status.config.clockBackground}" args="${ARGS.slideshow_clock_background}" final="${clockBg}"`);
   publishState("slideshow_clock_background", clockBg);
 
-  publishState("slideshow_clock_opacity", status.config.clockOpacity || ARGS.slideshow_clock_opacity || 0.8);
+  publishState("slideshow_clock_opacity", convertOpacityToMqtt(status.config.clockOpacity || ARGS.slideshow_clock_opacity));
   publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
   publishState("slideshow_clock_custom_font_size", status.config.clockCustomFontSize || ARGS.slideshow_clock_custom_font_size || "");
-  publishState("slideshow_clock_background_opacity", status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70);
+  publishState("slideshow_clock_background_opacity", convertOpacityToMqtt(status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity));
   publishState("slideshow_clock_format", status.config.clockFormat || ARGS.slideshow_clock_format || "24hour");
   publishState("slideshow_clock_ampm_case", status.config.clockAmPmCase || ARGS.slideshow_clock_am_pm_case || "uppercase");
-  publishState("slideshow_clock_ampm_size", status.config.clockAmPmSize || ARGS.slideshow_clock_am_pm_size || "80");
+  publishState("slideshow_clock_ampm_size", parseInt(status.config.clockAmPmSize || ARGS.slideshow_clock_am_pm_size || 80));
   publishState("slideshow_clock_ampm_spacing", status.config.clockAmPmSpacing || ARGS.slideshow_clock_am_pm_spacing || "1");
   publishState("slideshow_clock_alignment", status.config.clockAlignment || ARGS.slideshow_clock_alignment || "left");
 
@@ -2919,31 +2940,31 @@ const updateSlideshow = async () => {
   publishState("slideshow_date_position", status.config.datePosition || ARGS.slideshow_date_position || "bottom-left");
   publishState("slideshow_date_size", status.config.dateSize || ARGS.slideshow_date_size || "medium");
   publishState("slideshow_date_background", status.config.dateBackground || ARGS.slideshow_date_background || "dark");
-  publishState("slideshow_date_opacity", status.config.dateOpacity || ARGS.slideshow_date_opacity || 0.8);
+  publishState("slideshow_date_opacity", convertOpacityToMqtt(status.config.dateOpacity || ARGS.slideshow_date_opacity));
   publishState("slideshow_date_color", status.config.dateColor || ARGS.slideshow_date_color || "#ffffff");
   publishState("slideshow_date_custom_font_size", status.config.dateCustomFontSize || ARGS.slideshow_date_custom_font_size || "");
-  publishState("slideshow_date_background_opacity", status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity || 70);
+  publishState("slideshow_date_background_opacity", convertOpacityToMqtt(status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity));
   publishState("slideshow_date_alignment", status.config.dateAlignment || ARGS.slideshow_date_alignment || "left");
 
   // Source indicator settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_source", status.config.showSourceIndicator ? "ON" : "OFF");
   publishState("slideshow_source_position", status.config.sourcePosition || ARGS.slideshow_source_position || "bottom-left");
   publishState("slideshow_source_size", status.config.sourceSize || ARGS.slideshow_source_size || "small");
-  publishState("slideshow_source_opacity", status.config.sourceOpacity || ARGS.slideshow_source_opacity || 0.7);
+  publishState("slideshow_source_opacity", convertOpacityToMqtt(status.config.sourceOpacity || ARGS.slideshow_source_opacity));
   publishState("slideshow_source_background", status.config.sourceBackground || ARGS.slideshow_source_background || "dark");
   publishState("slideshow_source_color", status.config.sourceColor || ARGS.slideshow_source_color || "#ffffff");
   publishState("slideshow_source_custom_font_size", status.config.sourceCustomFontSize || ARGS.slideshow_source_custom_font_size || "");
-  publishState("slideshow_source_background_opacity", status.config.sourceBackgroundOpacity || ARGS.slideshow_source_background_opacity || 70);
+  publishState("slideshow_source_background_opacity", convertOpacityToMqtt(status.config.sourceBackgroundOpacity || ARGS.slideshow_source_background_opacity));
 
   // Counter settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_counter", status.config.showPhotoCounter ? "ON" : "OFF");
   publishState("slideshow_counter_position", status.config.counterPosition || ARGS.slideshow_counter_position || "bottom-right");
   publishState("slideshow_counter_size", status.config.counterSize || ARGS.slideshow_counter_size || "small");
-  publishState("slideshow_counter_opacity", status.config.counterOpacity || ARGS.slideshow_counter_opacity || 0.7);
+  publishState("slideshow_counter_opacity", convertOpacityToMqtt(status.config.counterOpacity || ARGS.slideshow_counter_opacity));
   publishState("slideshow_counter_background", status.config.counterBackground || ARGS.slideshow_counter_background || "dark");
   publishState("slideshow_counter_color", status.config.counterColor || ARGS.slideshow_counter_color || "#ffffff");
   publishState("slideshow_counter_custom_font_size", status.config.counterCustomFontSize || ARGS.slideshow_counter_custom_font_size || "");
-  publishState("slideshow_counter_background_opacity", status.config.counterBackgroundOpacity || ARGS.slideshow_counter_background_opacity || 70);
+  publishState("slideshow_counter_background_opacity", convertOpacityToMqtt(status.config.counterBackgroundOpacity || ARGS.slideshow_counter_background_opacity));
 
   // Performance settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_preload_buffer_size", status.config.preloadBufferSize || ARGS.slideshow_preload_buffer_size || 20);
@@ -2959,9 +2980,9 @@ const updateSlideshow = async () => {
   publishState("slideshow_show_metadata", status.config.showMetadata ? "ON" : "OFF");
   publishState("slideshow_metadata_position", status.config.metadataPosition || ARGS.slideshow_metadata_position || "bottom-center");
   publishState("slideshow_metadata_size", status.config.metadataSize || ARGS.slideshow_metadata_size || "small");
-  publishState("slideshow_metadata_opacity", status.config.metadataOpacity || ARGS.slideshow_metadata_opacity || 0.8);
+  publishState("slideshow_metadata_opacity", convertOpacityToMqtt(status.config.metadataOpacity || ARGS.slideshow_metadata_opacity));
   publishState("slideshow_metadata_custom_font_size", status.config.metadataCustomFontSize || ARGS.slideshow_metadata_custom_font_size || "");
-  publishState("slideshow_metadata_background_opacity", status.config.metadataBackgroundOpacity || ARGS.slideshow_metadata_background_opacity || 70);
+  publishState("slideshow_metadata_background_opacity", convertOpacityToMqtt(status.config.metadataBackgroundOpacity || ARGS.slideshow_metadata_background_opacity));
   publishState("slideshow_metadata_transition_type", status.config.metadataTransitionType || ARGS.slideshow_metadata_transition_type || "fade");
   publishState("slideshow_show_filename", status.config.showFilename ? "ON" : "OFF");
   publishState("slideshow_show_date_taken", status.config.showDateTaken ? "ON" : "OFF");

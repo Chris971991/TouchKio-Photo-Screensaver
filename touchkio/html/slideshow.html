@@ -2606,6 +2606,83 @@
                 menu.appendChild(menuItem);
             });
 
+            // Add separator
+            const separator = document.createElement('div');
+            separator.style.cssText = `
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
+                margin: 8px 0;
+            `;
+            menu.appendChild(separator);
+
+            // Add Google Photos Configuration option
+            const googlePhotosItem = document.createElement('div');
+            googlePhotosItem.style.cssText = `
+                padding: 12px 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                transition: background-color 0.2s ease;
+            `;
+
+            googlePhotosItem.innerHTML = `
+                <span>📂 Photo Sources</span>
+                <span style="
+                    color: rgba(255, 255, 255, 0.6);
+                    font-size: 12px;
+                ">Configure sources</span>
+            `;
+
+            googlePhotosItem.addEventListener('mouseenter', () => {
+                googlePhotosItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+
+            googlePhotosItem.addEventListener('mouseleave', () => {
+                googlePhotosItem.style.backgroundColor = 'transparent';
+            });
+
+            googlePhotosItem.addEventListener('click', () => {
+                menu.remove();
+                showPhotoSourcesConfiguration();
+            });
+
+            menu.appendChild(googlePhotosItem);
+
+            // Add Photo Settings option
+            const photoSettingsItem = document.createElement('div');
+            photoSettingsItem.style.cssText = `
+                padding: 12px 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                transition: background-color 0.2s ease;
+            `;
+
+            photoSettingsItem.innerHTML = `
+                <span>⚙️ Photo Settings</span>
+                <span style="
+                    color: rgba(255, 255, 255, 0.6);
+                    font-size: 12px;
+                ">Behavior & display</span>
+            `;
+
+            photoSettingsItem.addEventListener('mouseenter', () => {
+                photoSettingsItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+
+            photoSettingsItem.addEventListener('mouseleave', () => {
+                photoSettingsItem.style.backgroundColor = 'transparent';
+            });
+
+            photoSettingsItem.addEventListener('click', () => {
+                menu.remove();
+                showPhotoSettingsConfiguration();
+            });
+
+            menu.appendChild(photoSettingsItem);
+
             document.body.appendChild(menu);
 
             // Close menu when clicking outside
@@ -2618,6 +2695,775 @@
                 }
                 document.addEventListener('click', closeMenu);
             }, 100);
+        }
+
+        // Photo Sources Configuration Dialog
+        function showPhotoSourcesConfiguration() {
+            console.log('Showing Photo Sources configuration dialog');
+
+            // Remove any existing dialog
+            const existingDialog = document.getElementById('google-photos-config');
+            if (existingDialog) existingDialog.remove();
+
+            // Get current values from config
+            const currentPhotosDir = config.photosDirectory || '';
+            const currentAlbums = {
+                album1: config.googleAlbum1 || '',
+                album2: config.googleAlbum2 || '',
+                album3: config.googleAlbum3 || '',
+                album4: config.googleAlbum4 || '',
+                album5: config.googleAlbum5 || ''
+            };
+
+            // Create dialog
+            const dialog = document.createElement('div');
+            dialog.id = 'google-photos-config';
+            dialog.style.cssText = `
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.98);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 16px;
+                padding: 28px;
+                min-width: 500px;
+                max-width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+                z-index: 10003;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            `;
+
+            dialog.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h3 style="margin: 0; font-size: 22px; font-weight: 700;">📂 Photo Sources</h3>
+                    <button id="close-google-config" style="
+                        background: rgba(255, 255, 255, 0.1);
+                        border: none;
+                        border-radius: 50%;
+                        width: 32px;
+                        height: 32px;
+                        color: white;
+                        cursor: pointer;
+                        font-size: 16px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">✕</button>
+                </div>
+
+                <!-- Local Photos Path Section -->
+                <div style="margin-bottom: 32px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
+                        📁 Local Photos Directory
+                    </h4>
+                    <p style="margin: 0 0 12px 0; font-size: 14px; color: rgba(255, 255, 255, 0.7);">
+                        Path to local photos folder on your Pi (e.g., /home/pi/Photos)
+                    </p>
+                    <input type="text" id="local-photos-path" placeholder="/home/pi/Photos" value="${currentPhotosDir}" style="
+                        width: 100%;
+                        padding: 12px;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        background: rgba(255, 255, 255, 0.05);
+                        color: white;
+                        font-size: 14px;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                        box-sizing: border-box;
+                    " />
+                </div>
+
+                <!-- Google Albums Section -->
+                <div style="margin-bottom: 32px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
+                        🔗 Online Albums
+                    </h4>
+                    <p style="margin: 0 0 16px 0; font-size: 14px; color: rgba(255, 255, 255, 0.7);">
+                        Paste sharing links from Google Photos albums. Leave empty to use local photos only.
+                    </p>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        ${Array.from({length: 5}, (_, i) => `
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                    Album ${i + 1}
+                                </label>
+                                <input type="url" id="album-${i + 1}" placeholder="https://photos.google.com/share/..." value="${currentAlbums[`album${i + 1}`]}" style="
+                                    width: 100%;
+                                    padding: 10px 12px;
+                                    border: 1px solid rgba(255, 255, 255, 0.2);
+                                    border-radius: 6px;
+                                    background: rgba(255, 255, 255, 0.05);
+                                    color: white;
+                                    font-size: 13px;
+                                    font-family: 'Monaco', 'Menlo', monospace;
+                                    box-sizing: border-box;
+                                    transition: border-color 0.2s ease;
+                                " onfocus="this.style.borderColor='rgba(74, 144, 226, 0.6)'" onblur="this.style.borderColor='rgba(255, 255, 255, 0.2)'" />
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div style="margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
+                        ⚡ Quick Actions
+                    </h4>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="toggle-google-photos" style="
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            font-size: 13px;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                        ">
+                            <!-- Text and styling will be set dynamically -->
+                        </button>
+                        <button id="toggle-local-mode" style="
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            font-size: 13px;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                        ">
+                            <!-- Text and styling will be set dynamically -->
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <button id="cancel-google-config" style="
+                        padding: 10px 20px;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        background: transparent;
+                        color: rgba(255, 255, 255, 0.8);
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                        Cancel
+                    </button>
+                    <button id="save-google-config" style="
+                        padding: 10px 24px;
+                        border: none;
+                        border-radius: 8px;
+                        background: linear-gradient(135deg, #4CAF50, #45a049);
+                        color: white;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+                    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(76, 175, 80, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(76, 175, 80, 0.3)'">
+                        💾 Save Settings
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+
+            // Add event handlers
+            setupGooglePhotosEventHandlers();
+
+            // Update button states based on current values
+            updateQuickActionButtons();
+        }
+
+        function setupGooglePhotosEventHandlers() {
+            // Close button
+            document.getElementById('close-google-config').addEventListener('click', () => {
+                document.getElementById('google-photos-config').remove();
+            });
+
+            // Cancel button
+            document.getElementById('cancel-google-config').addEventListener('click', () => {
+                document.getElementById('google-photos-config').remove();
+            });
+
+            // Smart Google Photos toggle
+            document.getElementById('toggle-google-photos').addEventListener('click', () => {
+                const hasGoogleAlbums = getGoogleAlbumsCount() > 0;
+
+                if (hasGoogleAlbums) {
+                    // Currently has albums, clear them
+                    for (let i = 1; i <= 5; i++) {
+                        document.getElementById(`album-${i}`).value = '';
+                    }
+                } else {
+                    // No albums, focus on first album input to add one
+                    document.getElementById('album-1').focus();
+                }
+                updateQuickActionButtons();
+            });
+
+            // Smart Local Mode toggle
+            document.getElementById('toggle-local-mode').addEventListener('click', () => {
+                const hasLocalPath = document.getElementById('local-photos-path').value.trim() !== '';
+                const hasGoogleAlbums = getGoogleAlbumsCount() > 0;
+
+                if (hasLocalPath && !hasGoogleAlbums) {
+                    // Currently local only, clear local path
+                    document.getElementById('local-photos-path').value = '';
+                } else {
+                    // Switch to local only mode
+                    for (let i = 1; i <= 5; i++) {
+                        document.getElementById(`album-${i}`).value = '';
+                    }
+                    document.getElementById('local-photos-path').focus();
+                }
+                updateQuickActionButtons();
+            });
+
+            // Save button
+            document.getElementById('save-google-config').addEventListener('click', () => {
+                saveGooglePhotosConfiguration();
+            });
+
+            // Update button states when inputs change
+            document.getElementById('local-photos-path').addEventListener('input', updateQuickActionButtons);
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`album-${i}`).addEventListener('input', updateQuickActionButtons);
+            }
+        }
+
+        function saveGooglePhotosConfiguration() {
+            console.log('Saving Google Photos configuration');
+
+            // Get values from form
+            const localPath = document.getElementById('local-photos-path').value.trim();
+            const albums = {};
+
+            for (let i = 1; i <= 5; i++) {
+                const albumValue = document.getElementById(`album-${i}`).value.trim();
+                albums[`album${i}`] = albumValue;
+            }
+
+            // Validate URLs - accept both goo.gl and photos.google.com formats with very flexible patterns
+            const urlPattern = /^https:\/\/(photos\.app\.goo\.gl\/\S+|photos\.google\.com\/.*\/share\/\S+|photos\.google\.com\/share\/\S+)$/;
+            const invalidAlbums = [];
+
+            Object.entries(albums).forEach(([key, url]) => {
+                if (url && !urlPattern.test(url)) {
+                    invalidAlbums.push(key.replace('album', 'Album '));
+                }
+            });
+
+            if (invalidAlbums.length > 0) {
+                alert(`Invalid Google Photos URLs detected in: ${invalidAlbums.join(', ')}\n\nPlease use Google Photos sharing links (photos.app.goo.gl/... or photos.google.com/share/...)`);
+                return;
+            }
+
+            // Save to pending changes
+            if (localPath !== config.photosDirectory) {
+                addPendingChange('global', 'photosDirectory', localPath);
+            }
+
+            // Save album changes
+            Object.entries(albums).forEach(([key, value]) => {
+                const configKey = key.replace('album', 'googleAlbum');
+                if (value !== config[configKey]) {
+                    addPendingChange('global', configKey, value);
+                }
+            });
+
+            // Close dialog
+            document.getElementById('google-photos-config').remove();
+
+            // Check if we need to immediately reload photos (switched from Google to local or vice versa)
+            const hasNewAlbums = Object.values(albums).some(url => url !== '');
+            const hadOldAlbums = Object.values(currentAlbums).some(url => url !== '');
+            const sourceChanged = (hasNewAlbums !== hadOldAlbums) || (localPath !== currentPhotosDir);
+
+            // Show success message with additional context if source changed
+            if (sourceChanged) {
+                showNotification('📷 Photo source changed! Reloading slideshow to show new photos immediately.', 'success');
+
+                // Send immediate IPC message to reload photos
+                if (typeof ipcRenderer !== 'undefined') {
+                    setTimeout(() => {
+                        ipcRenderer.send('reload-photos-immediately');
+                    }, 500); // Small delay to ensure settings are saved first
+                }
+            } else {
+                showNotification('📷 Google Photos settings saved! Remember to save all changes when done.', 'success');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Remove existing notification
+            const existing = document.getElementById('config-notification');
+            if (existing) existing.remove();
+
+            // Create notification
+            const notification = document.createElement('div');
+            notification.id = 'config-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${type === 'success' ? 'rgba(46, 204, 113, 0.95)' : 'rgba(52, 152, 219, 0.95)'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                z-index: 10004;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            `;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 4000);
+        }
+
+        // Photo Settings Configuration Dialog
+        function showPhotoSettingsConfiguration() {
+            console.log('Showing Photo Settings configuration dialog');
+
+            // Remove any existing dialog
+            const existingDialog = document.getElementById('photo-settings-config');
+            if (existingDialog) existingDialog.remove();
+
+            // Get current values from config
+            const currentSettings = {
+                interval: config.interval ? Math.round(config.interval / 1000) : 5,
+                randomOrder: config.randomOrder || false,
+                photoFit: config.photoFit || 'contain',
+                transitionType: config.transitionType || 'fade',
+                transitionDuration: config.transitionDuration || 2000,
+                idleTimeout: config.idleTimeout || 30,
+                preloadBuffer: config.preloadBufferSize || 20,
+                diskCache: config.diskCacheEnabled !== false,
+                cacheSize: config.diskCacheMaxSize ? Math.round(config.diskCacheMaxSize / 1024 / 1024) : 2048,
+                concurrentDownloads: config.concurrentDownloads || 3
+            };
+
+            // Create dialog
+            const dialog = document.createElement('div');
+            dialog.id = 'photo-settings-config';
+            dialog.style.cssText = `
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.98);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 16px;
+                padding: 28px;
+                min-width: 500px;
+                max-width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+                z-index: 10003;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            `;
+
+            dialog.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h3 style="margin: 0; font-size: 22px; font-weight: 700;">⚙️ Photo Settings</h3>
+                    <button id="close-photo-settings" style="
+                        background: rgba(255, 255, 255, 0.1);
+                        border: none;
+                        border-radius: 50%;
+                        width: 32px;
+                        height: 32px;
+                        color: white;
+                        cursor: pointer;
+                        font-size: 16px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">✕</button>
+                </div>
+
+                <!-- Slideshow Behavior Section -->
+                <div style="margin-bottom: 28px;">
+                    <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
+                        🎬 Slideshow Behavior
+                    </h4>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Photo Interval (seconds)
+                            </label>
+                            <input type="number" id="photo-interval" min="1" max="300" value="${currentSettings.interval}" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            " />
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Idle Timeout (minutes)
+                            </label>
+                            <input type="number" id="idle-timeout" min="1" max="120" value="${currentSettings.idleTimeout}" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            " />
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="random-order" ${currentSettings.randomOrder ? 'checked' : ''} style="
+                                width: 18px; height: 18px; accent-color: #4CAF50;
+                            ">
+                            <span style="font-size: 14px; color: rgba(255, 255, 255, 0.9);">Random photo order</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Display Options Section -->
+                <div style="margin-bottom: 28px;">
+                    <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
+                        🖼️ Display Options
+                    </h4>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Photo Fit
+                            </label>
+                            <select id="photo-fit" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            ">
+                                <option value="contain" ${currentSettings.photoFit === 'contain' ? 'selected' : ''}>Contain (fit inside)</option>
+                                <option value="cover" ${currentSettings.photoFit === 'cover' ? 'selected' : ''}>Cover (fill screen)</option>
+                                <option value="fill" ${currentSettings.photoFit === 'fill' ? 'selected' : ''}>Fill (stretch)</option>
+                                <option value="none" ${currentSettings.photoFit === 'none' ? 'selected' : ''}>None (original size)</option>
+                                <option value="scale-down" ${currentSettings.photoFit === 'scale-down' ? 'selected' : ''}>Scale down</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Transition Type
+                            </label>
+                            <select id="transition-type" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            ">
+                                <option value="fade" ${currentSettings.transitionType === 'fade' ? 'selected' : ''}>Fade</option>
+                                <option value="slide" ${currentSettings.transitionType === 'slide' ? 'selected' : ''}>Slide</option>
+                                <option value="zoom" ${currentSettings.transitionType === 'zoom' ? 'selected' : ''}>Zoom</option>
+                                <option value="none" ${currentSettings.transitionType === 'none' ? 'selected' : ''}>None</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                            Transition Duration (ms)
+                        </label>
+                        <input type="range" id="transition-duration" min="500" max="5000" step="250" value="${currentSettings.transitionDuration}" style="
+                            width: 100%;
+                            margin-bottom: 8px;
+                        " />
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: rgba(255, 255, 255, 0.6);">
+                            <span>500ms</span>
+                            <span id="transition-duration-value">${currentSettings.transitionDuration}ms</span>
+                            <span>5000ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Section -->
+                <div style="margin-bottom: 28px;">
+                    <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
+                        ⚡ Performance
+                    </h4>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Preload Buffer
+                            </label>
+                            <input type="number" id="preload-buffer" min="5" max="50" value="${currentSettings.preloadBuffer}" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            " />
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Cache Size (MB)
+                            </label>
+                            <input type="number" id="cache-size" min="500" max="10240" step="256" value="${currentSettings.cacheSize}" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            " />
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
+                                Downloads
+                            </label>
+                            <input type="number" id="concurrent-downloads" min="1" max="10" value="${currentSettings.concurrentDownloads}" style="
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 1px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.05);
+                                color: white;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                            " />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="disk-cache" ${currentSettings.diskCache ? 'checked' : ''} style="
+                                width: 18px; height: 18px; accent-color: #4CAF50;
+                            ">
+                            <span style="font-size: 14px; color: rgba(255, 255, 255, 0.9);">Enable disk cache</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <button id="cancel-photo-settings" style="
+                        padding: 10px 20px;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        background: transparent;
+                        color: rgba(255, 255, 255, 0.8);
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                        Cancel
+                    </button>
+                    <button id="save-photo-settings" style="
+                        padding: 10px 24px;
+                        border: none;
+                        border-radius: 8px;
+                        background: linear-gradient(135deg, #4CAF50, #45a049);
+                        color: white;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+                    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(76, 175, 80, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(76, 175, 80, 0.3)'">
+                        💾 Save Settings
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+
+            // Add event handlers
+            setupPhotoSettingsEventHandlers();
+        }
+
+        function setupPhotoSettingsEventHandlers() {
+            // Update transition duration display
+            const durationSlider = document.getElementById('transition-duration');
+            const durationValue = document.getElementById('transition-duration-value');
+
+            durationSlider.addEventListener('input', () => {
+                durationValue.textContent = durationSlider.value + 'ms';
+            });
+
+            // Close button
+            document.getElementById('close-photo-settings').addEventListener('click', () => {
+                document.getElementById('photo-settings-config').remove();
+            });
+
+            // Cancel button
+            document.getElementById('cancel-photo-settings').addEventListener('click', () => {
+                document.getElementById('photo-settings-config').remove();
+            });
+
+            // Save button
+            document.getElementById('save-photo-settings').addEventListener('click', () => {
+                savePhotoSettings();
+            });
+        }
+
+        function savePhotoSettings() {
+            console.log('Saving photo settings');
+
+            // Get values from form
+            const settings = {
+                interval: parseInt(document.getElementById('photo-interval').value) * 1000, // Convert to ms
+                randomOrder: document.getElementById('random-order').checked,
+                photoFit: document.getElementById('photo-fit').value,
+                transitionType: document.getElementById('transition-type').value,
+                transitionDuration: parseInt(document.getElementById('transition-duration').value),
+                idleTimeout: parseInt(document.getElementById('idle-timeout').value),
+                preloadBuffer: parseInt(document.getElementById('preload-buffer').value),
+                diskCache: document.getElementById('disk-cache').checked,
+                cacheSize: parseInt(document.getElementById('cache-size').value) * 1024 * 1024, // Convert to bytes
+                concurrentDownloads: parseInt(document.getElementById('concurrent-downloads').value)
+            };
+
+            // Save to pending changes
+            Object.entries(settings).forEach(([key, value]) => {
+                let mqttKey = '';
+                let mqttValue = value;
+
+                switch(key) {
+                    case 'interval':
+                        mqttKey = 'slideshow_interval';
+                        mqttValue = Math.round(value / 1000); // Convert ms back to seconds for MQTT
+                        break;
+                    case 'randomOrder':
+                        mqttKey = 'slideshow_random_order';
+                        mqttValue = value ? 'ON' : 'OFF';
+                        break;
+                    case 'photoFit':
+                        mqttKey = 'slideshow_photo_fit';
+                        break;
+                    case 'transitionType':
+                        mqttKey = 'slideshow_transition_type';
+                        break;
+                    case 'transitionDuration':
+                        mqttKey = 'slideshow_transition_duration';
+                        break;
+                    case 'idleTimeout':
+                        mqttKey = 'slideshow_idle_timeout';
+                        break;
+                    case 'preloadBuffer':
+                        mqttKey = 'slideshow_preload_buffer_size';
+                        break;
+                    case 'diskCache':
+                        mqttKey = 'slideshow_disk_cache_enabled';
+                        mqttValue = value ? 'ON' : 'OFF';
+                        break;
+                    case 'cacheSize':
+                        mqttKey = 'slideshow_disk_cache_max_size';
+                        break;
+                    case 'concurrentDownloads':
+                        mqttKey = 'slideshow_concurrent_downloads';
+                        break;
+                }
+
+                if (mqttKey) {
+                    addPendingChange('global', mqttKey, mqttValue);
+                }
+            });
+
+            // Close dialog
+            document.getElementById('photo-settings-config').remove();
+
+            // Show success message
+            showNotification('⚙️ Photo settings saved! Remember to save all changes when done.', 'success');
+        }
+
+        function getGoogleAlbumsCount() {
+            let count = 0;
+            for (let i = 1; i <= 5; i++) {
+                const value = document.getElementById(`album-${i}`)?.value.trim();
+                if (value) count++;
+            }
+            return count;
+        }
+
+        function updateQuickActionButtons() {
+            const hasGoogleAlbums = getGoogleAlbumsCount() > 0;
+            const hasLocalPath = document.getElementById('local-photos-path')?.value.trim() !== '';
+
+            // Google Photos toggle button
+            const googleBtn = document.getElementById('toggle-google-photos');
+            if (googleBtn) {
+                if (hasGoogleAlbums) {
+                    // Has albums - show disable option
+                    googleBtn.innerHTML = '🚫 Disable Google Photos';
+                    googleBtn.style.border = '1px solid rgba(231, 76, 60, 0.4)';
+                    googleBtn.style.background = 'rgba(231, 76, 60, 0.1)';
+                    googleBtn.style.color = 'rgba(231, 76, 60, 0.9)';
+                    googleBtn.onmouseenter = () => googleBtn.style.background = 'rgba(231,76,60,0.2)';
+                    googleBtn.onmouseleave = () => googleBtn.style.background = 'rgba(231,76,60,0.1)';
+                } else {
+                    // No albums - show enable option
+                    googleBtn.innerHTML = '✅ Enable Google Photos';
+                    googleBtn.style.border = '1px solid rgba(46, 204, 113, 0.4)';
+                    googleBtn.style.background = 'rgba(46, 204, 113, 0.1)';
+                    googleBtn.style.color = 'rgba(46, 204, 113, 0.9)';
+                    googleBtn.onmouseenter = () => googleBtn.style.background = 'rgba(46,204,113,0.2)';
+                    googleBtn.onmouseleave = () => googleBtn.style.background = 'rgba(46,204,113,0.1)';
+                }
+            }
+
+            // Local mode toggle button
+            const localBtn = document.getElementById('toggle-local-mode');
+            if (localBtn) {
+                if (hasLocalPath && !hasGoogleAlbums) {
+                    // Local only mode active - show disable
+                    localBtn.innerHTML = '🚫 Disable Local Only';
+                    localBtn.style.border = '1px solid rgba(231, 76, 60, 0.4)';
+                    localBtn.style.background = 'rgba(231, 76, 60, 0.1)';
+                    localBtn.style.color = 'rgba(231, 76, 60, 0.9)';
+                    localBtn.onmouseenter = () => localBtn.style.background = 'rgba(231,76,60,0.2)';
+                    localBtn.onmouseleave = () => localBtn.style.background = 'rgba(231,76,60,0.1)';
+                } else {
+                    // Not in local only mode - show enable
+                    localBtn.innerHTML = '📁 Local Photos Only';
+                    localBtn.style.border = '1px solid rgba(52, 152, 219, 0.4)';
+                    localBtn.style.background = 'rgba(52, 152, 219, 0.1)';
+                    localBtn.style.color = 'rgba(52, 152, 219, 0.9)';
+                    localBtn.onmouseenter = () => localBtn.style.background = 'rgba(52,152,219,0.2)';
+                    localBtn.onmouseleave = () => localBtn.style.background = 'rgba(52,152,219,0.1)';
+                }
+            }
         }
 
         // Time Format Menu (Clock only)
@@ -4145,6 +4991,18 @@
                         mqttKey = `slideshow_show_counter`;
                     } else if (property === 'showMetadata') {
                         mqttKey = `slideshow_show_metadata`;
+                    } else if (property === 'photosDirectory') {
+                        mqttKey = `slideshow_photos_dir`;
+                    } else if (property === 'googleAlbum1') {
+                        mqttKey = `slideshow_google_album_1`;
+                    } else if (property === 'googleAlbum2') {
+                        mqttKey = `slideshow_google_album_2`;
+                    } else if (property === 'googleAlbum3') {
+                        mqttKey = `slideshow_google_album_3`;
+                    } else if (property === 'googleAlbum4') {
+                        mqttKey = `slideshow_google_album_4`;
+                    } else if (property === 'googleAlbum5') {
+                        mqttKey = `slideshow_google_album_5`;
                     }
 
                     if (mqttKey) {
