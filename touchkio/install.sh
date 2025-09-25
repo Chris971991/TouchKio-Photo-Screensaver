@@ -146,6 +146,7 @@ else
     echo "WAYLAND_DISPLAY is set to \"$WAYLAND_DISPLAY\"."
 fi
 
+
 # Enhanced TouchKio is already built with slideshow features!
 echo -e "\nEnhanced TouchKio with slideshow features has been installed successfully."
 echo "All slideshow files are already included in the built package."

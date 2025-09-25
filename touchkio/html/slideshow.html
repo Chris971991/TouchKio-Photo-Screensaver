@@ -1958,25 +1958,24 @@
             // Create menu items
             const menuItems = [
                 {
-                    icon: isVisible ? '👁️' : '👁️‍🗨️',
                     label: isVisible ? 'Hide Element' : 'Show Element',
                     action: () => toggleElementVisibility(elementId)
                 },
-                { icon: '📍', label: 'Position', action: () => showPositionMenu(elementId) },
-                { icon: '📏', label: 'Font Size', action: () => showSizeMenu(elementId) },
-                { icon: '🎨', label: 'Colors', action: () => showColorMenu(elementId) },
-                { icon: '👁️', label: 'Opacity', action: () => showOpacityMenu(elementId) },
-                { icon: '🎭', label: 'Background', action: () => showBackgroundMenu(elementId) }
+                { label: 'Position', action: () => showPositionMenu(elementId) },
+                { label: 'Font Size', action: () => showSizeMenu(elementId) },
+                { label: 'Colors', action: () => showColorMenu(elementId) },
+                { label: 'Opacity', action: () => showOpacityMenu(elementId) },
+                { label: 'Background', action: () => showBackgroundMenu(elementId) }
             ];
 
             // Add clock-specific format option
             if (elementId === 'clock') {
-                menuItems.splice(2, 0, { icon: '🕐', label: 'Time Format', action: () => showTimeFormatMenu(elementId) });
+                menuItems.splice(2, 0, { label: 'Time Format', action: () => showTimeFormatMenu(elementId) });
             }
 
             // Add date-specific format option
             if (elementId === 'date') {
-                menuItems.splice(2, 0, { icon: '📅', label: 'Date Format', action: () => showDateFormatMenu(elementId) });
+                menuItems.splice(2, 0, { label: 'Date Format', action: () => showDateFormatMenu(elementId) });
             }
 
             menuItems.forEach(item => {
@@ -1991,7 +1990,6 @@
                 `;
 
                 menuItem.innerHTML = `
-                    <span style="font-size: 16px;">${item.icon}</span>
                     <span>${item.label}</span>
                 `;
 
@@ -2065,7 +2063,7 @@
             `;
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">📍 Position - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">▣ Position - ${elementId}</div>
 
                 <!-- Corner Presets -->
                 <div style="margin-bottom: 16px;">
@@ -2547,16 +2545,16 @@
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 margin-bottom: 4px;
             `;
-            header.textContent = '🎨 Manage Elements';
+            header.textContent = 'Manage Elements';
             menu.appendChild(header);
 
             // Define all elements
             const elementList = [
-                { id: 'clock', name: '🕐 Clock', property: 'showClock' },
-                { id: 'date', name: '📅 Date', property: 'showDate' },
-                { id: 'counter', name: '🔢 Photo Counter', property: 'showPhotoCounter' },
-                { id: 'source', name: '📍 Source Indicator', property: 'showSourceIndicator' },
-                { id: 'metadataOverlay', name: '📷 Metadata', property: 'showMetadata' }
+                { id: 'clock', name: 'Clock', property: 'showClock' },
+                { id: 'date', name: 'Date', property: 'showDate' },
+                { id: 'counter', name: 'Photo Counter', property: 'showPhotoCounter' },
+                { id: 'source', name: 'Source Indicator', property: 'showSourceIndicator' },
+                { id: 'metadataOverlay', name: 'Metadata', property: 'showMetadata' }
             ];
 
             // Create toggle for each element
@@ -2623,7 +2621,7 @@
             `;
 
             googlePhotosItem.innerHTML = `
-                <span>📂 Photo Sources</span>
+                <span>Photo Sources</span>
                 <span style="
                     color: rgba(255, 255, 255, 0.6);
                     font-size: 12px;
@@ -2657,7 +2655,7 @@
             `;
 
             photoSettingsItem.innerHTML = `
-                <span>⚙️ Photo Settings</span>
+                <span>Photo Settings</span>
                 <span style="
                     color: rgba(255, 255, 255, 0.6);
                     font-size: 12px;
@@ -2736,7 +2734,7 @@
 
             dialog.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h3 style="margin: 0; font-size: 22px; font-weight: 700;">📂 Photo Sources</h3>
+                    <h3 style="margin: 0; font-size: 22px; font-weight: 700;">Photo Sources</h3>
                     <button id="close-google-config" style="
                         background: rgba(255, 255, 255, 0.1);
                         border: none;
@@ -2859,7 +2857,7 @@
                         transition: all 0.2s ease;
                         box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
                     " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(76, 175, 80, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(76, 175, 80, 0.3)'">
-                        💾 Save Settings
+                        Save Settings
                     </button>
                 </div>
             `;
@@ -2980,7 +2978,7 @@
 
             // Show success message with additional context if source changed
             if (sourceChanged) {
-                showNotification('📷 Photo source changed! Reloading slideshow to show new photos immediately.', 'success');
+                showNotification('⚠ Photo source changed! Reloading slideshow to show new photos immediately.', 'success');
 
                 // Send immediate IPC message to reload photos
                 if (typeof ipcRenderer !== 'undefined') {
@@ -2989,7 +2987,7 @@
                     }, 500); // Small delay to ensure settings are saved first
                 }
             } else {
-                showNotification('📷 Google Photos settings saved! Remember to save all changes when done.', 'success');
+                showNotification('⚠ Google Photos settings saved! Remember to save all changes when done.', 'success');
             }
         }
 
@@ -3076,7 +3074,7 @@
 
             dialog.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h3 style="margin: 0; font-size: 22px; font-weight: 700;">⚙️ Photo Settings</h3>
+                    <h3 style="margin: 0; font-size: 22px; font-weight: 700;">Photo Settings</h3>
                     <button id="close-photo-settings" style="
                         background: rgba(255, 255, 255, 0.1);
                         border: none;
@@ -3145,7 +3143,7 @@
                 <!-- Display Options Section -->
                 <div style="margin-bottom: 28px;">
                     <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
-                        🖼️ Display Options
+                        Display Options
                     </h4>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -3298,7 +3296,7 @@
                         transition: all 0.2s ease;
                         box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
                     " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(76, 175, 80, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(76, 175, 80, 0.3)'">
-                        💾 Save Settings
+                        Save Settings
                     </button>
                 </div>
             `;
@@ -3401,7 +3399,7 @@
             document.getElementById('photo-settings-config').remove();
 
             // Show success message
-            showNotification('⚙️ Photo settings saved! Remember to save all changes when done.', 'success');
+            showNotification('⚠ Photo settings saved! Remember to save all changes when done.', 'success');
         }
 
         function getGoogleAlbumsCount() {
@@ -3430,7 +3428,7 @@
                     googleBtn.onmouseleave = () => googleBtn.style.background = 'rgba(231,76,60,0.1)';
                 } else {
                     // No albums - show enable option
-                    googleBtn.innerHTML = '✅ Enable Google Photos';
+                    googleBtn.innerHTML = '☁ Enable Google Photos';
                     googleBtn.style.border = '1px solid rgba(46, 204, 113, 0.4)';
                     googleBtn.style.background = 'rgba(46, 204, 113, 0.1)';
                     googleBtn.style.color = 'rgba(46, 204, 113, 0.9)';
@@ -4043,7 +4041,7 @@
             const currentBgOpacity = getCurrentElementBgOpacity(elementId);
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">👁️ Opacity - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">🔘 Opacity - ${elementId}</div>
 
                 <!-- Text Opacity -->
                 <div style="margin-bottom: 16px;">
@@ -4784,7 +4782,7 @@
             popup.id = 'change-warning-popup';
             popup.innerHTML = `
                 <div class="warning-content">
-                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-icon">⚠</div>
                     <div class="warning-text">
                         <h3>Many Changes Pending</h3>
                         <p>${changeCount} changes made. Consider saving soon to avoid losing work.</p>
@@ -4905,7 +4903,7 @@
                     config[property] = value;
                     console.log(`🔧 CONFIG UPDATED: Applied config['${property}'] = '${value}'`);
                     if (property.includes('counter')) {
-                        console.log(`    ⚠️ Counter property detected: ${property}`);
+                        console.log(`    ⚠ Counter property detected: ${property}`);
                     }
                 });
             });
@@ -4938,10 +4936,10 @@
                         mqttKey = `slideshow_${mqttElementId}_position`;
                     } else if (property.includes('CustomX')) {
                         mqttKey = `slideshow_${mqttElementId}_custom_x`;
-                        console.log(`    📍 Mapping CustomX: ${property} -> ${mqttKey}`);
+                        console.log(`    [+] Mapping CustomX: ${property} -> ${mqttKey}`);
                     } else if (property.includes('CustomY')) {
                         mqttKey = `slideshow_${mqttElementId}_custom_y`;
-                        console.log(`    📍 Mapping CustomY: ${property} -> ${mqttKey}`);
+                        console.log(`    [+] Mapping CustomY: ${property} -> ${mqttKey}`);
                     } else if (property.includes('CustomFontSize')) {
                         mqttKey = `slideshow_${mqttElementId}_custom_font_size`;
                     } else if (property.includes('Color') && !property.includes('Background')) {
@@ -5023,7 +5021,7 @@
                     // Show success feedback and exit editor mode
                     const statusElement = document.getElementById('editor-status');
                     if (statusElement) {
-                        statusElement.textContent = `✅ ${changeCount} change${changeCount === 1 ? '' : 's'} saved to MQTT!`;
+                        statusElement.textContent = `✓ ${changeCount} change${changeCount === 1 ? '' : 's'} saved to MQTT!`;
                         statusElement.style.color = '#46cc71';
 
                         setTimeout(() => {
