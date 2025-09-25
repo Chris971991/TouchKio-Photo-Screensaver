@@ -695,8 +695,12 @@
 
         /* Adaptive quality settings */
         .quality-low * {
-            filter: none !important; /* Disable all blur effects */
             transition-duration: 0.3s !important; /* Faster transitions */
+        }
+
+        /* Preserve background blur even in low quality mode */
+        .quality-low .photo-background {
+            filter: blur(20px) brightness(0.3) !important;
         }
 
         .quality-low .animate-iphone-in,
