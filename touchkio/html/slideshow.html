@@ -1255,7 +1255,7 @@
 
             // Show/hide location (GPS coordinates)
             if (config.showLocation && metadata.location) {
-                elements.metadataLocation.textContent = `📍 ${metadata.location.formatted}`;
+                elements.metadataLocation.textContent = `${metadata.location.formatted}`;
                 elements.metadataLocation.style.display = 'block';
                 hasContent = true;
             } else {
@@ -1865,7 +1865,7 @@
                         propNamePos = `${elementId}Position`;
                     }
 
-                    console.log(`🔍 DEBUG: Adding pending changes for ${elementId}:`);
+                    console.log(`[DEBUG] Adding pending changes for ${elementId}:`);
                     console.log(`  Property names: X='${propNameX}', Y='${propNameY}', Pos='${propNamePos}'`);
                     console.log(`  Values: X='${finalPos.x}px', Y='${finalPos.y}px', Pos='custom'`);
 
@@ -1873,8 +1873,8 @@
                     addPendingChange(elementId, propNameY, finalPos.y + 'px');
                     addPendingChange(elementId, propNamePos, 'custom');
 
-                    console.log(`🎯 DRAG COMPLETE: Dragged ${elementId} to (${finalPos.x}, ${finalPos.y})`);
-                    console.log(`🎯 PENDING CHANGES ADDED:`, pendingChanges);
+                    console.log(`[DRAG] Dragged ${elementId} to (${finalPos.x}, ${finalPos.y})`);
+                    console.log(`[PENDING] Changes added:`, pendingChanges);
                 }
             }
 
@@ -2063,7 +2063,7 @@
             `;
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">▣ Position - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">Position - ${elementId}</div>
 
                 <!-- Corner Presets -->
                 <div style="margin-bottom: 16px;">
@@ -2289,7 +2289,7 @@
             const currentSize = getCurrentElementFontSize(elementId);
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">📏 Font Size - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">Font Size - ${elementId}</div>
 
                 <!-- Size Presets -->
                 <div style="margin-bottom: 16px;">
@@ -2754,7 +2754,7 @@
                 <!-- Local Photos Path Section -->
                 <div style="margin-bottom: 32px;">
                     <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
-                        📁 Local Photos Directory
+                        Local Photos Directory
                     </h4>
                     <p style="margin: 0 0 12px 0; font-size: 14px; color: rgba(255, 255, 255, 0.7);">
                         Path to local photos folder on your Pi (e.g., /home/pi/Photos)
@@ -2775,7 +2775,7 @@
                 <!-- Google Albums Section -->
                 <div style="margin-bottom: 32px;">
                     <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
-                        🔗 Online Albums
+                        Online Albums
                     </h4>
                     <p style="margin: 0 0 16px 0; font-size: 14px; color: rgba(255, 255, 255, 0.7);">
                         Paste sharing links from Google Photos albums. Leave empty to use local photos only.
@@ -2807,7 +2807,7 @@
                 <!-- Quick Actions -->
                 <div style="margin-bottom: 24px;">
                     <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
-                        ⚡ Quick Actions
+                        Quick Actions
                     </h4>
                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                         <button id="toggle-google-photos" style="
@@ -2978,7 +2978,7 @@
 
             // Show success message with additional context if source changed
             if (sourceChanged) {
-                showNotification('⚠ Photo source changed! Reloading slideshow to show new photos immediately.', 'success');
+                showNotification('Photo source changed! Reloading slideshow to show new photos immediately.', 'success');
 
                 // Send immediate IPC message to reload photos
                 if (typeof ipcRenderer !== 'undefined') {
@@ -2987,7 +2987,7 @@
                     }, 500); // Small delay to ensure settings are saved first
                 }
             } else {
-                showNotification('⚠ Google Photos settings saved! Remember to save all changes when done.', 'success');
+                showNotification('Google Photos settings saved! Remember to save all changes when done.', 'success');
             }
         }
 
@@ -3094,7 +3094,7 @@
                 <!-- Slideshow Behavior Section -->
                 <div style="margin-bottom: 28px;">
                     <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
-                        🎬 Slideshow Behavior
+                        Slideshow Behavior
                     </h4>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -3209,7 +3209,7 @@
                 <!-- Performance Section -->
                 <div style="margin-bottom: 28px;">
                     <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
-                        ⚡ Performance
+                        Performance
                     </h4>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -3399,7 +3399,7 @@
             document.getElementById('photo-settings-config').remove();
 
             // Show success message
-            showNotification('⚠ Photo settings saved! Remember to save all changes when done.', 'success');
+            showNotification('Photo settings saved! Remember to save all changes when done.', 'success');
         }
 
         function getGoogleAlbumsCount() {
@@ -3420,7 +3420,7 @@
             if (googleBtn) {
                 if (hasGoogleAlbums) {
                     // Has albums - show disable option
-                    googleBtn.innerHTML = '🚫 Disable Google Photos';
+                    googleBtn.innerHTML = 'Disable Google Photos';
                     googleBtn.style.border = '1px solid rgba(231, 76, 60, 0.4)';
                     googleBtn.style.background = 'rgba(231, 76, 60, 0.1)';
                     googleBtn.style.color = 'rgba(231, 76, 60, 0.9)';
@@ -3428,7 +3428,7 @@
                     googleBtn.onmouseleave = () => googleBtn.style.background = 'rgba(231,76,60,0.1)';
                 } else {
                     // No albums - show enable option
-                    googleBtn.innerHTML = '☁ Enable Google Photos';
+                    googleBtn.innerHTML = 'Enable Google Photos';
                     googleBtn.style.border = '1px solid rgba(46, 204, 113, 0.4)';
                     googleBtn.style.background = 'rgba(46, 204, 113, 0.1)';
                     googleBtn.style.color = 'rgba(46, 204, 113, 0.9)';
@@ -3442,7 +3442,7 @@
             if (localBtn) {
                 if (hasLocalPath && !hasGoogleAlbums) {
                     // Local only mode active - show disable
-                    localBtn.innerHTML = '🚫 Disable Local Only';
+                    localBtn.innerHTML = 'Disable Local Only';
                     localBtn.style.border = '1px solid rgba(231, 76, 60, 0.4)';
                     localBtn.style.background = 'rgba(231, 76, 60, 0.1)';
                     localBtn.style.color = 'rgba(231, 76, 60, 0.9)';
@@ -3450,7 +3450,7 @@
                     localBtn.onmouseleave = () => localBtn.style.background = 'rgba(231,76,60,0.1)';
                 } else {
                     // Not in local only mode - show enable
-                    localBtn.innerHTML = '📁 Local Photos Only';
+                    localBtn.innerHTML = 'Local Photos Only';
                     localBtn.style.border = '1px solid rgba(52, 152, 219, 0.4)';
                     localBtn.style.background = 'rgba(52, 152, 219, 0.1)';
                     localBtn.style.color = 'rgba(52, 152, 219, 0.9)';
@@ -3497,7 +3497,7 @@
             `;
 
             menu.innerHTML = `
-                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">🕐 Time Format</h3>
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Time Format</h3>
 
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
                     <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease;" class="format-option" data-format="12hour">
@@ -3518,7 +3518,7 @@
                 </div>
 
                 <div id="ampm-options" style="margin-bottom: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: ${currentFormat === '12hour' ? 'block' : 'none'};">
-                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">🅰️ AM/PM Options</h4>
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">AM/PM Options</h4>
 
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <div>
@@ -3542,7 +3542,7 @@
                 </div>
 
                 <div style="margin-bottom: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">⚖️ Text Alignment</h4>
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">Text Alignment</h4>
 
                     <div>
                         <label style="display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Alignment:</label>
@@ -3713,10 +3713,10 @@
             `;
 
             menu.innerHTML = `
-                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">📅 Date Format</h3>
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Date Format</h3>
 
                 <div style="margin-bottom: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">⚖️ Text Alignment</h4>
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">Text Alignment</h4>
                     <p style="margin: 0 0 15px 0; font-size: 12px; color: rgba(255,255,255,0.6);">Choose alignment to prevent date from shifting when content length changes.</p>
 
                     <div>
@@ -3818,7 +3818,7 @@
             const currentBgColor = getCurrentElementBgColor(elementId);
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">🎨 Colors - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">Colors - ${elementId}</div>
 
                 <!-- Text Color -->
                 <div style="margin-bottom: 16px;">
@@ -4041,7 +4041,7 @@
             const currentBgOpacity = getCurrentElementBgOpacity(elementId);
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">🔘 Opacity - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">Opacity - ${elementId}</div>
 
                 <!-- Text Opacity -->
                 <div style="margin-bottom: 16px;">
@@ -4260,7 +4260,7 @@
             const backgroundEnabled = currentBackground !== 'none';
 
             menu.innerHTML = `
-                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">🎭 Background - ${elementId}</div>
+                <div style="margin-bottom: 16px; font-weight: 600; color: #4A90E2;">Background - ${elementId}</div>
 
                 <!-- Background Enable -->
                 <div style="margin-bottom: 16px;">
@@ -4782,7 +4782,7 @@
             popup.id = 'change-warning-popup';
             popup.innerHTML = `
                 <div class="warning-content">
-                    <div class="warning-icon">⚠</div>
+                    <div class="warning-icon">!</div>
                     <div class="warning-text">
                         <h3>Many Changes Pending</h3>
                         <p>${changeCount} changes made. Consider saving soon to avoid losing work.</p>
@@ -4873,7 +4873,7 @@
         }
 
         function saveAllChanges() {
-            console.log('🚀 SAVE STARTED: saveAllChanges function called!');
+            console.log('[SAVE] saveAllChanges function called!');
 
             // Check for too many changes that could cause performance issues
             const changeCount = Object.keys(pendingChanges).length;
@@ -4892,7 +4892,7 @@
             console.log('Saving all pending changes:', pendingChanges);
 
             // Apply all changes directly to config
-            console.log('🔍 DEBUG: Applying pending changes to config');
+            console.log('[DEBUG] Applying pending changes to config');
             console.log('  Current config.counterCustomX:', config.counterCustomX);
             console.log('  Current config.counterCustomY:', config.counterCustomY);
 
@@ -4901,9 +4901,9 @@
                 Object.entries(changes).forEach(([property, value]) => {
                     // Apply change to config
                     config[property] = value;
-                    console.log(`🔧 CONFIG UPDATED: Applied config['${property}'] = '${value}'`);
+                    console.log(`[*] CONFIG UPDATED: Applied config['${property}'] = '${value}'`);
                     if (property.includes('counter')) {
-                        console.log(`    ⚠ Counter property detected: ${property}`);
+                        console.log(`    [!] Counter property detected: ${property}`);
                     }
                 });
             });
@@ -5021,7 +5021,7 @@
                     // Show success feedback and exit editor mode
                     const statusElement = document.getElementById('editor-status');
                     if (statusElement) {
-                        statusElement.textContent = `✓ ${changeCount} change${changeCount === 1 ? '' : 's'} saved to MQTT!`;
+                        statusElement.textContent = `${changeCount} change${changeCount === 1 ? '' : 's'} saved to MQTT!`;
                         statusElement.style.color = '#46cc71';
 
                         setTimeout(() => {
@@ -5036,7 +5036,7 @@
                     console.error('Error sending IPC message:', error);
                     const statusElement = document.getElementById('editor-status');
                     if (statusElement) {
-                        statusElement.textContent = `❌ Failed to save changes - IPC error`;
+                        statusElement.textContent = `Failed to save changes - IPC error`;
                         statusElement.style.color = '#ff4757';
                     }
                     // Don't clear changes or exit if send failed
@@ -5228,7 +5228,7 @@
                                             cursor: pointer;
                                             opacity: 0.5;
                                             transition: all 0.2s ease;
-                                        " disabled>💾 Save Changes</button>
+                                        " disabled>Save Changes</button>
                                         <button id="discard-changes-btn" style="
                                             background: rgba(231, 76, 60, 0.9);
                                             color: white;
@@ -5239,7 +5239,7 @@
                                             font-weight: 500;
                                             cursor: pointer;
                                             transition: all 0.2s ease;
-                                        ">🗑️ Discard & Exit</button>
+                                        ">Discard & Exit</button>
                                     </div>
                                 </div>
                             `;
@@ -7028,7 +7028,7 @@
             // Log metrics to console
             logMetrics() {
                 const metrics = this.getMetrics();
-                console.log('📊 Performance Metrics:', {
+                console.log('[PERF] Performance Metrics:', {
                     FPS: metrics.frameRate,
                     'Avg Frame Time': metrics.averageFrameTime + 'ms',
                     'Memory (MB)': metrics.memoryUsage,
@@ -7040,13 +7040,13 @@
             // Enable debug mode with detailed logging
             enableDebugMode() {
                 this.debugMode = true;
-                console.log('🔍 Performance debug mode enabled');
+                console.log('[PERF] Performance debug mode enabled');
             }
 
             // Disable debug mode
             disableDebugMode() {
                 this.debugMode = false;
-                console.log('🔍 Performance debug mode disabled');
+                console.log('[PERF] Performance debug mode disabled');
             }
 
             // Generate performance report
@@ -7073,7 +7073,7 @@
                     }
                 };
 
-                console.log('📈 Performance Report:', report);
+                console.log('[PERF] Performance Report:', report);
                 return report;
             }
         }
