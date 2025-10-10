@@ -85,7 +85,7 @@ mkdir -p "$(dirname "$SERVICE_FILE")" || { echo "Failed to create directory for 
 
 SERVICE_CONTENT="[Unit]
 Description=TouchKio
-After=graphical-session.target
+After=graphical-session.target network-online.target
 Wants=network-online.target
 
 [Service]
