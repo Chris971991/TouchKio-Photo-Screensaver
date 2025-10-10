@@ -1912,27 +1912,92 @@
                 showContextMenu(elementId, e.clientX, e.clientY);
             });
 
-            // Touch and hold for mobile (500ms)
+            // Touch and hold for mobile - integrates drag detection
             let touchHoldTimer;
+            let touchStartPos = null;
+            let isDragMode = false;
+            let elementStartPos = null;
+
             element.addEventListener('touchstart', (e) => {
                 if (!config.editorMode) return;
 
+                const touch = e.touches[0];
+                const rect = element.getBoundingClientRect();
+
+                touchStartPos = { x: touch.clientX, y: touch.clientY };
+                elementStartPos = { x: rect.left, y: rect.top };
+                isDragMode = false;
+
+                // Start timer for context menu
                 touchHoldTimer = setTimeout(() => {
-                    const touch = e.touches[0];
-                    e.preventDefault();
-                    e.stopPropagation(); // Stop event from bubbling to global handler
-                    showContextMenu(elementId, touch.clientX, touch.clientY);
-                    // Add haptic feedback if available
-                    if (navigator.vibrate) navigator.vibrate(50);
+                    // Only show context menu if we haven't started dragging
+                    if (!isDragMode) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showContextMenu(elementId, touch.clientX, touch.clientY);
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }
                 }, 500);
             });
 
             element.addEventListener('touchend', () => {
+                if (isDragMode) {
+                    // Save final position when drag ends
+                    const finalX = parseInt(element.style.left);
+                    const finalY = parseInt(element.style.top);
+
+                    // Determine property names based on element
+                    let propNameX, propNameY, propNamePos;
+                    if (elementId === 'metadataOverlay') {
+                        propNameX = 'metadataCustomX';
+                        propNameY = 'metadataCustomY';
+                        propNamePos = 'metadataPosition';
+                    } else {
+                        propNameX = `${elementId}CustomX`;
+                        propNameY = `${elementId}CustomY`;
+                        propNamePos = `${elementId}Position`;
+                    }
+
+                    addPendingChange(elementId, propNameX, finalX + 'px');
+                    addPendingChange(elementId, propNameY, finalY + 'px');
+                    addPendingChange(elementId, propNamePos, 'custom');
+
+                    console.log(`Touch drag ended for ${elementId} at (${finalX}, ${finalY})`);
+                }
+
                 clearTimeout(touchHoldTimer);
+                touchStartPos = null;
+                elementStartPos = null;
+                isDragMode = false;
             });
 
-            element.addEventListener('touchmove', () => {
-                clearTimeout(touchHoldTimer);
+            element.addEventListener('touchmove', (e) => {
+                if (!touchStartPos) return;
+
+                const touch = e.touches[0];
+                const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+                const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+
+                // If movement exceeds threshold, switch to drag mode
+                if (deltaX > 5 || deltaY > 5) {
+                    if (!isDragMode) {
+                        isDragMode = true;
+                        clearTimeout(touchHoldTimer);
+                        console.log(`Started touch dragging ${elementId}`);
+                    }
+
+                    // Perform the drag
+                    e.preventDefault();
+                    const newX = elementStartPos.x + (touch.clientX - touchStartPos.x);
+                    const newY = elementStartPos.y + (touch.clientY - touchStartPos.y);
+
+                    element.style.position = 'fixed';
+                    element.style.left = newX + 'px';
+                    element.style.top = newY + 'px';
+                    element.style.right = 'auto';
+                    element.style.bottom = 'auto';
+                    element.style.transform = 'none';
+                }
             });
 
             // Hover effect for editor mode
@@ -5719,10 +5784,14 @@
         let touchTimer = null;
         let activityDelayTimer = null;
         let touchActive = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchMoved = false;
         let longPressDuration = 3000; // Default 3 seconds, adjustable via config
         let touchIndicator = null;
         let touchAnimationFrame = null;
         const ACTIVITY_DELAY = 150; // Delay activity detection to check for long press
+        const MOVE_THRESHOLD = 10; // Pixels of movement to cancel long press
 
         // Create touch indicator - bright white ring only
         const createTouchIndicator = () => {
@@ -5785,12 +5854,22 @@
 
         // Handle touch start - begin long press detection
         document.addEventListener('touchstart', (e) => {
+            // Don't intercept touches in editor mode - let PresetEditor handle them
+            if (config.editorMode) {
+                return;
+            }
+
             console.log('Touch started');
             touchActive = true;
+            touchMoved = false;
             touchStartTime = Date.now();
 
-            // Position and show indicator at touch location
+            // Store initial touch position
             const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+
+            // Position and show indicator at touch location
             touchIndicator.style.left = touch.clientX + 'px';
             touchIndicator.style.top = touch.clientY + 'px';
             touchIndicator.style.display = 'block';
@@ -5808,7 +5887,7 @@
 
             // Set timer for long press detection
             touchTimer = setTimeout(() => {
-                if (touchActive) {
+                if (touchActive && !touchMoved) {
                     console.log('Long press detected - entering editor mode');
                     touchActive = false;
 
@@ -5819,6 +5898,39 @@
                     });
                 }
             }, longPressDuration);
+        }, true);
+
+        // Handle touch move - detect if touch moved (cancel long press)
+        document.addEventListener('touchmove', (e) => {
+            // Don't intercept touches in editor mode - let PresetEditor handle them
+            if (config.editorMode) {
+                return;
+            }
+
+            if (!touchActive) return;
+
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchStartX);
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+
+            // If touch moved beyond threshold, cancel long press
+            if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+                console.log('Touch moved - cancelling long press');
+                touchMoved = true;
+
+                // Hide indicator
+                touchIndicator.style.display = 'none';
+                if (touchAnimationFrame) {
+                    cancelAnimationFrame(touchAnimationFrame);
+                    touchAnimationFrame = null;
+                }
+
+                // Clear timer
+                if (touchTimer) {
+                    clearTimeout(touchTimer);
+                    touchTimer = null;
+                }
+            }
         }, true);
 
         // Handle touch end - check if it was a short tap or long press
@@ -7473,6 +7585,9 @@
                 this.handleMouseMove = this.handleMouseMove.bind(this);
                 this.handleMouseUp = this.handleMouseUp.bind(this);
                 this.handleElementClick = this.handleElementClick.bind(this);
+                this.handleTouchStart = this.handleTouchStart.bind(this);
+                this.handleTouchMove = this.handleTouchMove.bind(this);
+                this.handleTouchEnd = this.handleTouchEnd.bind(this);
             }
 
             // Enter editor mode
@@ -7549,30 +7664,44 @@
 
             // Make elements interactive
             makeElementsInteractive() {
+                console.log('makeElementsInteractive called - adding touch handlers');
                 const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
+                        console.log(`Adding touch handler to ${id}`);
                         element.classList.add('editor-element');
                         element.addEventListener('mousedown', this.handleMouseDown);
+                        element.addEventListener('touchstart', this.handleTouchStart, { passive: false });
                         element.addEventListener('click', this.handleElementClick);
                         element.style.cursor = 'move';
+
+                        // Debug - flash element red to show it was found
+                        element.style.border = '2px solid red';
+                    } else {
+                        console.log(`Element ${id} not found!`);
                     }
                 });
 
                 // Add global mouse listeners
                 document.addEventListener('mousemove', this.handleMouseMove);
                 document.addEventListener('mouseup', this.handleMouseUp);
+
+                // Add global touch listeners
+                document.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+                document.addEventListener('touchend', this.handleTouchEnd);
+                document.addEventListener('touchcancel', this.handleTouchEnd);
             }
 
             // Remove element interactivity
             removeElementInteractivity() {
-                const elements = ['clock', 'date', 'source', 'counter', 'metadata'];
+                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
                         element.classList.remove('editor-element', 'selected');
                         element.removeEventListener('mousedown', this.handleMouseDown);
+                        element.removeEventListener('touchstart', this.handleTouchStart);
                         element.removeEventListener('click', this.handleElementClick);
                         element.style.cursor = 'default';
                     }
@@ -7581,6 +7710,11 @@
                 // Remove global mouse listeners
                 document.removeEventListener('mousemove', this.handleMouseMove);
                 document.removeEventListener('mouseup', this.handleMouseUp);
+
+                // Remove global touch listeners
+                document.removeEventListener('touchmove', this.handleTouchMove);
+                document.removeEventListener('touchend', this.handleTouchEnd);
+                document.removeEventListener('touchcancel', this.handleTouchEnd);
             }
 
             // Handle element click for selection
@@ -7658,6 +7792,114 @@
                 this.updatePositionFinal(this.selectedElement.id, finalX, finalY);
 
                 console.log(`Finished dragging ${this.selectedElement.id} to (${finalX}, ${finalY})`);
+            }
+
+            // Touch event handlers
+            handleTouchStart(e) {
+                // Debug - flash screen green to show touchstart is called
+                document.body.style.backgroundColor = 'green';
+                setTimeout(() => { document.body.style.backgroundColor = 'transparent'; }, 200);
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const touch = e.touches[0];
+
+                // Don't set dragging to true yet - wait for movement
+                this.touchPending = true;
+                this.selectedElement = e.currentTarget;
+
+                // Get current position from computed style or getBoundingClientRect
+                const rect = this.selectedElement.getBoundingClientRect();
+
+                // Store initial positions
+                this.dragStartPos = { x: touch.clientX, y: touch.clientY };
+                this.elementStartPos = {
+                    x: rect.left,
+                    y: rect.top
+                };
+
+                console.log(`Touch started on ${this.selectedElement.id}`);
+            }
+
+            handleTouchMove(e) {
+                // Debug - flash screen to show this is being called
+                document.body.style.backgroundColor = 'blue';
+                setTimeout(() => { document.body.style.backgroundColor = 'transparent'; }, 100);
+
+                if (!this.selectedElement) return;
+
+                e.preventDefault();
+                const touch = e.touches[0];
+
+                // If not yet dragging, check if we've moved enough to start
+                if (this.touchPending && !this.isDragging) {
+                    const deltaX = Math.abs(touch.clientX - this.dragStartPos.x);
+                    const deltaY = Math.abs(touch.clientY - this.dragStartPos.y);
+
+                    if (deltaX > 5 || deltaY > 5) {
+                        // Movement detected - start dragging
+                        this.isDragging = true;
+                        this.touchPending = false;
+                        this.selectedElement.classList.add('dragging');
+                        console.log(`Started dragging ${this.selectedElement.id}`);
+                    } else {
+                        // Not enough movement yet
+                        return;
+                    }
+                }
+
+                if (!this.isDragging) return;
+
+                // Calculate new position
+                let newX = this.elementStartPos.x + (touch.clientX - this.dragStartPos.x);
+                let newY = this.elementStartPos.y + (touch.clientY - this.dragStartPos.y);
+
+                // Apply grid snapping if enabled
+                if (this.snapToGrid) {
+                    newX = Math.round(newX / this.gridSize) * this.gridSize;
+                    newY = Math.round(newY / this.gridSize) * this.gridSize;
+                }
+
+                // Apply boundary constraints
+                newX = Math.max(0, Math.min(newX, window.innerWidth - this.selectedElement.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - this.selectedElement.offsetHeight));
+
+                // Apply new position - clear all conflicting CSS first
+                this.selectedElement.style.position = 'fixed';
+                this.selectedElement.style.left = newX + 'px';
+                this.selectedElement.style.top = newY + 'px';
+                this.selectedElement.style.right = 'auto';
+                this.selectedElement.style.bottom = 'auto';
+                this.selectedElement.style.transform = 'none';
+
+                // Debug - flash background to show it's working
+                this.selectedElement.style.backgroundColor = 'rgba(255,0,0,0.3)';
+
+                console.log(`Touch moving element to (${newX}, ${newY})`);
+
+                // Debounced MQTT update
+                this.updatePositionDebounced(this.selectedElement.id, newX, newY);
+            }
+
+            handleTouchEnd(e) {
+                if (!this.selectedElement) return;
+
+                if (this.isDragging) {
+                    this.isDragging = false;
+                    this.selectedElement.classList.remove('dragging');
+
+                    // Send final position to MQTT
+                    const finalX = parseInt(this.selectedElement.style.left);
+                    const finalY = parseInt(this.selectedElement.style.top);
+                    this.updatePositionFinal(this.selectedElement.id, finalX, finalY);
+
+                    console.log(`Finished touch dragging ${this.selectedElement.id} to (${finalX}, ${finalY})`);
+                }
+
+                // Reset touch state
+                this.touchPending = false;
+                this.selectedElement = null;
             }
 
             // Debounced position update for smooth dragging
