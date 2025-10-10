@@ -5378,6 +5378,12 @@
             if (data.config) {
                 config = data.config;
 
+                // Update long press duration if provided in initial config
+                if (config.editorLongPressDuration !== undefined) {
+                    longPressDuration = parseInt(config.editorLongPressDuration);
+                    console.log('Loaded long press duration from config:', longPressDuration, 'ms');
+                }
+
                 // Handle editor mode - simple immediate activation for testing
                 if (config.editorMode !== undefined) {
                     console.log('Editor mode config received:', config.editorMode);
@@ -5708,16 +5714,176 @@
             console.log('Activity detection enabled');
         }, 1000); // Wait 1 second before enabling
 
+        // Touch-and-hold detection for editor mode
+        let touchStartTime = 0;
+        let touchTimer = null;
+        let activityDelayTimer = null;
+        let touchActive = false;
+        let longPressDuration = 3000; // Default 3 seconds, adjustable via config
+        let touchIndicator = null;
+        let touchAnimationFrame = null;
+        const ACTIVITY_DELAY = 150; // Delay activity detection to check for long press
+
+        // Create touch indicator - bright white ring only
+        const createTouchIndicator = () => {
+            const ring = document.createElement('div');
+            ring.style.cssText = `
+                position: fixed;
+                border: 8px solid white;
+                background: transparent;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 99999;
+                display: none;
+                transform: translate(-50%, -50%);
+                box-shadow: 0 0 40px rgba(255, 255, 255, 1);
+            `;
+            document.body.appendChild(ring);
+            return ring;
+        };
+
+        touchIndicator = createTouchIndicator();
+
         // Aggressive event capture for VNC and remote clicks
         const triggerUserActivity = () => {
-            if (window.activityDetectionEnabled) {
+            if (window.activityDetectionEnabled && !touchActive) {
                 console.log('User activity detected in slideshow');
                 ipcRenderer.send('slideshow-user-activity');
             }
         };
 
-        // Capture clicks on all elements
-        document.addEventListener('click', triggerUserActivity, true);
+        // Delayed activity trigger - waits to see if it's a long press first
+        const triggerUserActivityDelayed = () => {
+            if (activityDelayTimer) {
+                clearTimeout(activityDelayTimer);
+            }
+
+            activityDelayTimer = setTimeout(() => {
+                if (!touchActive && window.activityDetectionEnabled) {
+                    console.log('User activity detected in slideshow (delayed)');
+                    ipcRenderer.send('slideshow-user-activity');
+                }
+            }, ACTIVITY_DELAY);
+        };
+
+        // Animate touch indicator
+        const animateTouchIndicator = () => {
+            if (!touchActive) return;
+
+            const elapsed = Date.now() - touchStartTime;
+            const progress = Math.min(elapsed / longPressDuration, 1);
+            const size = 50 + (progress * 150); // Grow from 50px to 200px (so it's visible around finger)
+
+            touchIndicator.style.width = size + 'px';
+            touchIndicator.style.height = size + 'px';
+            // Ring stays solid white with full opacity - no animation needed
+
+            if (progress < 1) {
+                touchAnimationFrame = requestAnimationFrame(animateTouchIndicator);
+            }
+        };
+
+        // Handle touch start - begin long press detection
+        document.addEventListener('touchstart', (e) => {
+            console.log('Touch started');
+            touchActive = true;
+            touchStartTime = Date.now();
+
+            // Position and show indicator at touch location
+            const touch = e.touches[0];
+            touchIndicator.style.left = touch.clientX + 'px';
+            touchIndicator.style.top = touch.clientY + 'px';
+            touchIndicator.style.display = 'block';
+            touchIndicator.style.width = '0px';
+            touchIndicator.style.height = '0px';
+            touchIndicator.style.opacity = '1'; // Full opacity for bright white ring
+
+            // Start animation
+            if (touchAnimationFrame) cancelAnimationFrame(touchAnimationFrame);
+            touchAnimationFrame = requestAnimationFrame(animateTouchIndicator);
+
+            // Clear any existing timers
+            if (touchTimer) clearTimeout(touchTimer);
+            if (activityDelayTimer) clearTimeout(activityDelayTimer);
+
+            // Set timer for long press detection
+            touchTimer = setTimeout(() => {
+                if (touchActive) {
+                    console.log('Long press detected - entering editor mode');
+                    touchActive = false;
+
+                    // Trigger editor mode via IPC
+                    ipcRenderer.send('update-slideshow-setting', {
+                        key: 'preset_editor_mode',
+                        value: 'true'
+                    });
+                }
+            }, longPressDuration);
+        }, true);
+
+        // Handle touch end - check if it was a short tap or long press
+        document.addEventListener('touchend', (e) => {
+            const duration = Date.now() - touchStartTime;
+            console.log(`Touch ended after ${duration}ms`);
+
+            // Hide and reset indicator
+            touchIndicator.style.display = 'none';
+            if (touchAnimationFrame) {
+                cancelAnimationFrame(touchAnimationFrame);
+                touchAnimationFrame = null;
+            }
+
+            // Clear the long press timer
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+
+            // If it was a short tap, trigger activity detection
+            if (duration < longPressDuration - 100) {
+                console.log('Short tap detected - triggering activity');
+                touchActive = false;
+                if (window.activityDetectionEnabled) {
+                    ipcRenderer.send('slideshow-user-activity');
+                }
+            } else {
+                // Long press - already handled by timer, just reset flag
+                touchActive = false;
+            }
+        }, true);
+
+        // Handle touch cancel
+        document.addEventListener('touchcancel', (e) => {
+            console.log('Touch cancelled');
+            touchActive = false;
+
+            // Hide indicator
+            touchIndicator.style.display = 'none';
+            if (touchAnimationFrame) {
+                cancelAnimationFrame(touchAnimationFrame);
+                touchAnimationFrame = null;
+            }
+
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+            if (activityDelayTimer) {
+                clearTimeout(activityDelayTimer);
+                activityDelayTimer = null;
+            }
+        }, true);
+
+        // Capture clicks on all elements (use delayed for click to allow touch handling)
+        document.addEventListener('click', (e) => {
+            // Skip if this click came from a touch event
+            if (touchActive || Date.now() - touchStartTime < 500) {
+                console.log('Ignoring click - touch in progress');
+                return;
+            }
+            triggerUserActivity();
+        }, true);
+
         document.addEventListener('mousedown', triggerUserActivity, true);
         document.addEventListener('mouseup', triggerUserActivity, true);
 
@@ -5748,11 +5914,6 @@
                 }
             }
         });
-
-        document.addEventListener('touchstart', triggerUserActivity);
-
-        // Also detect clicks on the slideshow container specifically
-        document.querySelector('.slideshow-container').addEventListener('click', triggerUserActivity, true);
 
         window.addEventListener('beforeunload', () => {
             if (clockInterval) {
@@ -6406,6 +6567,12 @@
 
             // Merge new config with existing config
             Object.assign(config, newConfig);
+
+            // Update long press duration if provided
+            if (newConfig.editorLongPressDuration !== undefined) {
+                longPressDuration = parseInt(newConfig.editorLongPressDuration);
+                console.log('Updated long press duration to:', longPressDuration, 'ms');
+            }
 
             // Re-apply source indicator styling if any source option changed
             if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||

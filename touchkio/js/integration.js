@@ -1094,6 +1094,7 @@ const initSlideshow = () => {
 
   // === PRESET EDITOR ===
   initPresetEditorMode();
+  initEditorLongPressDuration();
 
   // === PERFORMANCE SETTINGS ===
   initSlideshowPreloadBufferSize();
@@ -1111,6 +1112,22 @@ const initSlideshow = () => {
   EVENTS.on("slideshowStateChanged", (newState) => {
     console.log(`DEBUG: Received slideshowStateChanged event: ${newState}`);
     updateSlideshow();
+  });
+
+  // Listen for generic slideshow setting updates from IPC
+  EVENTS.on("updateSlideshowSetting", (key, value) => {
+    console.log(`DEBUG: Received updateSlideshowSetting event: ${key} = ${value}`);
+
+    // Handle preset_editor_mode specially
+    if (key === "preset_editor_mode") {
+      console.log("Enabling editor mode via IPC");
+      updateSlideshowSetting("preset_editor_mode", value);
+      slideshow.updateConfig({ editorMode: value === "true" });
+
+      // Publish state to MQTT
+      const root = `${INTEGRATION.root}/preset_editor_mode`;
+      publishState(`${root}/state`, value);
+    }
   });
 };
 
@@ -1246,6 +1263,9 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_google_album_3) savedCustomConfig.googleAlbum3 = ARGS.slideshow_google_album_3;
   if (ARGS.slideshow_google_album_4) savedCustomConfig.googleAlbum4 = ARGS.slideshow_google_album_4;
   if (ARGS.slideshow_google_album_5) savedCustomConfig.googleAlbum5 = ARGS.slideshow_google_album_5;
+
+  // Load editor settings
+  if (ARGS.editor_long_press_duration) savedCustomConfig.editorLongPressDuration = parseInt(ARGS.editor_long_press_duration);
 
   if (Object.keys(savedCustomConfig).length > 0) {
     console.log("Applying saved custom config to slideshow:", savedCustomConfig);
@@ -3045,6 +3065,9 @@ const updateSlideshow = async () => {
   // Metadata custom positioning
   publishState("slideshow_metadata_custom_x", status.config.metadataCustomX || ARGS.slideshow_metadata_custom_x || "");
   publishState("slideshow_metadata_custom_y", status.config.metadataCustomY || ARGS.slideshow_metadata_custom_y || "");
+
+  // Editor settings
+  publishState("editor_long_press_duration", ARGS.editor_long_press_duration || "3000");
 };
 
 /**
@@ -4601,6 +4624,37 @@ const initAnimationEnabled = () => {
         updateSlideshowSetting("slideshow_animation_enabled", animationEnabled);
         slideshow.updateConfig({ animationEnabled: animationEnabled === "true" });
         publishState(config.state_topic, animationEnabled);
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the editor long press duration control.
+ */
+const initEditorLongPressDuration = () => {
+  const root = `${INTEGRATION.root}/editor_long_press_duration`;
+  const config = {
+    name: "Editor Long Press Duration",
+    unique_id: `${INTEGRATION.node}_editor_long_press_duration`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:timer-outline",
+    min: 1000,
+    max: 10000,
+    step: 500,
+    unit_of_measurement: "ms",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const duration = parseInt(message.toString());
+        console.log("Set Editor Long Press Duration:", duration, "ms");
+        updateSlideshowSetting("editor_long_press_duration", duration);
+        slideshow.updateConfig({ editorLongPressDuration: duration });
+        publishState(config.state_topic, duration.toString());
       }
     })
     .subscribe(config.command_topic);

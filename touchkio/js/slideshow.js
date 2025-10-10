@@ -682,6 +682,12 @@ const initSlideshowView = async () => {
       }
     });
 
+    ipcMain.on("update-slideshow-setting", (event, data) => {
+      console.log("Received update-slideshow-setting request:", data);
+      const { key, value } = data;
+      EVENTS.emit("updateSlideshowSetting", key, value);
+    });
+
     ipcMain.on("resume-normal-slideshow-operation", (event) => {
       console.log("Received resume normal slideshow operation request");
 
