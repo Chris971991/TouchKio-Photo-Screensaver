@@ -3169,7 +3169,7 @@
                 photoFit: config.photoFit || 'contain',
                 transitionType: config.transitionType || 'fade',
                 transitionDuration: config.transitionDuration || 2000,
-                idleTimeout: config.idleTimeout || 30,
+                idleTimeout: config.idleTimeout ? parseFloat((config.idleTimeout / 60000).toFixed(1)) : 3,
                 preloadBuffer: config.preloadBufferSize || 20,
                 diskCache: config.diskCacheEnabled !== false,
                 cacheSize: config.diskCacheMaxSize ? Math.round(config.diskCacheMaxSize / 1024 / 1024) : 2048,
@@ -3244,7 +3244,7 @@
                             <label style="display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">
                                 Idle Timeout (minutes)
                             </label>
-                            <input type="number" id="idle-timeout" min="1" max="120" value="${currentSettings.idleTimeout}" style="
+                            <input type="number" id="idle-timeout" min="0.1" max="120" step="0.1" value="${currentSettings.idleTimeout}" style="
                                 width: 100%;
                                 padding: 10px 12px;
                                 border: 1px solid rgba(255, 255, 255, 0.2);
@@ -3698,6 +3698,7 @@
                         mqttKey = 'slideshow_transition_duration';
                         break;
                     case 'idleTimeout':
+                        mqttValue = value; // Already in minutes from input
                         mqttKey = 'slideshow_idle_timeout';
                         break;
                     case 'preloadBuffer':
@@ -5490,6 +5491,26 @@
                         value = value ? 'ON' : 'OFF';
                     } else if (property === 'sourceCircleColor') {
                         mqttKey = `slideshow_source_circle_color`;
+                    } else if (property === 'slideshow_interval') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_random_order') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_photo_fit') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_transition_type') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_transition_duration') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_idle_timeout') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_preload_buffer_size') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_disk_cache_enabled') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_disk_cache_max_size') {
+                        mqttKey = property;
+                    } else if (property === 'slideshow_concurrent_downloads') {
+                        mqttKey = property;
                     }
 
                     if (mqttKey) {
@@ -8475,6 +8496,91 @@
         `;
         document.body.appendChild(testGrid);
         console.log('TEST: Red grid overlay created with z-index 99999');
+    </script>
+
+        <!-- Virtual Keyboard - Compact -->
+        <div id="virtual-keyboard" style="position:fixed;bottom:-160px;left:0;right:0;height:160px;background:rgba(15,15,15,0.98);z-index:999999;padding:15px;border-top:3px solid #4A90E2;transition:bottom 0.3s ease;">
+            <div style="display:flex;flex-direction:column;gap:8px;height:100%;">
+                <!-- Row 1: Numbers + Backspace -->
+                <div style="display:flex;gap:6px;">
+                    <button class="vk-key" data-key="1" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">1</button>
+                    <button class="vk-key" data-key="2" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">2</button>
+                    <button class="vk-key" data-key="3" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">3</button>
+                    <button class="vk-key" data-key="4" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">4</button>
+                    <button class="vk-key" data-key="5" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">5</button>
+                    <button class="vk-key" data-key="6" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">6</button>
+                    <button class="vk-key" data-key="7" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">7</button>
+                    <button class="vk-key" data-key="8" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">8</button>
+                    <button class="vk-key" data-key="9" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">9</button>
+                    <button class="vk-key" data-key="0" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">0</button>
+                    <button class="vk-key" data-key="backspace" style="flex:1.5;height:45px;background:rgba(231,76,60,0.8);border:none;border-radius:6px;color:white;font-size:16px;cursor:pointer;">⌫</button>
+                </div>
+                <!-- Row 2: Letters + Symbols + Units + Done -->
+                <div style="display:flex;gap:6px;">
+                    <button class="vk-key" data-key="a" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:18px;cursor:pointer;">a</button>
+                    <button class="vk-key" data-key="b" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:18px;cursor:pointer;">b</button>
+                    <button class="vk-key" data-key="c" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:18px;cursor:pointer;">c</button>
+                    <button class="vk-key" data-key="d" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:18px;cursor:pointer;">d</button>
+                    <button class="vk-key" data-key="e" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:18px;cursor:pointer;">e</button>
+                    <button class="vk-key" data-key="f" style="flex:1;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:18px;cursor:pointer;">f</button>
+                    <button class="vk-key" data-key="-" style="flex:0.8;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">-</button>
+                    <button class="vk-key" data-key="." style="flex:0.8;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">.</button>
+                    <button class="vk-key" data-key="#" style="flex:0.8;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">#</button>
+                    <button class="vk-key" data-key="%" style="flex:0.8;height:45px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:white;font-size:20px;cursor:pointer;">%</button>
+                    <button class="vk-key" data-key="px" style="flex:1.2;height:45px;background:rgba(52,152,219,0.8);border:none;border-radius:6px;color:white;font-size:16px;cursor:pointer;">px</button>
+                    <button class="vk-key" data-key="vw" style="flex:1.2;height:45px;background:rgba(52,152,219,0.8);border:none;border-radius:6px;color:white;font-size:16px;cursor:pointer;">vw</button>
+                    <button class="vk-key" data-key="vh" style="flex:1.2;height:45px;background:rgba(52,152,219,0.8);border:none;border-radius:6px;color:white;font-size:16px;cursor:pointer;">vh</button>
+                    <button id="vk-done" style="flex:2;height:45px;background:rgba(46,204,113,0.8);border:none;border-radius:6px;color:white;font-size:16px;cursor:pointer;font-weight:600;">Done ✓</button>
+                </div>
+            </div>
+        </div>
+    <script>
+        // Virtual Keyboard Controller
+        (function() {
+            let vkActiveInput = null;
+            const vkeyboard = document.getElementById('virtual-keyboard');
+
+            if (!vkeyboard) {
+                console.error('Virtual keyboard element not found');
+                return;
+            }
+
+            // Keyboard button click handlers
+            document.querySelectorAll('.vk-key').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!vkActiveInput) return;
+                    const key = btn.getAttribute('data-key');
+                    if (key === 'backspace') {
+                        vkActiveInput.value = vkActiveInput.value.slice(0, -1);
+                    } else {
+                        vkActiveInput.value += key;
+                    }
+                    vkActiveInput.focus();
+                });
+            });
+
+            // Done button
+            const doneBtn = document.getElementById('vk-done');
+            if (doneBtn) {
+                doneBtn.addEventListener('click', () => {
+                    vkeyboard.style.bottom = '-400px';
+                    if (vkActiveInput) vkActiveInput.blur();
+                    vkActiveInput = null;
+                });
+            }
+
+            // Show keyboard on text input focus
+            document.addEventListener('focusin', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'text' || e.target.type === 'number') {
+                    vkActiveInput = e.target;
+                    vkeyboard.style.bottom = '0px';
+                    console.log('Virtual keyboard shown for input:', e.target.id || e.target.placeholder);
+                }
+            });
+
+            console.log('Virtual keyboard initialized');
+        })();
     </script>
 </body>
 </html>

@@ -2252,7 +2252,9 @@ const startSlideshowTimer = () => {
 
 const updateConfig = (newConfig) => {
   console.log("slideshow.updateConfig called with:", newConfig);
+  console.log("BEFORE assign - SLIDESHOW.config.editorMode:", SLIDESHOW.config.editorMode);
   Object.assign(SLIDESHOW.config, newConfig);
+  console.log("AFTER assign - SLIDESHOW.config.editorMode:", SLIDESHOW.config.editorMode);
 
   if (SLIDESHOW.active) {
     if (SLIDESHOW.timer) {

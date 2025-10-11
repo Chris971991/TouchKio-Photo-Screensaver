@@ -1271,7 +1271,19 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_google_album_4) savedCustomConfig.googleAlbum4 = ARGS.slideshow_google_album_4;
   if (ARGS.slideshow_google_album_5) savedCustomConfig.googleAlbum5 = ARGS.slideshow_google_album_5;
 
+  // Load timing settings (interval and idle timeout)
+  if (ARGS.slideshow_interval) savedCustomConfig.interval = parseInt(ARGS.slideshow_interval) * 1000; // Convert seconds to ms
+  if (ARGS.slideshow_idle_timeout) savedCustomConfig.idleTimeout = parseFloat(ARGS.slideshow_idle_timeout) * 60000; // Convert minutes to ms
+
+  // Load photo settings
+  if (ARGS.slideshow_photo_fit) savedCustomConfig.photoFit = ARGS.slideshow_photo_fit;
+  if (ARGS.slideshow_random_order) savedCustomConfig.randomOrder = ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true;
+  if (ARGS.slideshow_transition_type) savedCustomConfig.transitionType = ARGS.slideshow_transition_type;
+  if (ARGS.slideshow_transition_duration) savedCustomConfig.transitionDuration = parseInt(ARGS.slideshow_transition_duration);
+
   // Load editor settings
+  // ALWAYS start with editor mode disabled on restart
+  savedCustomConfig.editorMode = false;
   if (ARGS.editor_long_press_duration) savedCustomConfig.editorLongPressDuration = parseInt(ARGS.editor_long_press_duration);
 
   if (Object.keys(savedCustomConfig).length > 0) {
@@ -2932,7 +2944,7 @@ const updateSlideshow = async () => {
 
   // Timing settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_interval", Math.round(status.config.interval / 1000) || ARGS.slideshow_interval || 5);
-  publishState("slideshow_idle_timeout", Math.round(status.config.idleTimeout / 60000) || parseFloat(ARGS.slideshow_idle_timeout) || 3);
+  publishState("slideshow_idle_timeout", parseFloat((status.config.idleTimeout / 60000).toFixed(1)) || parseFloat(ARGS.slideshow_idle_timeout) || 3);
 
   // Photo settings - use ARGS as primary since runtime might lag behind
   publishState("slideshow_random_order", (ARGS.slideshow_random_order === "true" || ARGS.slideshow_random_order === true) ? "ON" : "OFF");
@@ -4904,9 +4916,6 @@ const handleEditorSettingsUpdate = (settings) => {
     console.log(`Updating setting ${key} = ${value}`);
     updateSlideshowSetting(key, value);
 
-    // Also update the slideshow runtime config
-    const configKey = key.replace('slideshow_', '').replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
-    slideshow.updateConfig({ [configKey]: value });
   });
 };
 
