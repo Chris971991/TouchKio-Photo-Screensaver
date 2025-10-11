@@ -2770,6 +2770,40 @@
 
             menu.appendChild(photoSettingsItem);
 
+            // Add Display Controls option
+            const displayControlsItem = document.createElement('div');
+            displayControlsItem.style.cssText = `
+                padding: 12px 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                transition: background-color 0.2s ease;
+            `;
+
+            displayControlsItem.innerHTML = `
+                <span>Display Controls</span>
+                <span style="
+                    color: rgba(255, 255, 255, 0.6);
+                    font-size: 12px;
+                ">Brightness & auto-dim</span>
+            `;
+
+            displayControlsItem.addEventListener('mouseenter', () => {
+                displayControlsItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+
+            displayControlsItem.addEventListener('mouseleave', () => {
+                displayControlsItem.style.backgroundColor = 'transparent';
+            });
+
+            displayControlsItem.addEventListener('click', () => {
+                menu.remove();
+                showDisplayControlsConfiguration();
+            });
+
+            menu.appendChild(displayControlsItem);
+
             document.body.appendChild(menu);
 
             // Close menu when clicking outside
@@ -3398,6 +3432,204 @@
 
             // Add event handlers
             setupPhotoSettingsEventHandlers();
+        }
+
+        // Display Controls Configuration Dialog
+        function showDisplayControlsConfiguration() {
+            console.log('Showing Display Controls configuration dialog');
+
+            // Remove any existing dialog
+            const existingDialog = document.getElementById('display-controls-config');
+            if (existingDialog) existingDialog.remove();
+
+            // Get current values from config
+            const currentBrightness = config.brightness !== undefined ? config.brightness : 50;
+            const autoDimEnabled = config.autoDimEnabled !== undefined ? config.autoDimEnabled : false;
+            const autoDimTimeout = config.autoDimTimeout !== undefined ? config.autoDimTimeout : 0;
+            const autoDimLevel = config.autoDimLevel !== undefined ? config.autoDimLevel : 10;
+            const longPressDuration = config.editorLongPressDuration !== undefined ? config.editorLongPressDuration : 1000;
+
+            // Create dialog
+            const dialog = document.createElement('div');
+            dialog.id = 'display-controls-config';
+            dialog.style.cssText = `
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.98);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 16px;
+                padding: 28px;
+                min-width: 450px;
+                max-width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+                z-index: 10003;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            `;
+
+            dialog.innerHTML = `
+                <h2 style="margin: 0 0 24px 0; font-size: 24px; font-weight: 600;">Display Controls</h2>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 12px; font-weight: 500; font-size: 14px;">
+                        Brightness
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="display-brightness" min="0" max="100" step="5" value="${currentBrightness}"
+                            style="flex: 1; height: 6px; border-radius: 3px; outline: none; background: rgba(255, 255, 255, 0.2);">
+                        <span id="brightness-value" style="min-width: 45px; text-align: right; font-weight: 500;">${currentBrightness}%</span>
+                    </div>
+                </div>
+
+                <div style="height: 1px; background: rgba(255, 255, 255, 0.1); margin: 24px 0;"></div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 12px; font-weight: 500; font-size: 14px;">
+                        Touch & Hold Duration (ms)
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="longpress-duration" min="1000" max="10000" step="500" value="${longPressDuration}"
+                            style="flex: 1; height: 6px; border-radius: 3px; outline: none; background: rgba(255, 255, 255, 0.2);">
+                        <span id="longpress-value" style="min-width: 70px; text-align: right; font-weight: 500;">${longPressDuration} ms</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.6);">
+                        Time to hold background to enter editor mode
+                    </div>
+                </div>
+
+                <div style="height: 1px; background: rgba(255, 255, 255, 0.1); margin: 24px 0;"></div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                        <span style="font-weight: 500; font-size: 14px;">Auto-Dim Enabled</span>
+                        <input type="checkbox" id="autodim-enabled" ${autoDimEnabled ? 'checked' : ''}
+                            style="width: 20px; height: 20px; cursor: pointer;">
+                    </label>
+                </div>
+
+                <div id="autodim-settings" style="opacity: ${autoDimEnabled ? 1 : 0.4}; pointer-events: ${autoDimEnabled ? 'auto' : 'none'};">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 12px; font-weight: 500; font-size: 14px;">
+                            Auto-Dim Timeout (minutes)
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" id="autodim-timeout" min="1" max="60" step="1" value="${autoDimTimeout}"
+                                style="flex: 1; height: 6px; border-radius: 3px; outline: none; background: rgba(255, 255, 255, 0.2);">
+                            <span id="timeout-value" style="min-width: 60px; text-align: right; font-weight: 500;">${autoDimTimeout} min</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 12px; font-weight: 500; font-size: 14px;">
+                            Auto-Dim Level
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" id="autodim-level" min="0" max="100" step="5" value="${autoDimLevel}"
+                                style="flex: 1; height: 6px; border-radius: 3px; outline: none; background: rgba(255, 255, 255, 0.2);">
+                            <span id="level-value" style="min-width: 45px; text-align: right; font-weight: 500;">${autoDimLevel}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px;">
+                    <button id="display-cancel-btn" style="
+                        padding: 10px 20px;
+                        background: rgba(255, 255, 255, 0.1);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 500;
+                        transition: background-color 0.2s ease;
+                    ">Cancel</button>
+                    <button id="display-apply-btn" style="
+                        padding: 10px 20px;
+                        background: rgba(74, 144, 226, 0.9);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 500;
+                        transition: background-color 0.2s ease;
+                    ">Apply</button>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+
+            // Setup event handlers
+            const brightnessSlider = document.getElementById('display-brightness');
+            const brightnessValue = document.getElementById('brightness-value');
+            const longPressSlider = document.getElementById('longpress-duration');
+            const longPressValue = document.getElementById('longpress-value');
+            const autoDimCheckbox = document.getElementById('autodim-enabled');
+            const autoDimSettings = document.getElementById('autodim-settings');
+            const timeoutSlider = document.getElementById('autodim-timeout');
+            const timeoutValue = document.getElementById('timeout-value');
+            const levelSlider = document.getElementById('autodim-level');
+            const levelValue = document.getElementById('level-value');
+
+            brightnessSlider.addEventListener('input', () => {
+                brightnessValue.textContent = brightnessSlider.value + '%';
+            });
+
+            longPressSlider.addEventListener('input', () => {
+                longPressValue.textContent = longPressSlider.value + ' ms';
+            });
+
+            autoDimCheckbox.addEventListener('change', () => {
+                const enabled = autoDimCheckbox.checked;
+                autoDimSettings.style.opacity = enabled ? '1' : '0.4';
+                autoDimSettings.style.pointerEvents = enabled ? 'auto' : 'none';
+            });
+
+            timeoutSlider.addEventListener('input', () => {
+                timeoutValue.textContent = timeoutSlider.value + ' min';
+            });
+
+            levelSlider.addEventListener('input', () => {
+                levelValue.textContent = levelSlider.value + '%';
+            });
+
+            document.getElementById('display-cancel-btn').addEventListener('click', () => {
+                dialog.remove();
+            });
+
+            document.getElementById('display-apply-btn').addEventListener('click', () => {
+                const brightness = parseInt(brightnessSlider.value);
+                const longPress = parseInt(longPressSlider.value);
+                const enabled = autoDimCheckbox.checked;
+                const timeout = parseInt(timeoutSlider.value);
+                const level = parseInt(levelSlider.value);
+
+                console.log('Applying display controls:', { brightness, longPress, enabled, timeout, level });
+
+                // Send MQTT commands directly via backend publish
+                const mqtt = require('mqtt');
+                const client = mqtt.connect('mqtt://192.168.50.45:1883', {
+                    username: 'mqtt_user',
+                    password: 'mqtt_password'
+                });
+
+                client.on('connect', () => {
+                    client.publish('touchkio/rpi_BC5B9F/display_brightness/set', brightness.toString());
+                    client.publish('touchkio/rpi_BC5B9F/editor_long_press_duration/set', longPress.toString());
+                    client.publish('touchkio/rpi_BC5B9F/display_autodim_enabled/set', enabled.toString());
+                    client.publish('touchkio/rpi_BC5B9F/display_autodim_timeout/set', timeout.toString());
+                    client.publish('touchkio/rpi_BC5B9F/display_autodim_level/set', level.toString());
+
+                    setTimeout(() => {
+                        client.end();
+                    }, 500);
+                });
+
+                dialog.remove();
+            });
         }
 
         function setupPhotoSettingsEventHandlers() {
@@ -5814,11 +6046,68 @@
         touchIndicator = createTouchIndicator();
 
         // Aggressive event capture for VNC and remote clicks
+        // Auto-dim timer management
+        let autoDimTimer = null;
+        let isDimmed = false;
+        let normalBrightness = 50;
+
+        const startAutoDimTimer = () => {
+            if (autoDimTimer) {
+                clearTimeout(autoDimTimer);
+            }
+
+            const autoDimEnabled = config.autoDimEnabled !== undefined ? config.autoDimEnabled : false;
+            const autoDimTimeout = config.autoDimTimeout || 0;
+
+            if (autoDimEnabled && autoDimTimeout > 0) {
+                const timeoutMs = autoDimTimeout * 60 * 1000; // Convert minutes to milliseconds
+                autoDimTimer = setTimeout(() => {
+                    dimDisplay();
+                }, timeoutMs);
+                console.log('Auto-dim timer started:', autoDimTimeout, 'minutes');
+            }
+        };
+
+        const dimDisplay = () => {
+            if (isDimmed) return;
+
+            const autoDimLevel = config.autoDimLevel !== undefined ? config.autoDimLevel : 10;
+            console.log('Auto-dimming display to', autoDimLevel, '%');
+
+            isDimmed = true;
+            const { exec } = require('child_process');
+            exec(`sudo ddcutil setvcp 10 ${autoDimLevel}`, (error) => {
+                if (error) {
+                    console.error('Error dimming display:', error);
+                }
+            });
+        };
+
+        const restoreBrightness = () => {
+            if (!isDimmed) return;
+
+            console.log('Restoring display brightness to', normalBrightness, '%');
+            isDimmed = false;
+
+            const { exec } = require('child_process');
+            exec(`sudo ddcutil setvcp 10 ${normalBrightness}`, (error) => {
+                if (error) {
+                    console.error('Error restoring brightness:', error);
+                }
+            });
+        };
+
         const triggerUserActivity = () => {
             if (window.activityDetectionEnabled && !touchActive) {
                 console.log('User activity detected in slideshow');
                 ipcRenderer.send('slideshow-user-activity');
             }
+
+            // Restore brightness if dimmed and restart auto-dim timer
+            if (isDimmed) {
+                restoreBrightness();
+            }
+            startAutoDimTimer();
         };
 
         // Delayed activity trigger - waits to see if it's a long press first
@@ -6684,6 +6973,18 @@
             if (newConfig.editorLongPressDuration !== undefined) {
                 longPressDuration = parseInt(newConfig.editorLongPressDuration);
                 console.log('Updated long press duration to:', longPressDuration, 'ms');
+            }
+
+            // Update auto-dim settings if provided
+            if (newConfig.autoDimEnabled !== undefined || newConfig.autoDimTimeout !== undefined || newConfig.autoDimLevel !== undefined) {
+                console.log('Updated auto-dim settings - enabled:', newConfig.autoDimEnabled, 'timeout:', newConfig.autoDimTimeout, 'min, level:', newConfig.autoDimLevel, '%');
+                startAutoDimTimer();
+            }
+
+            // Update normal brightness if brightness changes
+            if (newConfig.brightness !== undefined) {
+                normalBrightness = parseInt(newConfig.brightness);
+                console.log('Updated normal brightness to:', normalBrightness, '%');
             }
 
             // Re-apply source indicator styling if any source option changed

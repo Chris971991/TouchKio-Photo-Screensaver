@@ -56,7 +56,7 @@ const init = async () => {
   INTEGRATION.client = mqtt.connect(url.toString(), options);
 
   // Increase max listeners for all the slideshow MQTT subscriptions
-  INTEGRATION.client.setMaxListeners(50);
+  INTEGRATION.client.setMaxListeners(150);
 
   // Client connected
   INTEGRATION.client
@@ -1095,6 +1095,13 @@ const initSlideshow = () => {
   // === PRESET EDITOR ===
   initPresetEditorMode();
   initEditorLongPressDuration();
+
+  // === DISPLAY CONTROLS ===
+  initDisplayBrightness();
+  initDisplayPower();
+  initDisplayAutoDimEnabled();
+  initDisplayAutoDimTimeout();
+  initDisplayAutoDimLevel();
 
   // === PERFORMANCE SETTINGS ===
   initSlideshowPreloadBufferSize();
@@ -3068,6 +3075,13 @@ const updateSlideshow = async () => {
 
   // Editor settings
   publishState("editor_long_press_duration", ARGS.editor_long_press_duration || "3000");
+
+  // Display settings
+  publishState("display_brightness", ARGS.display_brightness || "50");
+  publishState("display_power", ARGS.display_power || "ON");
+  publishState("display_autodim_enabled", ARGS.display_autodim_enabled || "false");
+  publishState("display_autodim_timeout", ARGS.display_autodim_timeout || "0");
+  publishState("display_autodim_level", ARGS.display_autodim_level || "10");
 };
 
 /**
@@ -4655,6 +4669,198 @@ const initEditorLongPressDuration = () => {
         updateSlideshowSetting("editor_long_press_duration", duration);
         slideshow.updateConfig({ editorLongPressDuration: duration });
         publishState(config.state_topic, duration.toString());
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes display brightness control (0-100%).
+ */
+const initDisplayBrightness = () => {
+  console.log("Initializing Display Brightness MQTT control...");
+  const root = `${INTEGRATION.root}/display_brightness`;
+  const config = {
+    name: "Display Brightness",
+    unique_id: `${INTEGRATION.node}_display_brightness`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:brightness-6",
+    min: 0,
+    max: 100,
+    step: 5,
+    unit_of_measurement: "%",
+    device: INTEGRATION.device,
+  };
+
+  console.log("Publishing Display Brightness config and subscribing to:", config.command_topic);
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      console.log("Display Brightness MQTT message received! Topic:", topic, "Message:", message.toString());
+      if (topic === config.command_topic) {
+        const brightness = parseInt(message.toString());
+        console.log("Set Display Brightness:", brightness, "%");
+
+        // Use ddcutil to set brightness
+        const { exec } = require("child_process");
+        exec(`sudo ddcutil setvcp 10 ${brightness}`, (error, stdout, stderr) => {
+          if (error) {
+            console.error("Error setting brightness:", error);
+            return;
+          }
+          console.log("Display brightness set to", brightness, "%");
+          updateSlideshowSetting("display_brightness", brightness);
+          slideshow.updateConfig({ brightness: brightness });
+          publishState(config.state_topic, brightness.toString());
+        });
+      }
+    })
+    .subscribe(config.command_topic, (err) => {
+      if (err) {
+        console.error("Error subscribing to display brightness:", err);
+      } else {
+        console.log("Successfully subscribed to display brightness command topic!");
+      }
+    });
+};
+
+/**
+ * Initializes display power control (on/off).
+ */
+const initDisplayPower = () => {
+  const root = `${INTEGRATION.root}/display_power`;
+  const config = {
+    name: "Display Power",
+    unique_id: `${INTEGRATION.node}_display_power`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:monitor",
+    payload_on: "ON",
+    payload_off: "OFF",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const power = message.toString();
+        console.log("Set Display Power:", power);
+
+        const { exec } = require("child_process");
+        if (power === "ON") {
+          // Turn display on using wlr-randr
+          exec("wlr-randr --output HDMI-A-1 --on", (error, stdout, stderr) => {
+            if (error) {
+              console.error("Error turning display on:", error);
+              return;
+            }
+            console.log("Display turned on");
+            updateSlideshowSetting("display_power", "ON");
+            publishState(config.state_topic, "ON");
+          });
+        } else {
+          // Turn display off using wlr-randr
+          exec("wlr-randr --output HDMI-A-1 --off", (error, stdout, stderr) => {
+            if (error) {
+              console.error("Error turning display off:", error);
+              return;
+            }
+            console.log("Display turned off");
+            updateSlideshowSetting("display_power", "OFF");
+            publishState(config.state_topic, "OFF");
+          });
+        }
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes auto-dim enable/disable switch.
+ */
+const initDisplayAutoDimEnabled = () => {
+  const root = `${INTEGRATION.root}/display_autodim_enabled`;
+  const config = {
+    name: "Display Auto-Dim Enabled",
+    unique_id: `${INTEGRATION.node}_display_autodim_enabled`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:brightness-auto",
+    payload_on: "true",
+    payload_off: "false",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const enabled = message.toString() === "true";
+        console.log("Set Display Auto-Dim Enabled:", enabled);
+        updateSlideshowSetting("display_autodim_enabled", message.toString());
+        slideshow.updateConfig({ autoDimEnabled: enabled });
+        publishState(config.state_topic, message.toString());
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes auto-dim timeout (minutes of inactivity before dimming).
+ */
+const initDisplayAutoDimTimeout = () => {
+  const root = `${INTEGRATION.root}/display_autodim_timeout`;
+  const config = {
+    name: "Display Auto-Dim Timeout",
+    unique_id: `${INTEGRATION.node}_display_autodim_timeout`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:timer-outline",
+    min: 0,
+    max: 60,
+    step: 1,
+    unit_of_measurement: "min",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const timeout = parseInt(message.toString());
+        console.log("Set Display Auto-Dim Timeout:", timeout, "minutes");
+        updateSlideshowSetting("display_autodim_timeout", timeout);
+        slideshow.updateConfig({ autoDimTimeout: timeout });
+        publishState(config.state_topic, timeout.toString());
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes auto-dim brightness level (brightness to dim to).
+ */
+const initDisplayAutoDimLevel = () => {
+  const root = `${INTEGRATION.root}/display_autodim_level`;
+  const config = {
+    name: "Display Auto-Dim Level",
+    unique_id: `${INTEGRATION.node}_display_autodim_level`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:brightness-5",
+    min: 0,
+    max: 100,
+    step: 5,
+    unit_of_measurement: "%",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const level = parseInt(message.toString());
+        console.log("Set Display Auto-Dim Level:", level, "%");
+        updateSlideshowSetting("display_autodim_level", level);
+        slideshow.updateConfig({ autoDimLevel: level });
+        publishState(config.state_topic, level.toString());
       }
     })
     .subscribe(config.command_topic);
