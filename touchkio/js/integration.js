@@ -1281,6 +1281,13 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_transition_type) savedCustomConfig.transitionType = ARGS.slideshow_transition_type;
   if (ARGS.slideshow_transition_duration) savedCustomConfig.transitionDuration = parseInt(ARGS.slideshow_transition_duration);
 
+  // Load element visibility settings
+  if (ARGS.slideshow_show_clock !== undefined) savedCustomConfig.showClock = ARGS.slideshow_show_clock === "true" || ARGS.slideshow_show_clock === true;
+  if (ARGS.slideshow_show_date !== undefined) savedCustomConfig.showDate = ARGS.slideshow_show_date === "true" || ARGS.slideshow_show_date === true;
+  if (ARGS.slideshow_show_source !== undefined) savedCustomConfig.showSourceIndicator = ARGS.slideshow_show_source === "true" || ARGS.slideshow_show_source === true;
+  if (ARGS.slideshow_show_counter !== undefined) savedCustomConfig.showPhotoCounter = ARGS.slideshow_show_counter === "true" || ARGS.slideshow_show_counter === true;
+  if (ARGS.slideshow_show_metadata !== undefined) savedCustomConfig.showMetadata = ARGS.slideshow_show_metadata === "true" || ARGS.slideshow_show_metadata === true;
+
   // Load editor settings
   // ALWAYS start with editor mode disabled on restart
   savedCustomConfig.editorMode = false;

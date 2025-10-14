@@ -1160,7 +1160,8 @@
         }
 
         function transitionMetadataContent(newPhoto) {
-            if (!config.showMetadata || !newPhoto.metadata) {
+            // In editor mode, don't hide metadata even if showMetadata is false or no metadata exists
+            if ((!config.showMetadata || !newPhoto.metadata) && !config.editorMode) {
                 hideMetadataOverlay();
                 return;
             }
@@ -1286,11 +1287,12 @@
             }
 
             // Show/hide entire overlay based on content
+            // In editor mode, always keep metadata visible even without content
             if (hasContent) {
                 if (elements.metadataOverlay.style.display === 'none') {
                     showMetadataOverlay();
                 }
-            } else {
+            } else if (!config.editorMode) {
                 hideMetadataOverlay();
             }
         }
@@ -1306,7 +1308,8 @@
                 showMetadata: config.showMetadata
             });
 
-            if (config.showMetadata === false) {
+            // In editor mode, always show element regardless of visibility setting
+            if (config.showMetadata === false && !config.editorMode) {
                 metadata.style.display = 'none';
                 return;
             }
@@ -5231,6 +5234,17 @@
             } else if (elementId === 'metadataOverlay') {
                 applyMetadata();
             }
+
+            // CRITICAL: In editor mode, force element visible after apply function
+            // Apply functions may have hidden it based on visibility settings
+            if (config.editorMode) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.style.display = (elementId === 'source' || elementId === 'counter' ? 'flex' : 'block');
+                    element.style.opacity = '1';
+                    element.style.visibility = 'visible';
+                }
+            }
         }
 
         function updateSaveButtonState() {
@@ -5407,6 +5421,19 @@
             applyPhotoCounterPosition();
             applyMetadata();
 
+            // CRITICAL: Force all elements visible after saving (still in editor mode)
+            if (config.editorMode) {
+                console.log('Re-forcing elements visible after save');
+                ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                        element.style.opacity = '1';
+                        element.style.visibility = 'visible';
+                    }
+                });
+            }
+
             // Send settings to integration.js for MQTT persistence BEFORE clearing
             const settingsUpdate = {};
 
@@ -5578,6 +5605,7 @@
 
             // Delay all frontend cleanup to happen after backend has stabilized
             setTimeout(() => {
+                console.log('EXIT EDITOR MODE TIMEOUT FIRED - STARTING CLEANUP');
                 try {
                     // Exit editor mode by updating config directly and hiding UI
                     config.editorMode = false;
@@ -5622,8 +5650,20 @@
 
             if (changeCount > 0) {
                 try {
-                    // Restore original configuration
+                    // Restore original configuration but preserve visibility settings
+                    const currentVisibility = {
+                        showClock: config.showClock,
+                        showDate: config.showDate,
+                        showSourceIndicator: config.showSourceIndicator,
+                        showPhotoCounter: config.showPhotoCounter,
+                        showMetadata: config.showMetadata
+                    };
+
                     config = JSON.parse(JSON.stringify(originalConfig));
+
+                    // Restore visibility settings (don't let them get wiped by originalConfig)
+                    Object.assign(config, currentVisibility);
+                    console.log('Restored config with preserved visibility:', currentVisibility);
 
                     // Re-apply all elements to restore original state
                     applyClock();
@@ -5631,6 +5671,19 @@
                     applySourceIndicatorPosition();
                     applyPhotoCounterPosition();
                     applyMetadata();
+
+                    // CRITICAL: Force all elements visible after restoring (still in editor mode)
+                    if (config.editorMode) {
+                        console.log('Re-forcing elements visible after discard');
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                            const element = document.getElementById(id);
+                            if (element) {
+                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.opacity = '1';
+                                element.style.visibility = 'visible';
+                            }
+                        });
+                    }
 
                     console.log(`Discarded ${changeCount} pending changes`);
                 } catch (error) {
@@ -5720,6 +5773,27 @@
                         } else {
                             console.log('Slideshow container not found');
                         }
+
+                        // CRITICAL FIX: Force all elements visible when entering editor mode
+                        console.log('FORCING ALL ELEMENTS VISIBLE IN EDITOR MODE');
+                        console.log('Current visibility config:', {
+                            showClock: config.showClock,
+                            showDate: config.showDate,
+                            showSourceIndicator: config.showSourceIndicator,
+                            showPhotoCounter: config.showPhotoCounter,
+                            showMetadata: config.showMetadata
+                        });
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                            const element = document.getElementById(id);
+                            if (element) {
+                                console.log(`  Forcing ${id} visible`);
+                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.opacity = '1';
+                                element.style.visibility = 'visible';
+                            } else {
+                                console.log(`  Element ${id} not found!`);
+                            }
+                        });
 
                         // Disable activity detection
                         window.activityDetectionEnabled = false;
@@ -5814,26 +5888,25 @@
                             console.log('ERROR: Editor grid overlay element not found');
                         }
 
-                        // Show elements based on their visibility settings and make them draggable
+                        // Show ALL elements in editor mode so they can be edited
+                        console.log('Current visibility config:', {
+                            showClock: config.showClock,
+                            showDate: config.showDate,
+                            showSourceIndicator: config.showSourceIndicator,
+                            showPhotoCounter: config.showPhotoCounter,
+                            showMetadata: config.showMetadata,
+                            editorMode: config.editorMode
+                        });
+
                         ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
-                                // Check if element should be visible based on config
-                                const visibilityMap = {
-                                    'clock': config.showClock !== false,
-                                    'date': config.showDate !== false,
-                                    'source': config.showSourceIndicator !== false,
-                                    'counter': config.showPhotoCounter !== false,
-                                    'metadataOverlay': config.showMetadata !== false
-                                };
-
-                                if (visibilityMap[id]) {
-                                    element.style.display = 'block';
-                                    element.style.opacity = '1';
-                                } else {
-                                    // Keep hidden elements hidden but still editable
-                                    element.style.display = 'none';
-                                }
+                                console.log(`Making ${id} visible in editor mode`);
+                                // In editor mode, ALWAYS show all elements regardless of visibility settings
+                                // This allows users to position and style hidden elements
+                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.opacity = '1';
+                                element.style.visibility = 'visible';
 
                                 // Apply current positioning BEFORE making draggable
                                 // This ensures metadata has proper position styles
@@ -5934,44 +6007,15 @@
                 }
 
                 // Clock and date configuration
-                applyClock();
-                applyDate();
+                // NEVER call apply functions after initial load - they will hide elements
+                // Apply functions are called by saveAllChanges, applyChangePreview, etc.
+                // This IPC handler should NOT call them or elements will disappear
+                console.log('IPC config received - SKIPPING apply functions to prevent element hiding');
                 initializeClock();
 
-                // Source indicator configuration
-                const sourceIndicator = document.querySelector('.source-indicator');
-                if (config.showSourceIndicator !== false) {
-                    sourceIndicator.style.display = 'flex';
-                    const sourcePos = config.sourcePosition || 'top-left';
-
-                    // Apply proper styling via the dedicated function (handles all positioning including custom)
-                    applySourceIndicatorPosition();
-                } else {
-                    sourceIndicator.style.display = 'none';
-                }
-
-                // Photo counter configuration
-                const photoCounter = document.querySelector('.photo-counter');
-                if (config.showPhotoCounter) {
-                    photoCounter.style.display = 'flex';
-                    const counterPos = config.counterPosition || 'bottom-left';
-
-                    // Apply proper styling via the dedicated function (handles all positioning including custom)
-                    applyPhotoCounterPosition();
-                } else {
-                    photoCounter.style.display = 'none';
-                }
-
-                // Metadata overlay configuration
-                const metadataOverlay = document.querySelector('.metadata-overlay');
-                if (config.showMetadata) {
-                    // Update all metadata styles when config changes
-                    applyMetadata();
-                    // Metadata visibility will be handled by updateMetadataDisplay when photos are shown
-                } else {
-                    // Hide metadata when disabled
-                    metadataOverlay.style.display = 'none';
-                }
+                // Source indicator, counter, metadata - SKIP applies
+                // They are handled by other functions (saveAllChanges, applyChangePreview, etc.)
+                console.log('IPC config received - SKIPPING source/counter/metadata applies');
 
                 // Photo fit configuration - only update if it changed
                 if (data.config.photoFit !== undefined) {
@@ -6346,7 +6390,8 @@
         // Create function to apply source indicator styling
         function applySourceIndicatorPosition() {
             const sourceIndicator = document.querySelector('.source-indicator');
-            if (config.showSourceIndicator && sourceIndicator) {
+            // In editor mode, always show element regardless of visibility setting
+            if ((config.showSourceIndicator || config.editorMode) && sourceIndicator) {
                 sourceIndicator.style.display = 'flex';
                 const sourcePos = config.sourcePosition || 'top-left';
                 const sourceBackground = config.sourceBackground !== undefined ? config.sourceBackground : 'dark';
@@ -6506,7 +6551,7 @@
                 } else {
                     sourceIndicator.style.boxShadow = ''; // Clear custom shadow
                 }
-            } else if (sourceIndicator) {
+            } else if (sourceIndicator && !config.editorMode) {
                 sourceIndicator.style.display = 'none';
             }
         }
@@ -6514,7 +6559,8 @@
         // Create function to apply clock styling
         function applyClock() {
             const clock = elements.clock;
-            if (config.showClock && clock) {
+            // In editor mode, always show element regardless of visibility setting
+            if ((config.showClock || config.editorMode) && clock) {
                 clock.style.display = 'block';
                 const clockPos = config.clockPosition || 'bottom-right';
                 const clockBackground = config.clockBackground || 'dark';
@@ -6668,7 +6714,7 @@
                 } else {
                     clock.style.boxShadow = ''; // Clear custom shadow
                 }
-            } else if (clock) {
+            } else if (clock && !config.editorMode) {
                 clock.style.display = 'none';
             }
         }
@@ -6676,7 +6722,8 @@
         // Create function to apply date styling
         function applyDate() {
             const date = elements.date;
-            if (config.showDate !== false && date) {
+            // In editor mode, always show element regardless of visibility setting
+            if ((config.showDate !== false || config.editorMode) && date) {
                 date.style.display = 'block';
                 const datePos = config.datePosition || 'bottom-left';
                 const dateBackground = config.dateBackground || 'dark';
@@ -6822,7 +6869,7 @@
                 } else {
                     date.style.boxShadow = ''; // Clear custom shadow
                 }
-            } else if (date) {
+            } else if (date && !config.editorMode) {
                 date.style.display = 'none';
             }
         }
@@ -6830,7 +6877,8 @@
         // Create function to apply photo counter styling
         function applyPhotoCounterPosition() {
             const photoCounter = document.querySelector('.photo-counter');
-            if (config.showPhotoCounter && photoCounter) {
+            // In editor mode, always show element regardless of visibility setting
+            if ((config.showPhotoCounter || config.editorMode) && photoCounter) {
                 photoCounter.style.display = 'flex';
                 const counterPos = config.counterPosition || 'bottom-left';
                 const counterBackground = config.counterBackground || 'dark';
@@ -6976,7 +7024,7 @@
                 } else {
                     photoCounter.style.boxShadow = ''; // Clear custom shadow
                 }
-            } else if (photoCounter) {
+            } else if (photoCounter && !config.editorMode) {
                 photoCounter.style.display = 'none';
             }
         }
@@ -6989,6 +7037,24 @@
 
             // Merge new config with existing config
             Object.assign(config, newConfig);
+
+            // Handle editor mode changes - force all elements visible
+            if (newConfig.editorMode !== undefined) {
+                console.log('Editor mode changed to:', newConfig.editorMode);
+                if (newConfig.editorMode === true) {
+                    // Entering editor mode - force all elements visible
+                    console.log('Forcing all elements visible for editor mode');
+                    ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            console.log(`Making ${id} visible in editor mode`);
+                            element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                            element.style.opacity = '1';
+                            element.style.visibility = 'visible';
+                        }
+                    });
+                }
+            }
 
             // Update long press duration if provided
             if (newConfig.editorLongPressDuration !== undefined) {
@@ -7036,6 +7102,20 @@
                 if (currentPhotoIndex !== -1 && photos[currentPhotoIndex]) {
                     updateMetadataContent(photos[currentPhotoIndex]);
                 }
+            }
+
+            // CRITICAL: If in editor mode, re-force all elements visible after apply functions run
+            // Apply functions may have hidden elements based on visibility settings
+            if (config.editorMode) {
+                console.log('Re-forcing elements visible after config update (editor mode)');
+                ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                        element.style.opacity = '1';
+                        element.style.visibility = 'visible';
+                    }
+                });
             }
 
             // Restore activity detection state after a delay to ensure DOM updates complete
