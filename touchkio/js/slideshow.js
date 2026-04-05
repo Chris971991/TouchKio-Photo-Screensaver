@@ -611,15 +611,25 @@ const initSlideshowView = async () => {
     let hideInProgress = false;
 
     ipcMain.on("slideshow-user-activity", () => {
+      // Check if display was recently woken - suppress activity for 2 seconds
+      const WEBVIEW = global.WEBVIEW;
+      if (WEBVIEW && WEBVIEW.displayWakeTime) {
+        const timeSinceWake = Date.now() - WEBVIEW.displayWakeTime;
+        if (timeSinceWake < 2000) {
+          console.log("User activity detected but display just woke up - ignoring");
+          return;
+        }
+      }
+
       // Only process activity if slideshow is actually visible and not in grace period
       if (SLIDESHOW.active && !SLIDESHOW.activityGracePeriod && !hideInProgress) {
         console.log("User activity detected in slideshow");
         hideInProgress = true;
         hideSlideshowOverlay();
-        // Reset flag after animation completes
+        // Reset flag after animation completes (match the grace period duration)
         setTimeout(() => {
           hideInProgress = false;
-        }, 200);
+        }, 1000);
       } else if (SLIDESHOW.activityGracePeriod) {
         console.log("User activity detected but ignored during grace period");
       } else if (hideInProgress) {
@@ -1867,6 +1877,17 @@ const resetIdleTimer = () => {
       return;
     }
 
+    // Check if display was recently woken - don't show slideshow immediately after wake
+    const WEBVIEW = global.WEBVIEW;
+    if (WEBVIEW && WEBVIEW.displayWakeTime) {
+      const timeSinceWake = Date.now() - WEBVIEW.displayWakeTime;
+      if (timeSinceWake < 3000) {
+        console.log("Idle timeout reached, but display just woke up - resetting timer");
+        resetIdleTimer();
+        return;
+      }
+    }
+
     if (SLIDESHOW.active && !SLIDESHOW.timer) {
       // Slideshow is active but paused - resume it only if not in editor mode
       if (!SLIDESHOW.config.editorMode) {
@@ -2088,19 +2109,32 @@ const showSlideshowOverlay = (skipEntranceAnimation = false) => {
     return;
   }
 
-  console.log("Showing slideshow overlay (resuming)");
+  console.log("Showing slideshow overlay (resuming) - view exists:", !!SLIDESHOW.view);
+
+  // CRITICAL: Start activity grace period FIRST before any visual changes
+  // This prevents race condition where touch during transition hides the slideshow immediately
+  if (SLIDESHOW.startActivityGracePeriod && !SLIDESHOW.activityGracePeriod) {
+    SLIDESHOW.startActivityGracePeriod();
+  } else if (SLIDESHOW.activityGracePeriod) {
+    console.log("Skipping grace period - already in extended grace period");
+  }
+
+  // Tell slideshow HTML to ensure content is visible immediately (skip fade-in on resume)
+  if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
+    SLIDESHOW.view.webContents.send('ensure-visible');
+  }
 
   // Mark as visible for MQTT state
   SLIDESHOW.visible = true;
 
   if (SLIDESHOW.view) {
-    // Re-add view to window if it was removed during hide
+    // Remove and re-add to ensure slideshow is on TOP of all other views (including black overlay)
     try {
-      WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
-    } catch (error) {
-      // View might already be added - that's fine
-      console.log("View already in window or add failed:", error.message);
+      WEBVIEW.window.contentView.removeChildView(SLIDESHOW.view);
+    } catch (e) {
+      // View might not be added yet
     }
+    WEBVIEW.window.contentView.addChildView(SLIDESHOW.view);
 
     // Ensure it's visible and properly positioned
     SLIDESHOW.view.setVisible(true);
@@ -2124,14 +2158,6 @@ const showSlideshowOverlay = (skipEntranceAnimation = false) => {
       width: windowBounds.width,
       height: windowBounds.height,
     });
-
-    // Start activity grace period immediately to prevent false activity detection
-    // But don't override if we're already in an extended grace period (e.g., from editor mode)
-    if (SLIDESHOW.startActivityGracePeriod && !SLIDESHOW.activityGracePeriod) {
-      SLIDESHOW.startActivityGracePeriod();
-    } else if (SLIDESHOW.activityGracePeriod) {
-      console.log("Skipping grace period - already in extended grace period");
-    }
 
     // Resume the slideshow timer
     resumeSlideshowTimer();

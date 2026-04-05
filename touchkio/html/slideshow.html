@@ -7596,6 +7596,30 @@
             applySlideshowExitAnimation(duration);
         });
 
+        // Ensure content is immediately visible (called on resume to prevent black screen)
+        ipcRenderer.on('ensure-visible', () => {
+            console.log('ensure-visible: Making slideshow content immediately visible');
+            // Reset body background
+            document.body.style.backgroundColor = 'black';
+
+            // Ensure animation container is visible
+            const container = document.querySelector('.animation-container');
+            if (container) {
+                container.style.opacity = '1';
+                container.style.transform = 'none';
+            }
+
+            // Ensure slideshow container is visible
+            const slideshowContainer = document.querySelector('.slideshow-container');
+            if (slideshowContainer) {
+                slideshowContainer.style.opacity = '1';
+            }
+
+            // Reset animation state lock in case it got stuck
+            animationStateLock = false;
+            currentAnimationState = AnimationState.IDLE;
+        });
+
         // Central Animation Controller - replaces scattered setTimeout calls
         class AnimationController {
             constructor() {
