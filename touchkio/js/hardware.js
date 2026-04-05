@@ -5,6 +5,24 @@ const fsp = require("fs/promises");
 const cpr = require("child_process");
 const slideshow = require("./slideshow");
 
+/**
+ * Helper function for reading files with null safety.
+ *
+ * @param {string} filePath - The file path to read.
+ * @param {bool} sync - Whether to read synchronously (default: true).
+ * @returns {string|null|Promise<string|null>} The file contents or null if error.
+ */
+const readFile = (filePath, sync = true) => {
+  try {
+    if (sync) {
+      return fs.readFileSync(filePath, "utf8").trim();
+    }
+    return fsp.readFile(filePath, "utf8").then(data => data.trim()).catch(() => null);
+  } catch {
+    return sync ? null : Promise.resolve(null);
+  }
+};
+
 global.HARDWARE = global.HARDWARE || {
   initialized: false,
   support: {},
@@ -127,26 +145,26 @@ const init = async () => {
  * Updates the shared hardware properties.
  */
 const update = async () => {
-  if (!HARDWARE.initialized) {
+  if (!HARDWARE.initialized || APP.exiting) {
     return;
   }
 
   // Display status has changed
   if (HARDWARE.support.displayStatus) {
-    const status = (await fsp.readFile(`${HARDWARE.display.status.path}/dpms`, "utf8")).trim();
-    if (status !== HARDWARE.display.status.value) {
-      console.log("Update Display Status:", getDisplayStatus());
+    const status = await readFile(`${HARDWARE.display.status.path}/dpms`, false);
+    if (status !== null && status !== HARDWARE.display.status.value) {
       HARDWARE.display.status.value = status;
+      console.log("Update Display Status:", getDisplayStatus());
       EVENTS.emit("updateDisplay");
     }
   }
 
   // Display brightness has changed
   if (HARDWARE.support.displayBrightness) {
-    const brightness = (await fsp.readFile(`${HARDWARE.display.brightness.path}/brightness`, "utf8")).trim();
-    if (brightness !== HARDWARE.display.brightness.value) {
-      console.log("Update Display Brightness:", getDisplayBrightness());
+    const brightness = await readFile(`${HARDWARE.display.brightness.path}/brightness`, false);
+    if (brightness !== null && brightness !== HARDWARE.display.brightness.value) {
       HARDWARE.display.brightness.value = brightness;
+      console.log("Update Display Brightness:", getDisplayBrightness());
       EVENTS.emit("updateDisplay");
     }
   }
@@ -375,9 +393,12 @@ const getProcessorTemperature = () => {
     if (!fs.existsSync(typeFile) || !fs.existsSync(tempFile)) {
       continue;
     }
-    const type = fs.readFileSync(typeFile, "utf8").trim();
-    if (["cpu-thermal", "x86_pkg_temp", "k10temp", "acpitz"].includes(type)) {
-      return parseFloat(fs.readFileSync(tempFile, "utf8").trim()) / 1000;
+    const type = readFile(typeFile);
+    if (type && ["cpu-thermal", "x86_pkg_temp", "k10temp", "acpitz"].includes(type)) {
+      const temp = readFile(tempFile);
+      if (temp) {
+        return parseFloat(temp) / 1000;
+      }
     }
   }
   return null;
@@ -409,7 +430,7 @@ const getBatteryLevel = () => {
   if (!HARDWARE.support.batteryLevel) {
     return null;
   }
-  const capacity = fs.readFileSync(`${HARDWARE.battery.level.path}/capacity`, "utf8").trim();
+  const capacity = readFile(`${HARDWARE.battery.level.path}/capacity`);
   if (capacity) {
     return parseFloat(capacity);
   }
