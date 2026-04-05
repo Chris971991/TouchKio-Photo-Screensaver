@@ -6,8 +6,17 @@ const integration = require("./js/integration");
 const hardware = require("./js/hardware");
 const webview = require("./js/webview");
 const log = require("electron-log");
-const { app } = require("electron");
+const { app, powerMonitor } = require("electron");
 const Events = require("events");
+
+// GPU acceleration flags for smoother rendering on Raspberry Pi
+app.commandLine.appendSwitch("enable-gpu-rasterization");
+app.commandLine.appendSwitch("enable-zero-copy");
+app.commandLine.appendSwitch("ignore-gpu-blocklist");
+app.commandLine.appendSwitch("num-raster-threads", "4");
+app.commandLine.appendSwitch("enable-accelerated-2d-canvas");
+app.commandLine.appendSwitch("disable-software-rasterizer");
+app.commandLine.appendSwitch("enable-gpu-compositing");
 
 global.APP = global.APP || {};
 global.ARGS = global.ARGS || {};
@@ -88,6 +97,32 @@ const initApp = async () => {
     console.error(`${APP.title} is already running`);
     return app.quit();
   }
+
+  // Register app quit events
+  app.on("before-quit", () => {
+    APP.exiting = true;
+  });
+  app.on("will-quit", (e) => {
+    e.preventDefault();
+    process.exitCode = process.exitCode !== 0 ? 1 : 0;
+    const level = process.exitCode === 0 ? "warn" : "error";
+    console[level](`${APP.title} Terminated (${process.exitCode})`);
+    app.exit(process.exitCode);
+  });
+
+  // Register process exit events
+  ["SIGINT", "SIGTERM", "SIGQUIT", "SIGTRAP", "exit"].forEach((signal) => {
+    process.on(signal, () => {
+      process.exitCode = 0;
+      APP.exiting = true;
+      app.quit();
+    });
+  });
+  powerMonitor.on("shutdown", () => {
+    process.exitCode = 0;
+    APP.exiting = true;
+    app.quit();
+  });
 
   return true;
 };
