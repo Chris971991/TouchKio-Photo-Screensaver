@@ -69,6 +69,8 @@ const init = async () => {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        backgroundThrottling: false,
+        enableBlinkFeatures: "CSSOMSmoothScroll",
       },
     });
     view.setVisible(i === 0);
@@ -116,6 +118,20 @@ const init = async () => {
   WEBVIEW.window.contentView.addChildView(WEBVIEW.navigation);
   WEBVIEW.navigation.webContents.loadFile(path.join(APP.path, "html", "navigation.html"));
 
+  // Init global keyboard overlay
+  WEBVIEW.keyboard = new WebContentsView({
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+  WEBVIEW.keyboard.setBackgroundColor("#00000000");
+  WEBVIEW.window.contentView.addChildView(WEBVIEW.keyboard);
+  WEBVIEW.keyboard.webContents.loadFile(path.join(APP.path, "html", "keyboard.html"));
+  WEBVIEW.keyboardVisible = false;
+  WEBVIEW.keyboardHeight = 280;
+
   // Register global events
   EVENTS.on("reloadView", reloadView);
   EVENTS.on("updateView", updateView);
@@ -130,6 +146,7 @@ const init = async () => {
   await windowEvents();
   await widgetEvents();
   await navigationEvents();
+  await keyboardEvents();
   await viewEvents();
   await appEvents();
 
@@ -140,7 +157,7 @@ const init = async () => {
  * Updates the shared webview properties.
  */
 const update = async () => {
-  if (!WEBVIEW.initialized) {
+  if (!WEBVIEW.initialized || APP.exiting) {
     return;
   }
 
@@ -238,6 +255,12 @@ const updateNavigation = () => {
     id: "url",
     text: currentUrl.startsWith("data:") ? "" : currentUrl,
     placeholder: defaultUrl.startsWith("data:") ? "" : defaultUrl,
+  });
+
+  // Set url input readonly state based on keyboard support
+  WEBVIEW.navigation.webContents.send("input-readonly", {
+    id: "url",
+    readonly: !!HARDWARE.support.keyboardVisibility,
   });
 
   // Disable zoom buttons
@@ -449,6 +472,19 @@ const resizeView = () => {
       height: window.height,
     });
   }
+
+  // Update keyboard overlay position
+  if (WEBVIEW.keyboard) {
+    const keyboardY = WEBVIEW.keyboardVisible
+      ? window.height - WEBVIEW.keyboardHeight
+      : window.height;
+    WEBVIEW.keyboard.setBounds({
+      x: 0,
+      y: keyboardY,
+      width: window.width,
+      height: WEBVIEW.keyboardHeight,
+    });
+  }
 };
 
 /**
@@ -599,17 +635,21 @@ const navigationEvents = async () => {
     return;
   }
 
-  // Handle navigation blur events
-  let ignoreBlur = false;
-  WEBVIEW.navigation.webContents.on("blur", () => {
+  // Handle input blur events
+  let selected = false;
+  ipcMain.on("input-blur", (e, input) => {
     const visibility = hardware.getKeyboardVisibility();
-    if (visibility === "ON" && !ignoreBlur) {
-      WEBVIEW.window.restore();
-      WEBVIEW.window.unmaximize();
-      WEBVIEW.window.setFullScreen(true);
-      hardware.setKeyboardVisibility("OFF");
-      WEBVIEW.navigation.webContents.send("input-blur", { id: "url" });
+    switch (input.id) {
+      case "url":
+        if (visibility === "ON" && selected) {
+          hardware.setKeyboardVisibility("OFF", () => {
+            WEBVIEW.navigation.webContents.send("input-select", { id: "url", select: false });
+            WEBVIEW.navigation.webContents.send("input-readonly", { id: "url", readonly: true });
+          });
+        }
+        break;
     }
+    selected = false;
   });
 
   // Handle input focus events
@@ -619,16 +659,13 @@ const navigationEvents = async () => {
     switch (input.id) {
       case "url":
         if (visibility === "OFF") {
-          ignoreBlur = true;
-          WEBVIEW.window.restore();
-          WEBVIEW.window.setFullScreen(false);
-          WEBVIEW.window.maximize();
           hardware.setKeyboardVisibility("ON", () => {
             setTimeout(() => {
+              selected = true;
               WEBVIEW.navigation.webContents.focus();
-              WEBVIEW.navigation.webContents.send("input-select", { id: "url" });
-              ignoreBlur = false;
-            }, 500);
+              WEBVIEW.navigation.webContents.send("input-select", { id: "url", select: true });
+              WEBVIEW.navigation.webContents.send("input-readonly", { id: "url", readonly: false });
+            }, 400);
           });
         }
         break;
@@ -694,6 +731,114 @@ const navigationEvents = async () => {
 };
 
 /**
+ * Register keyboard events and handler.
+ */
+const keyboardEvents = async () => {
+  const window = WEBVIEW.window.getBounds();
+
+  // Initially hide keyboard off-screen
+  WEBVIEW.keyboard.setBounds({
+    x: 0,
+    y: window.height,
+    width: window.width,
+    height: WEBVIEW.keyboardHeight,
+  });
+
+  // Animate keyboard slide
+  let keyboardAnimating = false;
+  const animateKeyboard = (targetY, onComplete) => {
+    if (keyboardAnimating) return;
+    keyboardAnimating = true;
+    const bounds = WEBVIEW.window.getBounds();
+    const currentBounds = WEBVIEW.keyboard.getBounds();
+    const startY = currentBounds.y;
+    const distance = targetY - startY;
+    const duration = 200; // ms
+    const startTime = Date.now();
+
+    const step = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentY = Math.round(startY + distance * eased);
+
+      WEBVIEW.keyboard.setBounds({
+        x: 0,
+        y: currentY,
+        width: bounds.width,
+        height: WEBVIEW.keyboardHeight,
+      });
+
+      if (progress < 1) {
+        setTimeout(step, 16); // ~60fps
+      } else {
+        keyboardAnimating = false;
+        if (onComplete) onComplete();
+      }
+    };
+    step();
+  };
+
+  // Show keyboard
+  const showKeyboard = () => {
+    if (WEBVIEW.keyboardVisible || keyboardAnimating) return;
+    WEBVIEW.keyboardVisible = true;
+    const bounds = WEBVIEW.window.getBounds();
+    // Bring keyboard to front
+    WEBVIEW.window.contentView.removeChildView(WEBVIEW.keyboard);
+    WEBVIEW.window.contentView.addChildView(WEBVIEW.keyboard);
+    // Animate slide up
+    animateKeyboard(bounds.height - WEBVIEW.keyboardHeight);
+    console.log("Keyboard shown");
+  };
+
+  // Hide keyboard
+  const hideKeyboard = () => {
+    if (!WEBVIEW.keyboardVisible || keyboardAnimating) return;
+    WEBVIEW.keyboardVisible = false;
+    const bounds = WEBVIEW.window.getBounds();
+    // Animate slide down
+    animateKeyboard(bounds.height, () => {
+      // Refocus webview after animation
+      WEBVIEW.views[WEBVIEW.viewActive].webContents.focus();
+    });
+    console.log("Keyboard hidden");
+  };
+
+  // Handle keyboard show request
+  ipcMain.on("keyboard-show", () => {
+    showKeyboard();
+  });
+
+  // Handle keyboard hide request
+  ipcMain.on("keyboard-hide", () => {
+    hideKeyboard();
+  });
+
+  // Handle key press from keyboard overlay
+  ipcMain.on("keyboard-key", (e, data) => {
+    const view = WEBVIEW.views[WEBVIEW.viewActive];
+    if (!view) return;
+
+    if (data.action === "backspace") {
+      view.webContents.sendInputEvent({ type: "keyDown", keyCode: "Backspace" });
+      view.webContents.sendInputEvent({ type: "keyUp", keyCode: "Backspace" });
+    } else if (data.action === "enter") {
+      view.webContents.sendInputEvent({ type: "keyDown", keyCode: "Return" });
+      view.webContents.sendInputEvent({ type: "keyUp", keyCode: "Return" });
+    } else if (data.char) {
+      // Send character
+      view.webContents.sendInputEvent({ type: "char", keyCode: data.char });
+    }
+  });
+
+  // Export show/hide for use by viewEvents
+  WEBVIEW.showKeyboard = showKeyboard;
+  WEBVIEW.hideKeyboard = hideKeyboard;
+};
+
+/**
  * Register view events and handler.
  */
 const viewEvents = async () => {
@@ -730,6 +875,57 @@ const viewEvents = async () => {
         setTimeout(() => {
           view.webContents.openDevTools();
         }, 2000);
+      }
+
+      // Inject input focus detection for keyboard overlay (skip loader view)
+      if (i > 0 && WEBVIEW.showKeyboard) {
+        console.log("Injecting keyboard focus detection for view", i);
+
+        // Use CDP to detect focus changes - more reliable than console interception
+        const pollFocus = async () => {
+          try {
+            const result = await view.webContents.executeJavaScript(`
+              (function() {
+                function isTextInput(el) {
+                  if (!el || !el.tagName) return false;
+                  const tagName = el.tagName.toLowerCase();
+                  const type = (el.type || '').toLowerCase();
+                  if (tagName === 'input' && !['hidden','checkbox','radio','button','submit','range','color','file'].includes(type)) return true;
+                  if (tagName === 'textarea') return true;
+                  if (el.isContentEditable) return true;
+                  return false;
+                }
+                function getDeepActiveElement() {
+                  let active = document.activeElement;
+                  while (active && active.shadowRoot && active.shadowRoot.activeElement) {
+                    active = active.shadowRoot.activeElement;
+                  }
+                  return active;
+                }
+                return isTextInput(getDeepActiveElement());
+              })();
+            `);
+            return result;
+          } catch (e) {
+            return false;
+          }
+        };
+
+        let lastFocusState = false;
+        setInterval(async () => {
+          const isFocused = await pollFocus();
+          if (isFocused && !lastFocusState) {
+            console.log("Keyboard focus detected - showing keyboard");
+            WEBVIEW.showKeyboard();
+            lastFocusState = true;
+          } else if (!isFocused && lastFocusState) {
+            console.log("Keyboard focus lost - hiding keyboard");
+            WEBVIEW.hideKeyboard();
+            lastFocusState = false;
+          }
+        }, 150);
+
+        console.log("Keyboard focus polling started for view", i);
       }
     });
 
@@ -769,7 +965,11 @@ const viewEvents = async () => {
           if (posOld.x !== posNew.x || posOld.y !== posNew.y) {
             WEBVIEW.tracker.pointer.time = now;
             WEBVIEW.tracker.pointer.position = posNew;
-            EVENTS.emit("userActivity");
+            // Only emit activity if not in display wake grace period
+            const wakeGracePassed = !WEBVIEW.displayWakeTime || (Date.now() - WEBVIEW.displayWakeTime > 2000);
+            if (wakeGracePassed) {
+              EVENTS.emit("userActivity");
+            }
             if (delta > 30) {
               console.log("Update Last Active");
               integration.update();
@@ -777,17 +977,31 @@ const viewEvents = async () => {
           }
           break;
         case "mouseDown":
-          EVENTS.emit("userActivity");
           switch (mouse.button) {
             case "left":
-              // Ignore touch event if display was off
-              if (WEBVIEW.tracker.display.off > WEBVIEW.tracker.display.on) {
-                console.log("Display Touch Event: Ignored");
+              // Check if display was off - handle wake sequence specially
+              const displayWasOff = hardware.getDisplayStatus() === "OFF" ||
+                                    WEBVIEW.tracker.display.off > WEBVIEW.tracker.display.on;
+
+              // Check if slideshow is active but hidden (black overlay showing)
+              // In this state, touch should show the slideshow, not trigger activity
+              const slideshowHiddenButActive = global.SLIDESHOW &&
+                                                global.SLIDESHOW.active &&
+                                                !global.SLIDESHOW.visible;
+
+              if (displayWasOff) {
+                console.log("Display Touch Event: Waking display (activity suppressed for 2s)");
                 e.preventDefault();
-              }
-              // Turn display on if it was off
-              if (hardware.getDisplayStatus() === "OFF") {
                 hardware.setDisplayStatus("ON");
+                // Set a wake grace period - don't emit userActivity for 2 seconds
+                WEBVIEW.displayWakeTime = Date.now();
+              } else if (slideshowHiddenButActive) {
+                // Black overlay is showing - don't emit activity, let idle timer handle it
+                console.log("Touch on black overlay - resetting idle timer to show slideshow");
+                WEBVIEW.displayWakeTime = Date.now(); // Suppress activity briefly
+              } else {
+                // Display was already on - normal activity detection
+                EVENTS.emit("userActivity");
               }
               break;
             case "back":

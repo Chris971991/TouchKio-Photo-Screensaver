@@ -1,0 +1,280 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      body {
+        background: transparent;
+        overflow: hidden;
+        height: 100vh;
+        display: flex;
+        align-items: flex-end;
+      }
+      .keyboard-container {
+        width: 100%;
+        background: rgba(15, 15, 15, 0.92);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 2px solid rgba(74, 144, 226, 0.8);
+        padding: 12px 8px 8px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .keyboard-row {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        width: 100%;
+        padding: 0 4px;
+      }
+      .key {
+        height: 48px;
+        min-width: 0;
+        padding: 0 4px;
+        background: rgba(70, 70, 70, 0.85);
+        border: 1px solid rgba(100, 100, 100, 0.4);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 500;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.1s, transform 0.05s;
+        flex: 1;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      }
+      .key:active {
+        background: rgba(120, 120, 120, 0.95);
+        transform: scale(0.95);
+      }
+      .key.special {
+        background: rgba(55, 55, 55, 0.9);
+        font-size: 14px;
+        font-weight: 600;
+        flex: 1.3;
+        max-width: 70px;
+      }
+      .key.special:active {
+        background: rgba(100, 100, 100, 0.95);
+      }
+      .key.shift-active {
+        background: rgba(74, 144, 226, 0.85);
+        border-color: rgba(74, 144, 226, 0.6);
+      }
+      .key.caps-active {
+        background: rgba(46, 204, 113, 0.85);
+        border-color: rgba(46, 204, 113, 0.6);
+      }
+      .key.space {
+        flex: 6;
+        max-width: none;
+        font-size: 16px;
+        letter-spacing: 2px;
+      }
+      .key.backspace {
+        background: rgba(180, 60, 60, 0.85);
+        border-color: rgba(200, 80, 80, 0.5);
+        flex: 1.2;
+        font-size: 24px;
+      }
+      .key.backspace:active {
+        background: rgba(220, 80, 80, 0.95);
+      }
+      .key.enter {
+        background: rgba(74, 144, 226, 0.85);
+        border-color: rgba(74, 144, 226, 0.5);
+        flex: 1.5;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .key.enter:active {
+        background: rgba(94, 164, 246, 0.95);
+      }
+      .key.done {
+        background: rgba(46, 180, 100, 0.85);
+        border-color: rgba(46, 204, 113, 0.5);
+        flex: 1.3;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .key.done:active {
+        background: rgba(60, 210, 120, 0.95);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="keyboard-container">
+      <!-- Row 1: Numbers -->
+      <div class="keyboard-row" id="row-numbers">
+        <button class="key" data-key="1" data-shift="!">1</button>
+        <button class="key" data-key="2" data-shift="@">2</button>
+        <button class="key" data-key="3" data-shift="#">3</button>
+        <button class="key" data-key="4" data-shift="$">4</button>
+        <button class="key" data-key="5" data-shift="%">5</button>
+        <button class="key" data-key="6" data-shift="^">6</button>
+        <button class="key" data-key="7" data-shift="&">7</button>
+        <button class="key" data-key="8" data-shift="*">8</button>
+        <button class="key" data-key="9" data-shift="(">9</button>
+        <button class="key" data-key="0" data-shift=")">0</button>
+        <button class="key backspace" data-action="backspace">&#9003;</button>
+      </div>
+      <!-- Row 2: QWERTY -->
+      <div class="keyboard-row">
+        <button class="key" data-key="q">q</button>
+        <button class="key" data-key="w">w</button>
+        <button class="key" data-key="e">e</button>
+        <button class="key" data-key="r">r</button>
+        <button class="key" data-key="t">t</button>
+        <button class="key" data-key="y">y</button>
+        <button class="key" data-key="u">u</button>
+        <button class="key" data-key="i">i</button>
+        <button class="key" data-key="o">o</button>
+        <button class="key" data-key="p">p</button>
+        <button class="key" data-key="-" data-shift="_">-</button>
+        <button class="key" data-key="=" data-shift="+">+</button>
+      </div>
+      <!-- Row 3: ASDF -->
+      <div class="keyboard-row">
+        <button class="key special" data-action="caps" id="caps-key">Caps</button>
+        <button class="key" data-key="a">a</button>
+        <button class="key" data-key="s">s</button>
+        <button class="key" data-key="d">d</button>
+        <button class="key" data-key="f">f</button>
+        <button class="key" data-key="g">g</button>
+        <button class="key" data-key="h">h</button>
+        <button class="key" data-key="j">j</button>
+        <button class="key" data-key="k">k</button>
+        <button class="key" data-key="l">l</button>
+        <button class="key" data-key=";" data-shift=":">;</button>
+        <button class="key" data-key="'" data-shift="&quot;">'</button>
+      </div>
+      <!-- Row 4: ZXCV -->
+      <div class="keyboard-row">
+        <button class="key special" data-action="shift" id="shift-key">Shift</button>
+        <button class="key" data-key="z">z</button>
+        <button class="key" data-key="x">x</button>
+        <button class="key" data-key="c">c</button>
+        <button class="key" data-key="v">v</button>
+        <button class="key" data-key="b">b</button>
+        <button class="key" data-key="n">n</button>
+        <button class="key" data-key="m">m</button>
+        <button class="key" data-key="," data-shift="<">,</button>
+        <button class="key" data-key="." data-shift=">">.</button>
+        <button class="key" data-key="/" data-shift="?">/</button>
+        <button class="key enter" data-action="enter">Enter</button>
+      </div>
+      <!-- Row 5: Space and controls -->
+      <div class="keyboard-row">
+        <button class="key special" data-action="symbols" id="symbols-key">123</button>
+        <button class="key" data-key="@">@</button>
+        <button class="key space" data-key=" ">Space</button>
+        <button class="key" data-key=".">.</button>
+        <button class="key done" data-action="done">Done</button>
+      </div>
+    </div>
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      let shiftActive = false;
+      let capsActive = false;
+      let symbolsActive = false;
+
+      const shiftKey = document.getElementById('shift-key');
+      const capsKey = document.getElementById('caps-key');
+      const symbolsKey = document.getElementById('symbols-key');
+
+      // Update key display based on shift/caps state
+      function updateKeyDisplay() {
+        const isUpper = shiftActive || capsActive;
+        document.querySelectorAll('.key[data-key]').forEach(key => {
+          const baseKey = key.getAttribute('data-key');
+          const shiftKey = key.getAttribute('data-shift');
+
+          if (baseKey && baseKey.length === 1 && baseKey.match(/[a-z]/)) {
+            key.textContent = isUpper ? baseKey.toUpperCase() : baseKey;
+          } else if (shiftKey && shiftActive) {
+            key.textContent = shiftKey;
+          } else if (baseKey) {
+            key.textContent = baseKey === ' ' ? 'Space' : baseKey;
+          }
+        });
+      }
+
+      // Handle key press
+      document.querySelectorAll('.key').forEach(key => {
+        key.addEventListener('click', (e) => {
+          e.preventDefault();
+          const action = key.getAttribute('data-action');
+          const baseKey = key.getAttribute('data-key');
+          const shiftKeyChar = key.getAttribute('data-shift');
+
+          if (action) {
+            switch (action) {
+              case 'backspace':
+                ipcRenderer.send('keyboard-key', { action: 'backspace' });
+                break;
+              case 'enter':
+                ipcRenderer.send('keyboard-key', { action: 'enter' });
+                break;
+              case 'shift':
+                shiftActive = !shiftActive;
+                shiftKey.classList.toggle('shift-active', shiftActive);
+                updateKeyDisplay();
+                break;
+              case 'caps':
+                capsActive = !capsActive;
+                capsKey.classList.toggle('caps-active', capsActive);
+                updateKeyDisplay();
+                break;
+              case 'symbols':
+                // Toggle symbols - could expand to show more symbols
+                symbolsActive = !symbolsActive;
+                symbolsKey.classList.toggle('shift-active', symbolsActive);
+                break;
+              case 'done':
+                ipcRenderer.send('keyboard-hide');
+                break;
+            }
+          } else if (baseKey) {
+            let charToSend = baseKey;
+
+            // Handle shift for letters
+            if (baseKey.match(/^[a-z]$/) && (shiftActive || capsActive)) {
+              charToSend = baseKey.toUpperCase();
+            }
+            // Handle shift for symbols
+            else if (shiftKeyChar && shiftActive) {
+              charToSend = shiftKeyChar;
+            }
+
+            ipcRenderer.send('keyboard-key', { char: charToSend });
+
+            // Turn off shift after character (but not caps)
+            if (shiftActive) {
+              shiftActive = false;
+              shiftKey.classList.remove('shift-active');
+              updateKeyDisplay();
+            }
+          }
+        });
+      });
+
+      // Prevent focus issues
+      document.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
+
+      console.log('Keyboard initialized');
+    </script>
+  </body>
+</html>
