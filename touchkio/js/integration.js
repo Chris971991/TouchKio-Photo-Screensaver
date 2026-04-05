@@ -109,6 +109,12 @@ const init = async () => {
       // Integration initialized
       INTEGRATION.initialized = true;
     })
+    .on("reconnect", () => {
+      console.log("MQTT Reconnecting...");
+    })
+    .on("offline", () => {
+      console.log("MQTT Offline");
+    })
     .on("error", (error) => {
       console.error("MQTT", error.message);
     });
@@ -118,20 +124,21 @@ const init = async () => {
   EVENTS.on("updateKeyboard", updateKeyboard);
 
   // Update time sensors periodically (30s)
-  setInterval(() => {
+  INTEGRATION.timers = INTEGRATION.timers || {};
+  INTEGRATION.timers.heartbeat = setInterval(() => {
     if (APP.exiting) return;
     updateHeartbeat();
     updateLastActive();
   }, 30 * 1000);
 
   // Update system sensors periodically (1min)
-  setInterval(() => {
+  INTEGRATION.timers.system = setInterval(() => {
     if (APP.exiting) return;
     update();
   }, 60 * 1000);
 
   // Update upgrade sensors periodically (1h)
-  setInterval(() => {
+  INTEGRATION.timers.upgrades = setInterval(() => {
     if (APP.exiting) return;
     updateApp();
     updatePackageUpgrades();
@@ -1061,6 +1068,8 @@ const initSlideshow = () => {
   initSlideshowSourceBorderRadius();
   initSlideshowSourcePadding();
   initSlideshowSourceShadow();
+  initSlideshowSourceShowCircle();
+  initSlideshowSourceCircleColor();
   initSlideshowSourceCustomX();
   initSlideshowSourceCustomY();
 
@@ -2601,10 +2610,10 @@ const updateSlideshowRuntimeConfig = (key, value) => {
   try {
     switch (key) {
       case "slideshow_interval":
-        slideshow.updateConfig({ interval: parseInt(value) * 1000 });
+        slideshow.updateConfig({ interval: (parseInt(value) || 5) * 1000 });
         break;
       case "slideshow_idle_timeout":
-        slideshow.updateConfig({ idleTimeout: parseFloat(value) * 60000 });
+        slideshow.updateConfig({ idleTimeout: (parseFloat(value) || 3) * 60000 });
         break;
       case "slideshow_random_order":
         const randomOrder = value === "true" || value === true;
@@ -2670,11 +2679,14 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_clock_format":
         slideshow.updateConfig({ clockFormat: value });
         break;
-      case "slideshow_clock_ampm_case":
+      case "slideshow_clock_am_pm_case":
         slideshow.updateConfig({ clockAmPmCase: value });
         break;
-      case "slideshow_clock_ampm_size":
+      case "slideshow_clock_am_pm_size":
         slideshow.updateConfig({ clockAmPmSize: value });
+        break;
+      case "slideshow_clock_am_pm_spacing":
+        slideshow.updateConfig({ clockAmPmSpacing: value });
         break;
       case "slideshow_clock_alignment":
         slideshow.updateConfig({ clockAlignment: value });
@@ -2738,6 +2750,12 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_source_background_opacity":
         slideshow.updateConfig({ sourceBackgroundOpacity: parseInt(value) });
+        break;
+      case "slideshow_source_show_circle":
+        slideshow.updateConfig({ sourceShowCircle: value === "true" || value === true || value === "ON" });
+        break;
+      case "slideshow_source_circle_color":
+        slideshow.updateConfig({ sourceCircleColor: value });
         break;
       // Counter styling
       case "slideshow_counter_position":
@@ -2832,6 +2850,7 @@ const updateSlideshowRuntimeConfig = (key, value) => {
         break;
       case "slideshow_metadata_custom_font_size":
         slideshow.updateConfig({ metadataCustomFontSize: value });
+        break;
       // Border radius settings for all elements
       case "slideshow_clock_border_radius":
         slideshow.updateConfig({ clockBorderRadius: value });
@@ -2915,7 +2934,6 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_metadata_background_opacity":
         slideshow.updateConfig({ metadataBackgroundOpacity: parseInt(value) });
         break;
-        break;
     }
     console.log(`Synced ${key} to slideshow runtime config:`, value);
   } catch (error) {
@@ -2990,12 +3008,13 @@ const updateSlideshow = async () => {
   publishState("slideshow_clock_opacity", convertOpacityToMqtt(status.config.clockOpacity || ARGS.slideshow_clock_opacity));
   publishState("slideshow_clock_color", status.config.clockColor || ARGS.slideshow_clock_color || "#ffffff");
   publishState("slideshow_clock_custom_font_size", status.config.clockCustomFontSize || ARGS.slideshow_clock_custom_font_size || "");
-  publishState("slideshow_clock_background_opacity", convertOpacityToMqtt(status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity));
+  publishState("slideshow_clock_background_opacity", parseInt(status.config.clockBackgroundOpacity || ARGS.slideshow_clock_background_opacity || 70));
   publishState("slideshow_clock_format", status.config.clockFormat || ARGS.slideshow_clock_format || "24hour");
   publishState("slideshow_clock_am_pm_case", status.config.clockAmPmCase || ARGS.slideshow_clock_am_pm_case || "uppercase");
   publishState("slideshow_clock_am_pm_size", parseInt(status.config.clockAmPmSize || ARGS.slideshow_clock_am_pm_size || 80));
   publishState("slideshow_clock_am_pm_spacing", status.config.clockAmPmSpacing || ARGS.slideshow_clock_am_pm_spacing || "1");
   publishState("slideshow_clock_alignment", status.config.clockAlignment || ARGS.slideshow_clock_alignment || "left");
+  publishState("slideshow_clock_background_color", status.config.clockBackgroundColor || ARGS.slideshow_clock_background_color || "");
 
   // Date settings - independent from clock
   publishState("slideshow_show_date", status.config.showDate !== false ? "ON" : "OFF");
@@ -3005,8 +3024,9 @@ const updateSlideshow = async () => {
   publishState("slideshow_date_opacity", convertOpacityToMqtt(status.config.dateOpacity || ARGS.slideshow_date_opacity));
   publishState("slideshow_date_color", status.config.dateColor || ARGS.slideshow_date_color || "#ffffff");
   publishState("slideshow_date_custom_font_size", status.config.dateCustomFontSize || ARGS.slideshow_date_custom_font_size || "");
-  publishState("slideshow_date_background_opacity", convertOpacityToMqtt(status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity));
+  publishState("slideshow_date_background_opacity", parseInt(status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity || 70));
   publishState("slideshow_date_alignment", status.config.dateAlignment || ARGS.slideshow_date_alignment || "left");
+  publishState("slideshow_date_background_color", status.config.dateBackgroundColor || ARGS.slideshow_date_background_color || "");
 
   // Source indicator settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_source", status.config.showSourceIndicator ? "ON" : "OFF");
@@ -3016,7 +3036,10 @@ const updateSlideshow = async () => {
   publishState("slideshow_source_background", status.config.sourceBackground || ARGS.slideshow_source_background || "dark");
   publishState("slideshow_source_color", status.config.sourceColor || ARGS.slideshow_source_color || "#ffffff");
   publishState("slideshow_source_custom_font_size", status.config.sourceCustomFontSize || ARGS.slideshow_source_custom_font_size || "");
-  publishState("slideshow_source_background_opacity", convertOpacityToMqtt(status.config.sourceBackgroundOpacity || ARGS.slideshow_source_background_opacity));
+  publishState("slideshow_source_background_opacity", parseInt(status.config.sourceBackgroundOpacity || ARGS.slideshow_source_background_opacity || 70));
+  publishState("slideshow_source_background_color", status.config.sourceBackgroundColor || ARGS.slideshow_source_background_color || "");
+  publishState("slideshow_source_show_circle", status.config.sourceShowCircle !== false && status.config.sourceShowCircle !== 'OFF' ? "ON" : "OFF");
+  publishState("slideshow_source_circle_color", status.config.sourceCircleColor || ARGS.slideshow_source_circle_color || "#4285f4");
 
   // Counter settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_show_counter", status.config.showPhotoCounter ? "ON" : "OFF");
@@ -3026,7 +3049,8 @@ const updateSlideshow = async () => {
   publishState("slideshow_counter_background", status.config.counterBackground || ARGS.slideshow_counter_background || "dark");
   publishState("slideshow_counter_color", status.config.counterColor || ARGS.slideshow_counter_color || "#ffffff");
   publishState("slideshow_counter_custom_font_size", status.config.counterCustomFontSize || ARGS.slideshow_counter_custom_font_size || "");
-  publishState("slideshow_counter_background_opacity", convertOpacityToMqtt(status.config.counterBackgroundOpacity || ARGS.slideshow_counter_background_opacity));
+  publishState("slideshow_counter_background_opacity", parseInt(status.config.counterBackgroundOpacity || ARGS.slideshow_counter_background_opacity || 70));
+  publishState("slideshow_counter_background_color", status.config.counterBackgroundColor || ARGS.slideshow_counter_background_color || "");
 
   // Performance settings - use runtime values as primary, ARGS as fallback
   publishState("slideshow_preload_buffer_size", status.config.preloadBufferSize || ARGS.slideshow_preload_buffer_size || 20);
@@ -3044,7 +3068,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_metadata_size", status.config.metadataSize || ARGS.slideshow_metadata_size || "small");
   publishState("slideshow_metadata_opacity", convertOpacityToMqtt(status.config.metadataOpacity || ARGS.slideshow_metadata_opacity));
   publishState("slideshow_metadata_custom_font_size", status.config.metadataCustomFontSize || ARGS.slideshow_metadata_custom_font_size || "");
-  publishState("slideshow_metadata_background_opacity", convertOpacityToMqtt(status.config.metadataBackgroundOpacity || ARGS.slideshow_metadata_background_opacity));
+  publishState("slideshow_metadata_background_opacity", parseInt(status.config.metadataBackgroundOpacity || ARGS.slideshow_metadata_background_opacity || 70));
   publishState("slideshow_metadata_transition_type", status.config.metadataTransitionType || ARGS.slideshow_metadata_transition_type || "fade");
   publishState("slideshow_show_filename", status.config.showFilename ? "ON" : "OFF");
   publishState("slideshow_show_date_taken", status.config.showDateTaken ? "ON" : "OFF");
@@ -3052,6 +3076,7 @@ const updateSlideshow = async () => {
   publishState("slideshow_show_location", status.config.showLocation ? "ON" : "OFF");
   publishState("slideshow_metadata_background", status.config.metadataBackground || ARGS.slideshow_metadata_background || "dark");
   publishState("slideshow_metadata_color", status.config.metadataColor || ARGS.slideshow_metadata_color || "#ffffff");
+  publishState("slideshow_metadata_background_color", status.config.metadataBackgroundColor || ARGS.slideshow_metadata_background_color || "");
 
   // Phase 2: Advanced Background Options (Border Radius, Padding, Shadows)
   // Clock advanced styling
@@ -4172,6 +4197,58 @@ const initSlideshowSourceShadow = () => {
 };
 
 /**
+ * Initializes the slideshow source circle visibility control.
+ */
+const initSlideshowSourceShowCircle = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_show_circle`;
+  const config = {
+    name: "Slideshow Source Show Circle",
+    unique_id: `${INTEGRATION.node}_slideshow_source_show_circle`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:circle",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("switch", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const showCircle = message.toString() === "ON";
+        console.log("Set Slideshow Source Show Circle:", showCircle);
+        updateSlideshowSetting("slideshow_source_show_circle", showCircle);
+        slideshow.updateConfig({ sourceShowCircle: showCircle });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
+ * Initializes the slideshow source circle color control.
+ */
+const initSlideshowSourceCircleColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_circle_color`;
+  const config = {
+    name: "Slideshow Source Circle Color",
+    unique_id: `${INTEGRATION.node}_slideshow_source_circle_color`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:palette",
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const circleColor = message.toString();
+        console.log("Set Slideshow Source Circle Color:", circleColor);
+        updateSlideshowSetting("slideshow_source_circle_color", circleColor);
+        slideshow.updateConfig({ sourceCircleColor: circleColor });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+/**
  * Initializes the slideshow counter border radius control.
  */
 const initSlideshowCounterBorderRadius = () => {
@@ -4931,11 +5008,36 @@ const initPresetEditorMode = () => {
 const handleEditorSettingsUpdate = (settings) => {
   console.log('Received editor settings update:', settings);
 
-  Object.entries(settings).forEach(([key, value]) => {
-    console.log(`Updating setting ${key} = ${value}`);
-    updateSlideshowSetting(key, value);
+  const fs = require("fs");
+  const path = require("path");
+  const argsFilePath = path.join(APP.config, "Arguments.json");
 
-  });
+  // Batch all settings into a single file write to prevent race conditions
+  try {
+    // Read current config once
+    const configContent = fs.readFileSync(argsFilePath, "utf8");
+    const currentConfig = JSON.parse(configContent);
+
+    // Apply all settings to in-memory ARGS and config, then write once
+    Object.entries(settings).forEach(([key, value]) => {
+      console.log(`Updating setting ${key} = ${value}`);
+      ARGS[key] = value;
+      updateSlideshowRuntimeConfig(key, value);
+      // Store value for persistence
+      const valueToStore = typeof value === "boolean" ? value.toString() : value;
+      currentConfig[key] = valueToStore;
+    });
+
+    // Single atomic write
+    fs.writeFileSync(argsFilePath, JSON.stringify(currentConfig, null, 2));
+    console.log(`Batch saved ${Object.keys(settings).length} settings to Arguments.json`);
+  } catch (error) {
+    console.error('Error batch saving editor settings:', error.message);
+    // Fallback to individual writes
+    Object.entries(settings).forEach(([key, value]) => {
+      updateSlideshowSetting(key, value);
+    });
+  }
 };
 
 const disableEditorMode = () => {

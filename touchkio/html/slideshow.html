@@ -1324,6 +1324,7 @@
                 metadata.style.fontSize = config.metadataCustomFontSize;
             } else {
                 metadata.className = `metadata-overlay background-${metadataBackground}`;
+                metadata.style.fontSize = ''; // Clear any previous custom font size
             }
 
             // Apply positioning - EXACT same structure as clock
@@ -1439,6 +1440,8 @@
                 } else if (config.metadataBackground === 'purple') {
                     metadata.style.backgroundColor = `rgba(155, 89, 182, ${opacity})`;
                 }
+            } else {
+                metadata.style.backgroundColor = '';
             }
 
             // Apply spacing (border radius and padding)
@@ -4977,9 +4980,9 @@
             const positionMap = {
                 'clock': config.clockPosition || 'top-left',
                 'date': config.datePosition || 'top-right',
-                'source': config.sourcePosition || 'bottom-left',
-                'counter': config.counterPosition || 'bottom-right',
-                'metadataOverlay': config.metadataPosition || 'bottom-right'
+                'source': config.sourcePosition || 'top-left',
+                'counter': config.counterPosition || 'bottom-left',
+                'metadataOverlay': config.metadataPosition || 'bottom-center'
             };
             return positionMap[elementId] || 'top-left';
         }
@@ -5249,7 +5252,7 @@
 
         function updateSaveButtonState() {
             const saveBtn = document.getElementById('save-changes-btn');
-            const hasChanges = Object.keys(pendingChanges).length > 0;
+            const hasChanges = pendingChangesManager.getChangeCount() > 0 || Object.keys(pendingChanges).length > 0;
 
             if (saveBtn) {
                 saveBtn.disabled = !hasChanges;
@@ -5614,6 +5617,12 @@
                     console.log('Cleaning up editor event listeners...');
                     eventManager.cleanup();
 
+                    // Remove global context menu handler
+                    if (window._editorGlobalContextMenuHandler) {
+                        document.removeEventListener('contextmenu', window._editorGlobalContextMenuHandler);
+                        window._editorGlobalContextMenuHandler = null;
+                    }
+
                     // Clear pending changes buffer
                     pendingChangesManager.clear();
 
@@ -5737,6 +5746,8 @@
             config[customXKey] = x + 'px';
             config[customYKey] = y + 'px';
         }
+
+        let previousEditorMode = false;
 
         ipcRenderer.on('slideshow-config', (event, data) => {
             console.log('===== IPC MESSAGE RECEIVED =====');
@@ -5920,7 +5931,11 @@
                         });
 
                         // Add global context menu for empty space to manage all elements
-                        document.addEventListener('contextmenu', function(e) {
+                        // Remove any previously attached handler to prevent duplicates
+                        if (window._editorGlobalContextMenuHandler) {
+                            document.removeEventListener('contextmenu', window._editorGlobalContextMenuHandler);
+                        }
+                        window._editorGlobalContextMenuHandler = function(e) {
                             if (!config.editorMode) return;
 
                             // Improved detection: check if click is on a UI element or its children
@@ -5937,7 +5952,8 @@
                                 e.preventDefault();
                                 showGlobalElementMenu(e.clientX, e.clientY);
                             }
-                        });
+                        };
+                        document.addEventListener('contextmenu', window._editorGlobalContextMenuHandler);
 
                         // Touch and hold for empty space on mobile
                         let globalTouchTimer;
@@ -6006,34 +6022,71 @@
                     }
                 }
 
-                // Clock and date configuration
-                // NEVER call apply functions after initial load - they will hide elements
-                // Apply functions are called by saveAllChanges, applyChangePreview, etc.
-                // This IPC handler should NOT call them or elements will disappear
-                console.log('IPC config received - SKIPPING apply functions to prevent element hiding');
-                initializeClock();
+                // Apply layout settings, but SKIP when editor mode is transitioning off
+                // (editor exit already handles cleanup; re-applying here would hide elements)
+                const isEditorModeExit = previousEditorMode && !config.editorMode;
+                previousEditorMode = !!config.editorMode;
 
-                // Source indicator, counter, metadata - SKIP applies
-                // They are handled by other functions (saveAllChanges, applyChangePreview, etc.)
-                console.log('IPC config received - SKIPPING source/counter/metadata applies');
+                if (!isEditorModeExit) {
+                    console.log('IPC config received - applying layout settings');
+                    initializeClock();
+                    applyClock();
+                    applyDate();
+                    applySourceIndicatorPosition();
+                    applyPhotoCounterPosition();
+                    applyMetadata();
+
+                    // Re-force elements visible if editor mode is active
+                    if (config.editorMode) {
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                            const element = document.getElementById(id);
+                            if (element) {
+                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.opacity = '1';
+                                element.style.visibility = 'visible';
+                            }
+                        });
+                    }
+                } else {
+                    // Editor mode exit: don't re-run full apply (would hide visible elements)
+                    // but DO restore correct visibility for elements that should be hidden
+                    console.log('IPC config received - restoring visibility after editor exit');
+                    const visibilityMap = {
+                        'clock': config.showClock !== false,
+                        'date': config.showDate !== false,
+                        'source': config.showSourceIndicator !== false,
+                        'counter': config.showPhotoCounter !== false,
+                        'metadataOverlay': config.showMetadata !== false
+                    };
+                    Object.entries(visibilityMap).forEach(([id, shouldShow]) => {
+                        const element = document.getElementById(id);
+                        if (element && !shouldShow) {
+                            element.style.display = 'none';
+                        }
+                    });
+                }
 
                 // Photo fit configuration - only update if it changed
                 if (data.config.photoFit !== undefined) {
                     const photos = document.querySelectorAll('.photo');
                     photos.forEach(photo => {
-                        // Preserve the visible state when updating photo fit
-                        const wasVisible = photo.classList.contains('visible');
-                        photo.className = `photo fit-${config.photoFit || 'contain'}`;
-                        if (wasVisible) {
-                            photo.classList.add('visible');
-                        }
+                        // Remove old fit classes, add new one — preserve other classes (visible, transition)
+                        photo.classList.forEach(cls => {
+                            if (cls.startsWith('fit-')) photo.classList.remove(cls);
+                        });
+                        photo.classList.add(`fit-${config.photoFit || 'contain'}`);
                     });
                 }
 
                 // Apply transition type - only update if it changed
                 if (data.config.transitionType !== undefined) {
                     const container = document.querySelector('.slideshow-container');
-                    container.className = `slideshow-container transition-${config.transitionType || 'fade'}`;
+                    if (container) {
+                        container.classList.forEach(cls => {
+                            if (cls.startsWith('transition-')) container.classList.remove(cls);
+                        });
+                        container.classList.add(`transition-${config.transitionType || 'fade'}`);
+                    }
                 }
 
                 // Apply dynamic transition duration
@@ -6519,7 +6572,6 @@
                 if (sourceBackground !== 'none' && config.sourceBackgroundOpacity !== undefined) {
                     const currentBg = window.getComputedStyle(sourceIndicator).backgroundColor;
                     if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
-                        // Extract RGB values and apply new opacity
                         const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
                         if (rgbMatch) {
                             const [, r, g, b] = rgbMatch;
@@ -6527,6 +6579,8 @@
                             sourceIndicator.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                         }
                     }
+                } else {
+                    sourceIndicator.style.backgroundColor = '';
                 }
 
                 // Apply general opacity
@@ -6572,6 +6626,7 @@
                     clock.style.fontSize = config.clockCustomFontSize;
                 } else {
                     clock.className = `clock background-${clockBackground} font-size-${clockFontSize} pos-${clockPos}`;
+                    clock.style.fontSize = ''; // Clear any previous custom font size
                 }
 
                 // Apply positioning - use custom coordinates if provided, otherwise use preset positions
@@ -6675,7 +6730,6 @@
                 if (clockBackground !== 'none' && config.clockBackgroundOpacity !== undefined) {
                     const currentBg = window.getComputedStyle(clock).backgroundColor;
                     if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
-                        // Extract RGB values and apply new opacity
                         const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
                         if (rgbMatch) {
                             const [, r, g, b] = rgbMatch;
@@ -6683,6 +6737,8 @@
                             clock.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                         }
                     }
+                } else {
+                    clock.style.backgroundColor = '';
                 }
 
                 // Apply general opacity
@@ -6830,7 +6886,6 @@
                 if (dateBackground !== 'none' && config.dateBackgroundOpacity !== undefined) {
                     const currentBg = window.getComputedStyle(date).backgroundColor;
                     if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
-                        // Extract RGB values and apply new opacity
                         const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
                         if (rgbMatch) {
                             const [, r, g, b] = rgbMatch;
@@ -6838,6 +6893,8 @@
                             date.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                         }
                     }
+                } else {
+                    date.style.backgroundColor = '';
                 }
 
                 // Apply general opacity
@@ -6992,7 +7049,6 @@
                 if (counterBackground !== 'none' && config.counterBackgroundOpacity !== undefined) {
                     const currentBg = window.getComputedStyle(photoCounter).backgroundColor;
                     if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
-                        // Extract RGB values and apply new opacity
                         const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
                         if (rgbMatch) {
                             const [, r, g, b] = rgbMatch;
@@ -7000,6 +7056,8 @@
                             photoCounter.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                         }
                     }
+                } else {
+                    photoCounter.style.backgroundColor = '';
                 }
 
                 // Apply general opacity
@@ -7075,8 +7133,8 @@
             }
 
             // Re-apply source indicator styling if any source option changed
-            if (currentPhotoIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
-                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow || newConfig.sourceCustomX || newConfig.sourceCustomY || newConfig.sourceShowCircle || newConfig.sourceCircleColor)) {
+            if (currentIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||
+                newConfig.sourceColor || newConfig.sourceFontSize || newConfig.sourceBackgroundOpacity || newConfig.sourceSize || newConfig.sourceOpacity || newConfig.sourceBorderRadius || newConfig.sourcePadding || newConfig.sourceShadow || newConfig.sourceCustomX || newConfig.sourceCustomY || newConfig.sourceShowCircle || newConfig.sourceCircleColor || newConfig.showSourceIndicator !== undefined)) {
                 applySourceIndicatorPosition();
             }
 
@@ -7099,8 +7157,8 @@
             // Re-apply metadata styling if any metadata option changed
             if (newConfig.metadataPosition || newConfig.metadataCustomX || newConfig.metadataCustomY || newConfig.showMetadata !== undefined || newConfig.metadataColor || newConfig.metadataBackground || newConfig.metadataFontSize || newConfig.metadataCustomFontSize || newConfig.metadataBackgroundOpacity || newConfig.metadataBorderRadius || newConfig.metadataPadding || newConfig.metadataShadow || newConfig.metadataOpacity) {
                 applyMetadata();
-                if (currentPhotoIndex !== -1 && photos[currentPhotoIndex]) {
-                    updateMetadataContent(photos[currentPhotoIndex]);
+                if (currentIndex !== -1 && photos[currentIndex]) {
+                    updateMetadataContent(photos[currentIndex]);
                 }
             }
 

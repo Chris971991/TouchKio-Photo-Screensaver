@@ -108,6 +108,7 @@ global.SLIDESHOW = global.SLIDESHOW || {
     fallbackEnabled: true,
     fallbackTimeout: 5000, // 5 seconds
     preferredSource: 'google', // 'google', 'local', 'auto'
+    editorMode: false,
   },
 };
 
@@ -332,43 +333,45 @@ class IPCBatcher {
     this.isProcessing = true;
     this.batchTimeout = null;
 
-    // Group messages by channel
-    const batches = {};
-    this.updateQueue.forEach(msg => {
-      if (!batches[msg.channel]) {
-        batches[msg.channel] = [];
-      }
-      batches[msg.channel].push(msg);
-    });
-
-    // Send batched messages
-    Object.keys(batches).forEach(channel => {
-      const messages = batches[channel];
-
-      if (channel === 'slideshow-config') {
-        // Merge config updates into single message
-        const mergedConfig = {};
-        messages.forEach(msg => {
-          Object.assign(mergedConfig, msg.data);
-        });
-
-        if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
-          SLIDESHOW.view.webContents.send(channel, mergedConfig);
+    try {
+      // Group messages by channel
+      const batches = {};
+      this.updateQueue.forEach(msg => {
+        if (!batches[msg.channel]) {
+          batches[msg.channel] = [];
         }
-      } else {
-        // For non-config messages, send the latest one
-        const latestMessage = messages[messages.length - 1];
-        if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
-          SLIDESHOW.view.webContents.send(channel, latestMessage.data);
+        batches[msg.channel].push(msg);
+      });
+
+      // Send batched messages
+      Object.keys(batches).forEach(channel => {
+        const messages = batches[channel];
+
+        if (channel === 'slideshow-config') {
+          // Merge config updates into single message
+          const mergedConfig = {};
+          messages.forEach(msg => {
+            Object.assign(mergedConfig, msg.data);
+          });
+
+          if (SLIDESHOW.view && SLIDESHOW.view.webContents && !SLIDESHOW.view.webContents.isDestroyed()) {
+            SLIDESHOW.view.webContents.send(channel, mergedConfig);
+          }
+        } else {
+          // For non-config messages, send the latest one
+          const latestMessage = messages[messages.length - 1];
+          if (SLIDESHOW.view && SLIDESHOW.view.webContents && !SLIDESHOW.view.webContents.isDestroyed()) {
+            SLIDESHOW.view.webContents.send(channel, latestMessage.data);
+          }
         }
-      }
-    });
+      });
 
-    // Clear queue and reset processing flag
-    this.updateQueue.length = 0;
-    this.isProcessing = false;
-
-    console.log(`Processed IPC batch: ${Object.keys(batches).length} channels`);
+      console.log(`Processed IPC batch: ${Object.keys(batches).length} channels`);
+    } finally {
+      // Always clear queue and reset processing flag, even on error
+      this.updateQueue.length = 0;
+      this.isProcessing = false;
+    }
   }
 
   // Force immediate processing of queue
@@ -572,8 +575,12 @@ const initHttpServer = async () => {
         }
       } catch (error) {
         console.error("HTTP Server Error:", error.message);
-        res.writeHead(500);
-        res.end("Internal Server Error");
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end("Internal Server Error");
+        } else if (!res.writableEnded) {
+          res.end();
+        }
       }
     });
 
@@ -648,28 +655,54 @@ const initSlideshowView = async () => {
       }
     });
 
-    ipcMain.on("reload-photos-immediately", (event) => {
+    ipcMain.on("reload-photos-immediately", async (event) => {
       console.log("Received immediate photo reload request via IPC");
 
       // Clear current photo cache and reload from configured sources
-      if (SLIDESHOW.visible && SLIDESHOW.photos && SLIDESHOW.photos.length > 0) {
+      if (SLIDESHOW.visible) {
         console.log("Clearing current photo cache and reloading photos immediately");
 
         // Reset photo cache
         SLIDESHOW.photos = [];
-        SLIDESHOW.photoIndex = 0;
-        SLIDESHOW.preloadedPhotos = [];
+        SLIDESHOW.currentIndex = 0;
 
-        // Force reload photos
-        reloadPhotos();
+        // Force reload photos and wait for completion
+        await reloadPhotos();
 
-        // Show immediate feedback
-        if (SLIDESHOW.photos && SLIDESHOW.photos.length > 0) {
-          console.log(`Successfully reloaded ${SLIDESHOW.photos.length} photos from new source`);
-          showNextPhoto(); // Immediately show first photo from new source
+        const totalPhotos = SLIDESHOW.photos.length + SLIDESHOW.googlePhotoUrls.length;
+        if (totalPhotos > 0) {
+          console.log(`Successfully reloaded ${totalPhotos} photos`);
+          // Restart the slideshow timer to show the first photo from the new source
+          startSlideshowTimer();
+        } else {
+          console.warn("No photos found after reload");
         }
       } else {
         console.log("Slideshow not active, photo reload will happen when slideshow starts");
+      }
+    });
+
+    ipcMain.on("request-next-photo-fallback", async (event) => {
+      console.log("Received photo fallback request - advancing to next photo");
+      if (!SLIDESHOW.active || !SLIDESHOW.view || !SLIDESHOW.view.webContents || SLIDESHOW.view.webContents.isDestroyed()) {
+        return;
+      }
+      try {
+        let photo = null;
+        if (SLIDESHOW.googlePhotoUrls.length > 0) {
+          photo = await getNextGooglePhoto();
+        }
+        if (!photo && SLIDESHOW.photos.length > 0) {
+          photo = getNextLocalPhoto();
+        }
+        if (photo) {
+          SLIDESHOW.view.webContents.send("show-photo", {
+            index: photo.index || SLIDESHOW.currentIndex,
+            photo: photo,
+          });
+        }
+      } catch (error) {
+        console.error("Photo fallback error:", error.message);
       }
     });
 
@@ -979,22 +1012,14 @@ const extractPhotosFromAlbum = async (albumId) => {
       }
     }
 
-    // Enhanced extraction patterns that work better with modern Google Photos
+    // Extraction patterns for Google Photos URLs (must contain /pw/ to be actual photos)
     const patterns = [
-      // Original patterns for /pw/ URLs
       /"(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"/g,
       /'(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^']+)'/g,
       /https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^\s"',)}\]]+/g,
-
-      // Additional patterns for modern Google Photos (without /pw/)
-      /"(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"/g,
-      /'(https:\/\/lh[0-9]\.googleusercontent\.com\/[^']+)'/g,
-      /https:\/\/lh[0-9]\.googleusercontent\.com\/[^\s"',)}\]]+/g,
-
-      // JSON array patterns
-      /\["(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"\]/g,
-      /"url":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"/g,
-      /"src":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/[^"]+)"/g,
+      /\["(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"\]/g,
+      /"url":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"/g,
+      /"src":\s*"(https:\/\/lh[0-9]\.googleusercontent\.com\/pw\/[^"]+)"/g,
     ];
 
     let allMatches = [];
@@ -1457,7 +1482,12 @@ const servePhoto = async (photo, res) => {
       }[ext] || "image/jpeg";
 
       res.writeHead(200, { "Content-Type": mimeType });
-      fs.createReadStream(photo.path).pipe(res);
+      const stream = fs.createReadStream(photo.path);
+      stream.on("error", (err) => {
+        console.error("Photo stream error:", err.message);
+        if (!res.writableEnded) res.end();
+      });
+      stream.pipe(res);
     } else {
       res.writeHead(404);
       res.end("Photo not found");
@@ -1510,7 +1540,12 @@ const serveGooglePhoto = async (photoUrl, res) => {
           "Cache-Control": "public, max-age=86400", // Cache longer for disk-cached photos
         });
 
-        fs.createReadStream(diskEntry.filePath).pipe(res);
+        const cacheStream = fs.createReadStream(diskEntry.filePath);
+        cacheStream.on("error", (err) => {
+          console.error("Cache stream error:", err.message);
+          if (!res.writableEnded) res.end();
+        });
+        cacheStream.pipe(res);
         return;
       } else {
         // File missing from disk, remove from cache index
@@ -1536,6 +1571,10 @@ const serveGooglePhoto = async (photoUrl, res) => {
       "Cache-Control": "public, max-age=3600",
     });
 
+    response.data.on("error", (err) => {
+      console.error("Google Photos stream error:", err.message);
+      if (!res.writableEnded) res.end();
+    });
     response.data.pipe(res);
 
     // Opportunistically cache this photo for future use
@@ -1794,6 +1833,10 @@ const downloadPhotoToCache = async (photoUrl) => {
 
     // Write file to disk
     const writeStream = fs.createWriteStream(filePath);
+    response.data.on('error', (err) => {
+      console.error("Download stream error:", err.message);
+      writeStream.destroy();
+    });
     response.data.pipe(writeStream);
 
     await new Promise((resolve, reject) => {
@@ -1833,17 +1876,21 @@ const downloadPhotoToCache = async (photoUrl) => {
 
 const startPreloadManager = () => {
   // Initial network check
-  checkNetworkStatus();
+  checkNetworkStatus().catch(err => console.error("Initial network check error:", err.message));
 
   // Periodic network monitoring
-  setInterval(async () => {
-    await checkNetworkStatus();
+  SLIDESHOW.preloadManagerInterval = setInterval(async () => {
+    try {
+      await checkNetworkStatus();
 
-    // Resume preloading if network recovered and queue has items
-    if (SLIDESHOW.networkStatus.connected &&
-        SLIDESHOW.preloadQueue.length > 0 &&
-        !SLIDESHOW.preloadActive) {
-      processPreloadQueue();
+      // Resume preloading if network recovered and queue has items
+      if (SLIDESHOW.networkStatus.connected &&
+          SLIDESHOW.preloadQueue.length > 0 &&
+          !SLIDESHOW.preloadActive) {
+        processPreloadQueue();
+      }
+    } catch (error) {
+      console.error("Preload manager error:", error.message);
     }
   }, 30000); // Check every 30 seconds
 
@@ -1944,6 +1991,11 @@ const resumeSlideshowTimer = () => {
 };
 
 const showSlideshow = async () => {
+  if (!SLIDESHOW.view) {
+    console.warn("Slideshow view not initialized yet");
+    return;
+  }
+
   // Check if photos are available (Google Photos or local)
   const hasPhotos = SLIDESHOW.googlePhotoUrls.length > 0 || SLIDESHOW.photos.length > 0;
 
@@ -2230,6 +2282,7 @@ const startSlideshowTimer = () => {
       return;
     }
 
+    try {
     let photo = null;
 
     // Determine best photo source based on config and availability
@@ -2269,10 +2322,16 @@ const startSlideshowTimer = () => {
       return;
     }
 
+    if (!SLIDESHOW.view || !SLIDESHOW.view.webContents || SLIDESHOW.view.webContents.isDestroyed()) {
+      return;
+    }
     SLIDESHOW.view.webContents.send("show-photo", {
       index: photo.index || SLIDESHOW.currentIndex,
       photo: photo,
     });
+    } catch (error) {
+      console.error("Slideshow timer error:", error.message);
+    }
   }, SLIDESHOW.config.interval, 'main_slideshow_timer');
 };
 
