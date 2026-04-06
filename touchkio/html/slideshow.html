@@ -416,6 +416,57 @@
         .photo-counter.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
         .photo-counter.background-none { background: transparent !important; backdrop-filter: none !important; }
 
+        /* Weather element */
+        .weather-element {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 18px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+        .weather-icon {
+            font-size: 1.8em;
+            line-height: 1;
+        }
+        .weather-temp {
+            font-weight: 300;
+            font-size: 1.4em;
+            letter-spacing: 1px;
+        }
+        .weather-condition {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+        .weather-highlow {
+            font-size: 0.75em;
+            opacity: 0.7;
+        }
+        /* Weather backgrounds */
+        .weather-element.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
+        .weather-element.background-light { background: rgba(255, 255, 255, 0.8) !important; color: #333; }
+        .weather-element.background-blue { background: rgba(52, 152, 219, 0.7) !important; color: white; }
+        .weather-element.background-green { background: rgba(46, 204, 113, 0.7) !important; color: white; }
+        .weather-element.background-red { background: rgba(231, 76, 60, 0.7) !important; color: white; }
+        .weather-element.background-purple { background: rgba(155, 89, 182, 0.7) !important; color: white; }
+        .weather-element.background-none { background: transparent !important; backdrop-filter: none !important; }
+
+        /* Animated weather icons */
+        @keyframes weather-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes weather-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes weather-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes weather-sway { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+        .weather-animated .weather-icon { animation: weather-pulse 3s ease-in-out infinite; }
+        .weather-animated.weather-rainy .weather-icon { animation: weather-bounce 1.5s ease-in-out infinite; }
+        .weather-animated.weather-windy .weather-icon { animation: weather-sway 2s ease-in-out infinite; }
+        .weather-animated.weather-snowy .weather-icon { animation: weather-bounce 2.5s ease-in-out infinite; }
+
         /* Background classes for clock and date */
         .clock.background-dark, .date.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
         .clock.background-light, .date.background-light { background: rgba(255, 255, 255, 0.8) !important; color: #333; }
@@ -995,6 +1046,13 @@
             <span id="photoCounter">0 / 0</span>
         </div>
 
+        <div class="weather-element pos-top-right" id="weather">
+            <span class="weather-icon" id="weatherIcon">☀️</span>
+            <span class="weather-temp" id="weatherTemp">--°</span>
+            <span class="weather-condition" id="weatherCondition"></span>
+            <span class="weather-highlow" id="weatherHighLow"></span>
+        </div>
+
         <div class="metadata-overlay" id="metadataOverlay">
             <div class="metadata-line metadata-filename" id="metadataFilename"></div>
             <div class="metadata-line metadata-date" id="metadataDate"></div>
@@ -1038,6 +1096,11 @@
             sourceIcon: document.getElementById('sourceIcon'),
             sourceText: document.getElementById('sourceText'),
             photoCounter: document.getElementById('photoCounter'),
+            weatherElement: document.getElementById('weather'),
+            weatherIcon: document.getElementById('weatherIcon'),
+            weatherTemp: document.getElementById('weatherTemp'),
+            weatherCondition: document.getElementById('weatherCondition'),
+            weatherHighLow: document.getElementById('weatherHighLow'),
             metadataOverlay: document.getElementById('metadataOverlay'),
             metadataFilename: document.getElementById('metadataFilename'),
             metadataDate: document.getElementById('metadataDate'),
@@ -1137,6 +1200,99 @@
 
         function updatePhotoCounter(current, total) {
             elements.photoCounter.textContent = `${current + 1} / ${total}`;
+        }
+
+        // Weather condition to icon mapping
+        const weatherIconMap = {
+            'sunny': '☀️', 'clear-night': '🌙',
+            'cloudy': '☁️', 'partlycloudy': '⛅',
+            'rainy': '🌧️', 'pouring': '⛈️',
+            'snowy': '❄️', 'snowy-rainy': '🌨️',
+            'windy': '💨', 'windy-variant': '💨',
+            'fog': '🌫️', 'hazy': '🌫️',
+            'lightning': '⚡', 'lightning-rainy': '⚡',
+            'exceptional': '⚠️'
+        };
+
+        // Weather condition CSS class mapping (for animations)
+        const weatherAnimClass = {
+            'rainy': 'weather-rainy', 'pouring': 'weather-rainy',
+            'snowy': 'weather-snowy', 'snowy-rainy': 'weather-snowy',
+            'windy': 'weather-windy', 'windy-variant': 'weather-windy',
+        };
+
+        function updateWeatherDisplay(data) {
+            if (!data || !elements.weatherElement) return;
+
+            const condition = data.condition || 'sunny';
+            const temp = data.temperature;
+            const unit = config.weatherUnit || 'celsius';
+            const displayMode = config.weatherDisplayMode || 'minimal';
+            const animated = config.weatherAnimatedIcons !== false;
+
+            // Convert temperature if needed
+            let displayTemp = temp;
+            if (temp !== undefined && temp !== null) {
+                if (unit === 'fahrenheit' && data.unit === 'celsius') {
+                    displayTemp = Math.round((temp * 9/5) + 32);
+                } else if (unit === 'celsius' && data.unit === 'fahrenheit') {
+                    displayTemp = Math.round((temp - 32) * 5/9);
+                } else {
+                    displayTemp = Math.round(temp);
+                }
+            }
+
+            const unitSymbol = unit === 'fahrenheit' ? '°F' : '°C';
+
+            // Update icon
+            elements.weatherIcon.textContent = weatherIconMap[condition] || '🌡️';
+
+            // Apply icon size if configured
+            if (config.weatherIconSize) {
+                elements.weatherIcon.style.fontSize = config.weatherIconSize;
+            }
+
+            // Update temperature
+            elements.weatherTemp.textContent = displayTemp !== undefined ? `${displayTemp}${unitSymbol}` : '--°';
+
+            // Update condition text (standard + detailed modes)
+            if (displayMode === 'standard' || displayMode === 'detailed') {
+                const conditionText = condition.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                elements.weatherCondition.textContent = conditionText;
+                elements.weatherCondition.style.display = '';
+            } else {
+                elements.weatherCondition.textContent = '';
+                elements.weatherCondition.style.display = 'none';
+            }
+
+            // Update high/low (detailed mode only)
+            if (displayMode === 'detailed' && data.high !== undefined && data.low !== undefined) {
+                let high = data.high, low = data.low;
+                if (unit === 'fahrenheit' && data.unit === 'celsius') {
+                    high = Math.round((high * 9/5) + 32);
+                    low = Math.round((low * 9/5) + 32);
+                } else if (unit === 'celsius' && data.unit === 'fahrenheit') {
+                    high = Math.round((high - 32) * 5/9);
+                    low = Math.round((low - 32) * 5/9);
+                } else {
+                    high = Math.round(high);
+                    low = Math.round(low);
+                }
+                elements.weatherHighLow.textContent = `↑${high}° ↓${low}°`;
+                elements.weatherHighLow.style.display = '';
+            } else {
+                elements.weatherHighLow.textContent = '';
+                elements.weatherHighLow.style.display = 'none';
+            }
+
+            // Apply animation class
+            const weather = elements.weatherElement;
+            weather.classList.remove('weather-animated', 'weather-rainy', 'weather-snowy', 'weather-windy');
+            if (animated) {
+                weather.classList.add('weather-animated');
+                const animClass = weatherAnimClass[condition];
+                if (animClass) weather.classList.add(animClass);
+            }
         }
 
         function updateMetadataDisplay(photo) {
@@ -1357,8 +1513,17 @@
                 metadata.style.transform = 'none';
 
                 if (hasCustomX) {
-                    metadata.style.left = config.metadataCustomX;
-                    console.log('Applied custom metadata X:', config.metadataCustomX);
+                    const leftPx = parseInt(config.metadataCustomX);
+                    if (config.metadataAlignment === 'right' && !isNaN(leftPx)) {
+                        const elemWidth = metadata.offsetWidth;
+                        metadata.style.right = (window.innerWidth - leftPx - elemWidth) + 'px';
+                    } else if (config.metadataAlignment === 'center' && !isNaN(leftPx)) {
+                        const elemWidth = metadata.offsetWidth;
+                        metadata.style.left = (leftPx + elemWidth / 2) + 'px';
+                        metadata.style.transform = 'translateX(-50%)';
+                    } else {
+                        metadata.style.left = config.metadataCustomX;
+                    }
                 }
                 if (hasCustomY) {
                     metadata.style.top = config.metadataCustomY;
@@ -1489,8 +1654,12 @@
             }
 
             // Apply general opacity
-            const metadataOpacity = config.metadataOpacity ? (config.metadataOpacity / 100) : 1.0;
+            const rawMetadataOpacity = parseFloat(config.metadataOpacity);
+            const metadataOpacity = !isNaN(rawMetadataOpacity) ? (rawMetadataOpacity > 1 ? rawMetadataOpacity / 100 : rawMetadataOpacity) : 1.0;
             metadata.style.opacity = metadataOpacity;
+
+            // Apply text alignment
+            metadata.style.textAlign = config.metadataAlignment || 'left';
         }
 
         function showLoading() {
@@ -2063,6 +2232,9 @@
                 { label: 'Background', action: () => showBackgroundMenu(elementId) }
             ];
 
+            // Add alignment option for all elements
+            menuItems.splice(2, 0, { label: 'Text Alignment', action: () => showAlignmentMenu(elementId) });
+
             // Add clock-specific format option
             if (elementId === 'clock') {
                 menuItems.splice(2, 0, { label: 'Time Format', action: () => showTimeFormatMenu(elementId) });
@@ -2076,6 +2248,11 @@
             // Add source-specific circle toggle option
             if (elementId === 'source') {
                 menuItems.splice(2, 0, { label: 'Circle Indicator', action: () => showSourceCircleMenu(elementId) });
+            }
+
+            // Add weather-specific settings option
+            if (elementId === 'weather') {
+                menuItems.splice(2, 0, { label: 'Weather Settings', action: () => showWeatherSettingsMenu(elementId) });
             }
 
             menuItems.forEach(item => {
@@ -2563,7 +2740,8 @@
                 'date': config.showDate !== false,
                 'source': config.showSourceIndicator !== false,
                 'counter': config.showPhotoCounter !== false,
-                'metadataOverlay': config.showMetadata !== false
+                'metadataOverlay': config.showMetadata !== false,
+                    'weather': config.showWeather !== false
             };
             return visibilityMap[elementId] !== false;
         }
@@ -2579,7 +2757,8 @@
                 'date': 'showDate',
                 'source': 'showSourceIndicator',
                 'counter': 'showPhotoCounter',
-                'metadataOverlay': 'showMetadata'
+                'metadataOverlay': 'showMetadata',
+                    'weather': 'showWeather'
             };
 
             const property = propertyMap[elementId];
@@ -2592,7 +2771,7 @@
                 if (element) {
                     if (newVisibility) {
                         // Show the element
-                        element.style.display = (elementId === 'counter' || elementId === 'source' ? 'flex' : 'block');
+                        element.style.display = (elementId === 'counter' || elementId === 'source' || elementId === 'weather' ? 'flex' : 'block');
                         element.style.opacity = '';
                         element.classList.remove('editor-hidden');
                     } else {
@@ -2654,7 +2833,8 @@
                 { id: 'date', name: 'Date', property: 'showDate' },
                 { id: 'counter', name: 'Photo Counter', property: 'showPhotoCounter' },
                 { id: 'source', name: 'Source Indicator', property: 'showSourceIndicator' },
-                { id: 'metadataOverlay', name: 'Metadata', property: 'showMetadata' }
+                { id: 'metadataOverlay', name: 'Metadata', property: 'showMetadata' },
+                { id: 'weather', name: 'Weather', property: 'showWeather' }
             ];
 
             // Create toggle for each element
@@ -3782,6 +3962,97 @@
         }
 
         // Time Format Menu (Clock only)
+        function showAlignmentMenu(elementId) {
+            const existingMenu = document.getElementById('context-menu');
+            if (existingMenu) existingMenu.remove();
+
+            // Map element IDs to their alignment config property
+            const alignmentPropMap = {
+                'clock': 'clockAlignment',
+                'date': 'dateAlignment',
+                'source': 'sourceAlignment',
+                'counter': 'counterAlignment',
+                'metadataOverlay': 'metadataAlignment',
+                    'weather': 'weatherAlignment'
+            };
+            const alignmentProp = alignmentPropMap[elementId];
+            if (!alignmentProp) return;
+
+            const currentAlignment = config[alignmentProp] || 'left';
+
+            const menu = document.createElement('div');
+            menu.id = 'context-menu';
+            menu.style.cssText = `
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 16px;
+                min-width: 250px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                z-index: 10001;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: 14px;
+            `;
+
+            const options = [
+                { value: 'left', label: 'Left Align' },
+                { value: 'center', label: 'Center Align' },
+                { value: 'right', label: 'Right Align' }
+            ];
+
+            menu.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 12px; font-size: 15px;">Text Alignment</div>
+                ${options.map(opt => `
+                    <div class="alignment-option" data-value="${opt.value}" style="
+                        padding: 12px 16px;
+                        cursor: pointer;
+                        border-radius: 6px;
+                        margin-bottom: 4px;
+                        background: ${currentAlignment === opt.value ? 'rgba(74, 144, 226, 0.3)' : 'transparent'};
+                        border: 1px solid ${currentAlignment === opt.value ? 'rgba(74, 144, 226, 0.5)' : 'transparent'};
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    ">
+                        ${opt.label}
+                        ${currentAlignment === opt.value ? '<span style="color: #4A90E2;">✓</span>' : ''}
+                    </div>
+                `).join('')}
+            `;
+
+            document.body.appendChild(menu);
+
+            menu.querySelectorAll('.alignment-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    const value = option.getAttribute('data-value');
+                    addPendingChange(elementId, alignmentProp, value);
+                    menu.remove();
+                });
+                option.addEventListener('mouseenter', () => {
+                    option.style.background = 'rgba(255, 255, 255, 0.1)';
+                });
+                option.addEventListener('mouseleave', () => {
+                    const isSelected = option.getAttribute('data-value') === currentAlignment;
+                    option.style.background = isSelected ? 'rgba(74, 144, 226, 0.3)' : 'transparent';
+                });
+            });
+
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+
         function showTimeFormatMenu(elementId) {
             console.log(`Show time format menu for ${elementId}`);
 
@@ -4309,6 +4580,116 @@
         }
 
         // Color Menu
+        function showWeatherSettingsMenu(elementId) {
+            const existingMenu = document.getElementById('context-menu');
+            if (existingMenu) existingMenu.remove();
+
+            const currentUnit = config.weatherUnit || 'celsius';
+            const currentMode = config.weatherDisplayMode || 'minimal';
+            const currentAnimated = config.weatherAnimatedIcons !== false;
+            const currentIconSize = config.weatherIconSize || '';
+            const currentLayout = config.weatherLayout || 'icon-left';
+            const currentVerticalAlign = config.weatherVerticalAlign || 'center';
+
+            const menu = document.createElement('div');
+            menu.id = 'context-menu';
+            menu.style.cssText = `
+                position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+                background: rgba(32, 34, 37, 0.95); backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+                padding: 16px; min-width: 280px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                z-index: 10001; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px;
+            `;
+
+            menu.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 12px; font-size: 15px;">Weather Settings</div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; opacity: 0.7; font-size: 12px;">Temperature Unit</label>
+                    <select id="weather-unit" style="width: 100%; padding: 8px; background: rgba(60,60,60,0.8); color: white; border: 1px solid rgba(100,100,100,0.4); border-radius: 6px;">
+                        <option value="celsius" ${currentUnit === 'celsius' ? 'selected' : ''}>Celsius (°C)</option>
+                        <option value="fahrenheit" ${currentUnit === 'fahrenheit' ? 'selected' : ''}>Fahrenheit (°F)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; opacity: 0.7; font-size: 12px;">Display Mode</label>
+                    <select id="weather-display-mode" style="width: 100%; padding: 8px; background: rgba(60,60,60,0.8); color: white; border: 1px solid rgba(100,100,100,0.4); border-radius: 6px;">
+                        <option value="minimal" ${currentMode === 'minimal' ? 'selected' : ''}>Minimal (Icon + Temp)</option>
+                        <option value="standard" ${currentMode === 'standard' ? 'selected' : ''}>Standard (+ Condition)</option>
+                        <option value="detailed" ${currentMode === 'detailed' ? 'selected' : ''}>Detailed (+ High/Low)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; opacity: 0.7; font-size: 12px;">Layout</label>
+                    <select id="weather-layout" style="width: 100%; padding: 8px; background: rgba(60,60,60,0.8); color: white; border: 1px solid rgba(100,100,100,0.4); border-radius: 6px;">
+                        <option value="icon-left" ${currentLayout === 'icon-left' ? 'selected' : ''}>Icon Left, Temp Right</option>
+                        <option value="icon-right" ${currentLayout === 'icon-right' ? 'selected' : ''}>Temp Left, Icon Right</option>
+                        <option value="icon-top" ${currentLayout === 'icon-top' ? 'selected' : ''}>Icon Top, Temp Below</option>
+                        <option value="icon-bottom" ${currentLayout === 'icon-bottom' ? 'selected' : ''}>Temp Top, Icon Below</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; opacity: 0.7; font-size: 12px;">Vertical Alignment</label>
+                    <select id="weather-valign" style="width: 100%; padding: 8px; background: rgba(60,60,60,0.8); color: white; border: 1px solid rgba(100,100,100,0.4); border-radius: 6px;">
+                        <option value="top" ${currentVerticalAlign === 'top' ? 'selected' : ''}>Top</option>
+                        <option value="center" ${currentVerticalAlign === 'center' ? 'selected' : ''}>Center</option>
+                        <option value="bottom" ${currentVerticalAlign === 'bottom' ? 'selected' : ''}>Bottom</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="weather-animated" ${currentAnimated ? 'checked' : ''} style="width: 18px; height: 18px;">
+                        Animated Icons
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; opacity: 0.7; font-size: 12px;">Icon Size</label>
+                    <select id="weather-icon-size" style="width: 100%; padding: 8px; background: rgba(60,60,60,0.8); color: white; border: 1px solid rgba(100,100,100,0.4); border-radius: 6px;">
+                        <option value="" ${!currentIconSize ? 'selected' : ''}>Default</option>
+                        <option value="1em" ${currentIconSize === '1em' ? 'selected' : ''}>Small (1em)</option>
+                        <option value="1.5em" ${currentIconSize === '1.5em' ? 'selected' : ''}>Medium (1.5em)</option>
+                        <option value="2em" ${currentIconSize === '2em' ? 'selected' : ''}>Large (2em)</option>
+                        <option value="2.5em" ${currentIconSize === '2.5em' ? 'selected' : ''}>X-Large (2.5em)</option>
+                        <option value="3em" ${currentIconSize === '3em' ? 'selected' : ''}>XX-Large (3em)</option>
+                        <option value="4em" ${currentIconSize === '4em' ? 'selected' : ''}>Huge (4em)</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button id="weather-settings-apply" style="flex: 1; padding: 10px; background: rgba(46,180,100,0.85); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Apply</button>
+                    <button id="weather-settings-cancel" style="flex: 1; padding: 10px; background: rgba(100,100,100,0.5); color: white; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                </div>
+            `;
+
+            document.body.appendChild(menu);
+
+            document.getElementById('weather-settings-apply').addEventListener('click', () => {
+                addPendingChange('weather', 'weatherUnit', document.getElementById('weather-unit').value);
+                addPendingChange('weather', 'weatherDisplayMode', document.getElementById('weather-display-mode').value);
+                addPendingChange('weather', 'weatherAnimatedIcons', document.getElementById('weather-animated').checked);
+                addPendingChange('weather', 'weatherIconSize', document.getElementById('weather-icon-size').value);
+                addPendingChange('weather', 'weatherLayout', document.getElementById('weather-layout').value);
+                addPendingChange('weather', 'weatherVerticalAlign', document.getElementById('weather-valign').value);
+                menu.remove();
+            });
+
+            document.getElementById('weather-settings-cancel').addEventListener('click', () => menu.remove());
+
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+
         function showColorMenu(elementId) {
             console.log(`Show color menu for ${elementId}`);
 
@@ -4971,7 +5352,8 @@
                 'date': config.datePosition || 'top-right',
                 'source': config.sourcePosition || 'top-left',
                 'counter': config.counterPosition || 'bottom-left',
-                'metadataOverlay': config.metadataPosition || 'bottom-center'
+                'metadataOverlay': config.metadataPosition || 'bottom-center',
+                    'weather': config.weatherPosition || 'top-right'
             };
             return positionMap[elementId] || 'top-left';
         }
@@ -4988,10 +5370,11 @@
                 'date': config.dateCustomFontSize || '18px',
                 'source': config.sourceCustomFontSize || '14px',
                 'counter': config.counterCustomFontSize || '16px',
-                'metadataOverlay': config.metadataCustomFontSize || '14px'
+                'metadataOverlay': config.metadataCustomFontSize || '14px',
+                    'weather': config.weatherCustomFontSize || '20px'
             };
             // Parse value and remove px suffix if present
-            const value = sizeMap[elementId];
+            const value = sizeMap[elementId] || '18px';
             return parseInt(value.toString().replace('px', '')) || 18;
         }
 
@@ -5002,7 +5385,8 @@
                 'date': config.dateColor || '#ffffff',
                 'source': config.sourceColor || '#ffffff',
                 'counter': config.counterColor || '#ffffff',
-                'metadataOverlay': config.metadataColor || '#ffffff'
+                'metadataOverlay': config.metadataColor || '#ffffff',
+                    'weather': config.weatherColor || '#ffffff'
             };
             return colorMap[elementId] || '#ffffff';
         }
@@ -5014,7 +5398,8 @@
                 'date': config.dateBackgroundColor || '#000000',
                 'source': config.sourceBackgroundColor || '#000000',
                 'counter': config.counterBackgroundColor || '#000000',
-                'metadataOverlay': config.metadataBackgroundColor || '#000000'
+                'metadataOverlay': config.metadataBackgroundColor || '#000000',
+                    'weather': config.weatherBackgroundColor || '#000000'
             };
 
             // Check if background is enabled
@@ -5023,7 +5408,8 @@
                 'date': config.dateBackground,
                 'source': config.sourceBackground,
                 'counter': config.counterBackground,
-                'metadataOverlay': config.metadataBackground
+                'metadataOverlay': config.metadataBackground,
+                    'weather': config.weatherBackground
             };
 
             return bgEnabledMap[elementId] ? bgColorMap[elementId] : 'transparent';
@@ -5225,6 +5611,8 @@
                 applyPhotoCounterPosition();
             } else if (elementId === 'metadataOverlay') {
                 applyMetadata();
+            } else if (elementId === 'weather') {
+                applyWeatherPosition();
             }
 
             // CRITICAL: In editor mode, force element visible after apply function
@@ -5411,15 +5799,16 @@
             applyDate();
             applySourceIndicatorPosition();
             applyPhotoCounterPosition();
+            applyWeatherPosition();
             applyMetadata();
 
             // CRITICAL: Force all elements visible after saving (still in editor mode)
             if (config.editorMode) {
                 console.log('Re-forcing elements visible after save');
-                ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
-                        element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                        element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                         element.style.opacity = '1';
                         element.style.visibility = 'visible';
                     }
@@ -5483,6 +5872,30 @@
                         mqttKey = `slideshow_clock_alignment`;
                     } else if (property === 'dateAlignment') {
                         mqttKey = `slideshow_date_alignment`;
+                    } else if (property === 'sourceAlignment') {
+                        mqttKey = `slideshow_source_alignment`;
+                    } else if (property === 'counterAlignment') {
+                        mqttKey = `slideshow_counter_alignment`;
+                    } else if (property === 'metadataAlignment') {
+                        mqttKey = `slideshow_metadata_alignment`;
+                    } else if (property === 'weatherUnit') {
+                        mqttKey = `slideshow_weather_unit`;
+                    } else if (property === 'weatherDisplayMode') {
+                        mqttKey = `slideshow_weather_display_mode`;
+                    } else if (property === 'weatherAnimatedIcons') {
+                        mqttKey = `slideshow_weather_animated_icons`;
+                        value = value ? 'ON' : 'OFF';
+                    } else if (property === 'weatherIconSize') {
+                        mqttKey = `slideshow_weather_icon_size`;
+                    } else if (property === 'weatherAlignment') {
+                        mqttKey = `slideshow_weather_alignment`;
+                    } else if (property === 'weatherLayout') {
+                        mqttKey = `slideshow_weather_layout`;
+                    } else if (property === 'weatherVerticalAlign') {
+                        mqttKey = `slideshow_weather_vertical_align`;
+                    } else if (property === 'showWeather') {
+                        mqttKey = `slideshow_show_weather`;
+                        value = value ? 'ON' : 'OFF';
                     } else if (property === 'showClock') {
                         mqttKey = `slideshow_show_clock`;
                     } else if (property === 'showDate') {
@@ -5636,6 +6049,18 @@
                     // Re-enable activity detection
                     window.activityDetectionEnabled = true;
 
+                    // Force all visible elements to full opacity after cleanup
+                    ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
+                        const element = document.getElementById(id);
+                        if (element && element.style.display !== 'none') {
+                            element.style.transition = 'none';
+                            element.style.opacity = element.style.opacity || '1';
+                            // Force reflow then re-enable transitions
+                            element.offsetHeight;
+                            element.style.transition = '';
+                        }
+                    });
+
                     console.log('Editor mode frontend cleanup completed');
                 } catch (error) {
                     console.error('Error during editor mode cleanup:', error);
@@ -5654,7 +6079,8 @@
                         showDate: config.showDate,
                         showSourceIndicator: config.showSourceIndicator,
                         showPhotoCounter: config.showPhotoCounter,
-                        showMetadata: config.showMetadata
+                        showMetadata: config.showMetadata,
+                        showWeather: config.showWeather
                     };
 
                     config = JSON.parse(JSON.stringify(originalConfig));
@@ -5668,15 +6094,16 @@
                     applyDate();
                     applySourceIndicatorPosition();
                     applyPhotoCounterPosition();
+                    applyWeatherPosition();
                     applyMetadata();
 
                     // CRITICAL: Force all elements visible after restoring (still in editor mode)
                     if (config.editorMode) {
                         console.log('Re-forcing elements visible after discard');
-                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
-                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                                 element.style.opacity = '1';
                                 element.style.visibility = 'visible';
                             }
@@ -5719,6 +6146,9 @@
             } else if (elementId === 'metadataOverlay') {
                 positionUpdate['slideshow_metadata_custom_x'] = x + 'px';
                 positionUpdate['slideshow_metadata_custom_y'] = y + 'px';
+            } else if (elementId === 'weather') {
+                positionUpdate['slideshow_weather_custom_x'] = x + 'px';
+                positionUpdate['slideshow_weather_custom_y'] = y + 'px';
             }
 
             // Send to main process via postMessage
@@ -5783,11 +6213,11 @@
                             showPhotoCounter: config.showPhotoCounter,
                             showMetadata: config.showMetadata
                         });
-                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
                                 console.log(`  Forcing ${id} visible`);
-                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                                 element.style.opacity = '1';
                                 element.style.visibility = 'visible';
                             } else {
@@ -5898,13 +6328,13 @@
                             editorMode: config.editorMode
                         });
 
-                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
                                 console.log(`Making ${id} visible in editor mode`);
                                 // In editor mode, ALWAYS show all elements regardless of visibility settings
                                 // This allows users to position and style hidden elements
-                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                                 element.style.opacity = '1';
                                 element.style.visibility = 'visible';
 
@@ -5929,8 +6359,8 @@
 
                             // Improved detection: check if click is on a UI element or its children
                             const clickedElement = e.target;
-                            const isOnUIElement = clickedElement.closest('#clock, #date, #source, #counter, #metadataOverlay') ||
-                                                clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/) ||
+                            const isOnUIElement = clickedElement.closest('#clock, #date, #source, #counter, #metadataOverlay, #weather') ||
+                                                clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay|weather)$/) ||
                                                 clickedElement.classList.contains('source-indicator') ||
                                                 clickedElement.classList.contains('photo-counter') ||
                                                 clickedElement.classList.contains('metadata-overlay') ||
@@ -5953,8 +6383,8 @@
                             const clickedElement = document.elementFromPoint(touch.clientX, touch.clientY);
 
                             // Improved detection: check if touch is on a UI element
-                            const isOnUIElement = clickedElement.closest('#clock, #date, #source, #counter, #metadataOverlay') ||
-                                                clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay)$/) ||
+                            const isOnUIElement = clickedElement.closest('#clock, #date, #source, #counter, #metadataOverlay, #weather') ||
+                                                clickedElement.id.match(/^(clock|date|source|counter|metadataOverlay|weather)$/) ||
                                                 clickedElement.classList.contains('source-indicator') ||
                                                 clickedElement.classList.contains('photo-counter') ||
                                                 clickedElement.classList.contains('metadata-overlay') ||
@@ -5996,7 +6426,7 @@
                         }
 
                         // Remove drag functionality from elements
-                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
                                 element.style.cursor = '';
@@ -6023,14 +6453,15 @@
                     applyDate();
                     applySourceIndicatorPosition();
                     applyPhotoCounterPosition();
+                    applyWeatherPosition();
                     applyMetadata();
 
                     // Re-force elements visible if editor mode is active
                     if (config.editorMode) {
-                        ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                        ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) {
-                                element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                                element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                                 element.style.opacity = '1';
                                 element.style.visibility = 'visible';
                             }
@@ -6045,7 +6476,8 @@
                         'date': config.showDate !== false,
                         'source': config.showSourceIndicator !== false,
                         'counter': config.showPhotoCounter !== false,
-                        'metadataOverlay': config.showMetadata !== false
+                        'metadataOverlay': config.showMetadata !== false,
+                    'weather': config.showWeather !== false
                     };
                     Object.entries(visibilityMap).forEach(([id, shouldShow]) => {
                         const element = document.getElementById(id);
@@ -6444,7 +6876,17 @@
                     sourceIndicator.style.transform = 'none';
 
                     if (hasCustomX) {
-                        sourceIndicator.style.left = config.sourceCustomX;
+                        const leftPx = parseInt(config.sourceCustomX);
+                        if (config.sourceAlignment === 'right' && !isNaN(leftPx)) {
+                            const elemWidth = sourceIndicator.offsetWidth;
+                            sourceIndicator.style.right = (window.innerWidth - leftPx - elemWidth) + 'px';
+                        } else if (config.sourceAlignment === 'center' && !isNaN(leftPx)) {
+                            const elemWidth = sourceIndicator.offsetWidth;
+                            sourceIndicator.style.left = (leftPx + elemWidth / 2) + 'px';
+                            sourceIndicator.style.transform = 'translateX(-50%)';
+                        } else {
+                            sourceIndicator.style.left = config.sourceCustomX;
+                        }
                     }
                     if (hasCustomY) {
                         sourceIndicator.style.top = config.sourceCustomY;
@@ -6526,8 +6968,12 @@
                 }
 
                 // Apply general opacity
-                const sourceOpacity = config.sourceOpacity ? (config.sourceOpacity / 100) : 0.8;
+                const rawSourceOpacity = parseFloat(config.sourceOpacity);
+                const sourceOpacity = !isNaN(rawSourceOpacity) ? (rawSourceOpacity > 1 ? rawSourceOpacity / 100 : rawSourceOpacity) : 0.8;
                 sourceIndicator.style.opacity = sourceOpacity;
+
+                // Apply text alignment
+                sourceIndicator.style.textAlign = config.sourceAlignment || 'left';
 
                 // Apply advanced styling options
                 if (config.sourceBorderRadius && config.sourceBorderRadius.trim() !== '') {
@@ -6600,12 +7046,20 @@
                     clock.style.transform = 'none';
 
                     if (hasCustomX) {
-                        clock.style.left = config.clockCustomX;
-                        console.log('Applied custom clock X:', config.clockCustomX);
+                        const leftPx = parseInt(config.clockCustomX);
+                        if (config.clockAlignment === 'right' && !isNaN(leftPx)) {
+                            const elemWidth = clock.offsetWidth;
+                            clock.style.right = (window.innerWidth - leftPx - elemWidth) + 'px';
+                        } else if (config.clockAlignment === 'center' && !isNaN(leftPx)) {
+                            const elemWidth = clock.offsetWidth;
+                            clock.style.left = (leftPx + elemWidth / 2) + 'px';
+                            clock.style.transform = 'translateX(-50%)';
+                        } else {
+                            clock.style.left = config.clockCustomX;
+                        }
                     }
                     if (hasCustomY) {
                         clock.style.top = config.clockCustomY;
-                        console.log('Applied custom clock Y:', config.clockCustomY);
                     }
                 } else {
                     // Use preset position - clear all custom positioning first
@@ -6684,15 +7138,12 @@
                 }
 
                 // Apply general opacity
-                const clockOpacity = config.clockOpacity ? (config.clockOpacity / 100) : 1.0;
+                const rawClockOpacity = parseFloat(config.clockOpacity);
+                const clockOpacity = !isNaN(rawClockOpacity) ? (rawClockOpacity > 1 ? rawClockOpacity / 100 : rawClockOpacity) : 1.0;
                 clock.style.opacity = clockOpacity;
 
                 // Apply text alignment
-                if (config.clockAlignment) {
-                    clock.style.textAlign = config.clockAlignment;
-                } else {
-                    clock.style.textAlign = 'left'; // Default to left alignment
-                }
+                clock.style.textAlign = config.clockAlignment || 'left';
 
                 // Apply advanced styling options
                 if (config.clockBorderRadius && config.clockBorderRadius.trim() !== '') {
@@ -6758,7 +7209,17 @@
                     date.style.transform = 'none';
 
                     if (hasCustomX) {
-                        date.style.left = config.dateCustomX;
+                        const leftPx = parseInt(config.dateCustomX);
+                        if (config.dateAlignment === 'right' && !isNaN(leftPx)) {
+                            const elemWidth = date.offsetWidth;
+                            date.style.right = (window.innerWidth - leftPx - elemWidth) + 'px';
+                        } else if (config.dateAlignment === 'center' && !isNaN(leftPx)) {
+                            const elemWidth = date.offsetWidth;
+                            date.style.left = (leftPx + elemWidth / 2) + 'px';
+                            date.style.transform = 'translateX(-50%)';
+                        } else {
+                            date.style.left = config.dateCustomX;
+                        }
                     }
                     if (hasCustomY) {
                         date.style.top = config.dateCustomY;
@@ -6840,7 +7301,8 @@
                 }
 
                 // Apply general opacity
-                const dateOpacity = config.dateOpacity ? (config.dateOpacity / 100) : 0.8;
+                const rawDateOpacity = parseFloat(config.dateOpacity);
+                const dateOpacity = !isNaN(rawDateOpacity) ? (rawDateOpacity > 1 ? rawDateOpacity / 100 : rawDateOpacity) : 0.8;
                 date.style.opacity = dateOpacity;
 
                 // Apply text alignment
@@ -6921,7 +7383,17 @@
                     photoCounter.style.transform = 'none';
 
                     if (hasCustomX) {
-                        photoCounter.style.left = config.counterCustomX;
+                        const leftPx = parseInt(config.counterCustomX);
+                        if (config.counterAlignment === 'right' && !isNaN(leftPx)) {
+                            const elemWidth = photoCounter.offsetWidth;
+                            photoCounter.style.right = (window.innerWidth - leftPx - elemWidth) + 'px';
+                        } else if (config.counterAlignment === 'center' && !isNaN(leftPx)) {
+                            const elemWidth = photoCounter.offsetWidth;
+                            photoCounter.style.left = (leftPx + elemWidth / 2) + 'px';
+                            photoCounter.style.transform = 'translateX(-50%)';
+                        } else {
+                            photoCounter.style.left = config.counterCustomX;
+                        }
                     }
                     if (hasCustomY) {
                         photoCounter.style.top = config.counterCustomY;
@@ -7003,8 +7475,12 @@
                 }
 
                 // Apply general opacity
-                const counterOpacity = config.counterOpacity ? (config.counterOpacity / 100) : 0.8;
+                const rawCounterOpacity = parseFloat(config.counterOpacity);
+                const counterOpacity = !isNaN(rawCounterOpacity) ? (rawCounterOpacity > 1 ? rawCounterOpacity / 100 : rawCounterOpacity) : 0.8;
                 photoCounter.style.opacity = counterOpacity;
+
+                // Apply text alignment
+                photoCounter.style.textAlign = config.counterAlignment || 'left';
 
                 // Apply advanced styling options
                 if (config.counterBorderRadius && config.counterBorderRadius.trim() !== '') {
@@ -7029,6 +7505,147 @@
             }
         }
 
+        // Apply weather element positioning and styling
+        function applyWeatherPosition() {
+            const weather = document.getElementById('weather');
+            if ((config.showWeather !== false || config.editorMode) && weather) {
+                weather.style.display = 'flex';
+                const weatherPos = config.weatherPosition || 'top-right';
+                const weatherBackground = config.weatherBackground !== undefined ? config.weatherBackground : 'dark';
+
+                // Apply background class
+                const animClasses = ['weather-animated', 'weather-rainy', 'weather-snowy', 'weather-windy'];
+                const currentAnimClasses = animClasses.filter(c => weather.classList.contains(c));
+                weather.className = `weather-element background-${weatherBackground}`;
+                currentAnimClasses.forEach(c => weather.classList.add(c));
+
+                // Apply custom font size
+                if (config.weatherCustomFontSize && config.weatherCustomFontSize.trim() !== '') {
+                    weather.style.fontSize = config.weatherCustomFontSize;
+                } else {
+                    weather.style.fontSize = '';
+                }
+
+                // Apply positioning
+                weather.style.position = 'absolute';
+                weather.style.zIndex = '10';
+                weather.style.top = 'auto';
+                weather.style.right = 'auto';
+                weather.style.bottom = 'auto';
+                weather.style.left = 'auto';
+                weather.style.transform = 'none';
+
+                const hasCustomX = config.weatherCustomX && config.weatherCustomX.toString().trim() !== '';
+                const hasCustomY = config.weatherCustomY && config.weatherCustomY.toString().trim() !== '';
+
+                if (hasCustomX || hasCustomY) {
+                    if (hasCustomX) {
+                        const leftPx = parseInt(config.weatherCustomX);
+                        if (config.weatherAlignment === 'right' && !isNaN(leftPx)) {
+                            const elemWidth = weather.offsetWidth;
+                            weather.style.right = (window.innerWidth - leftPx - elemWidth) + 'px';
+                        } else if (config.weatherAlignment === 'center' && !isNaN(leftPx)) {
+                            const elemWidth = weather.offsetWidth;
+                            weather.style.left = (leftPx + elemWidth / 2) + 'px';
+                            weather.style.transform = 'translateX(-50%)';
+                        } else {
+                            weather.style.left = config.weatherCustomX;
+                        }
+                    }
+                    if (hasCustomY) {
+                        weather.style.top = config.weatherCustomY;
+                    }
+                } else {
+                    switch(weatherPos) {
+                        case 'top-left': weather.style.top = '20px'; weather.style.left = '20px'; break;
+                        case 'top-center': weather.style.top = '20px'; weather.style.left = '50%'; weather.style.transform = 'translateX(-50%)'; break;
+                        case 'top-right': weather.style.top = '20px'; weather.style.right = '20px'; break;
+                        case 'left': weather.style.top = '50%'; weather.style.left = '20px'; weather.style.transform = 'translateY(-50%)'; break;
+                        case 'center': weather.style.top = '50%'; weather.style.left = '50%'; weather.style.transform = 'translate(-50%, -50%)'; break;
+                        case 'right': weather.style.top = '50%'; weather.style.right = '20px'; weather.style.transform = 'translateY(-50%)'; break;
+                        case 'bottom-left': weather.style.bottom = '20px'; weather.style.left = '20px'; break;
+                        case 'bottom-center': weather.style.bottom = '20px'; weather.style.left = '50%'; weather.style.transform = 'translateX(-50%)'; break;
+                        case 'bottom-right': weather.style.bottom = '20px'; weather.style.right = '20px'; break;
+                    }
+                }
+
+                // Apply color
+                if (config.weatherColor) weather.style.color = config.weatherColor;
+
+                // Apply background opacity
+                if (weatherBackground !== 'none' && config.weatherBackgroundOpacity !== undefined) {
+                    const currentBg = window.getComputedStyle(weather).backgroundColor;
+                    if (currentBg && currentBg !== 'rgba(0, 0, 0, 0)') {
+                        const rgbMatch = currentBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (rgbMatch) {
+                            const [, r, g, b] = rgbMatch;
+                            const opacity = config.weatherBackgroundOpacity / 100;
+                            weather.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                        }
+                    }
+                } else {
+                    weather.style.backgroundColor = '';
+                }
+
+                // Apply general opacity
+                const rawWeatherOpacity = parseFloat(config.weatherOpacity);
+                const weatherOpacity = !isNaN(rawWeatherOpacity) ? (rawWeatherOpacity > 1 ? rawWeatherOpacity / 100 : rawWeatherOpacity) : 0.8;
+                weather.style.opacity = weatherOpacity;
+
+                // Apply text alignment
+                weather.style.textAlign = config.weatherAlignment || 'left';
+
+                // Apply advanced styling
+                if (config.weatherBorderRadius && config.weatherBorderRadius.trim() !== '') {
+                    weather.style.borderRadius = config.weatherBorderRadius;
+                } else {
+                    weather.style.borderRadius = '';
+                }
+                if (config.weatherPadding && config.weatherPadding.trim() !== '') {
+                    weather.style.padding = config.weatherPadding;
+                } else {
+                    weather.style.padding = '';
+                }
+                if (config.weatherShadow && config.weatherShadow.trim() !== '') {
+                    weather.style.boxShadow = config.weatherShadow;
+                } else {
+                    weather.style.boxShadow = '';
+                }
+
+                // Apply icon size
+                const weatherIcon = document.getElementById('weatherIcon');
+                if (weatherIcon && config.weatherIconSize) {
+                    weatherIcon.style.fontSize = config.weatherIconSize;
+                }
+
+                // Apply layout (icon position relative to temp)
+                const layout = config.weatherLayout || 'icon-left';
+                const valign = config.weatherVerticalAlign || 'center';
+
+                const valignMap = { 'top': 'flex-start', 'center': 'center', 'bottom': 'flex-end' };
+                weather.style.alignItems = valignMap[valign] || 'center';
+
+                if (layout === 'icon-left') {
+                    weather.style.flexDirection = 'row';
+                } else if (layout === 'icon-right') {
+                    weather.style.flexDirection = 'row-reverse';
+                } else if (layout === 'icon-top') {
+                    weather.style.flexDirection = 'column';
+                    weather.style.alignItems = 'center';
+                } else if (layout === 'icon-bottom') {
+                    weather.style.flexDirection = 'column-reverse';
+                    weather.style.alignItems = 'center';
+                }
+
+                // Update weather display with current data
+                if (config.weatherData) {
+                    updateWeatherDisplay(config.weatherData);
+                }
+            } else if (weather && !config.editorMode) {
+                weather.style.display = 'none';
+            }
+        }
+
         // Expose updateConfig function for backend communication
         window.updateConfig = function(newConfig) {
             // Temporarily disable activity detection during config update to prevent cascade
@@ -7044,11 +7661,11 @@
                 if (newConfig.editorMode === true) {
                     // Entering editor mode - force all elements visible
                     console.log('Forcing all elements visible for editor mode');
-                    ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                    ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                         const element = document.getElementById(id);
                         if (element) {
                             console.log(`Making ${id} visible in editor mode`);
-                            element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                            element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                             element.style.opacity = '1';
                             element.style.visibility = 'visible';
                         }
@@ -7095,14 +7712,19 @@
                 }
             }
 
+            // Re-apply weather styling if any weather option changed
+            if (newConfig.weatherPosition || newConfig.weatherCustomX || newConfig.weatherCustomY || newConfig.showWeather !== undefined || newConfig.weatherColor || newConfig.weatherBackground || newConfig.weatherCustomFontSize || newConfig.weatherBackgroundOpacity || newConfig.weatherBorderRadius || newConfig.weatherPadding || newConfig.weatherShadow || newConfig.weatherOpacity || newConfig.weatherAlignment || newConfig.weatherData || newConfig.weatherUnit || newConfig.weatherDisplayMode || newConfig.weatherAnimatedIcons || newConfig.weatherIconSize || newConfig.weatherLayout || newConfig.weatherVerticalAlign) {
+                applyWeatherPosition();
+            }
+
             // CRITICAL: If in editor mode, re-force all elements visible after apply functions run
             // Apply functions may have hidden elements based on visibility settings
             if (config.editorMode) {
                 console.log('Re-forcing elements visible after config update (editor mode)');
-                ['clock', 'date', 'source', 'counter', 'metadataOverlay'].forEach(id => {
+                ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'].forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
-                        element.style.display = (id === 'source' || id === 'counter' ? 'flex' : 'block');
+                        element.style.display = (id === 'source' || id === 'counter' || id === 'weather' ? 'flex' : 'block');
                         element.style.opacity = '1';
                         element.style.visibility = 'visible';
                     }
@@ -8069,7 +8691,7 @@
 
             // Show all UI elements for editing
             showAllElements() {
-                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
+                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
@@ -8082,7 +8704,7 @@
             // Make elements interactive
             makeElementsInteractive() {
                 console.log('makeElementsInteractive called - adding touch handlers');
-                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
+                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
@@ -8112,7 +8734,7 @@
 
             // Remove element interactivity
             removeElementInteractivity() {
-                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay'];
+                const elements = ['clock', 'date', 'source', 'counter', 'metadataOverlay', 'weather'];
                 elements.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {

@@ -1061,6 +1061,7 @@ const initSlideshow = () => {
   initSlideshowSourcePosition();
   initSlideshowSourceCustomFontSize();
   initSlideshowSourceColor();
+  initSlideshowSourceAlignment();
   initSlideshowSourceBackground();
   initSlideshowSourceBackgroundColor();
   initSlideshowSourceOpacity();
@@ -1078,6 +1079,7 @@ const initSlideshow = () => {
   initSlideshowCounterPosition();
   initSlideshowCounterCustomFontSize();
   initSlideshowCounterColor();
+  initSlideshowCounterAlignment();
   initSlideshowCounterBackground();
   initSlideshowCounterBackgroundColor();
   initSlideshowCounterOpacity();
@@ -1093,6 +1095,7 @@ const initSlideshow = () => {
   initSlideshowMetadataPosition();
   initSlideshowMetadataCustomFontSize();
   initSlideshowMetadataColor();
+  initSlideshowMetadataAlignment();
   initSlideshowMetadataBackground();
   initSlideshowMetadataBackgroundColor();
   initSlideshowMetadataOpacity();
@@ -1107,6 +1110,30 @@ const initSlideshow = () => {
   initSlideshowShowDateTaken();
   initSlideshowShowCameraInfo();
   initSlideshowShowLocation();
+
+  // === WEATHER ELEMENT ===
+  initSlideshowShowWeather();
+  initSlideshowWeatherPosition();
+  initSlideshowWeatherCustomFontSize();
+  initSlideshowWeatherColor();
+  initSlideshowWeatherAlignment();
+  initSlideshowWeatherBackground();
+  initSlideshowWeatherBackgroundColor();
+  initSlideshowWeatherOpacity();
+  initSlideshowWeatherBackgroundOpacity();
+  initSlideshowWeatherBorderRadius();
+  initSlideshowWeatherPadding();
+  initSlideshowWeatherShadow();
+  initSlideshowWeatherCustomX();
+  initSlideshowWeatherCustomY();
+  initSlideshowWeatherEntityId();
+  initSlideshowWeatherUnit();
+  initSlideshowWeatherDisplayMode();
+  initSlideshowWeatherAnimatedIcons();
+  initSlideshowWeatherData();
+  initSlideshowWeatherIconSize();
+  initSlideshowWeatherLayout();
+  initSlideshowWeatherVerticalAlign();
 
   // === ANIMATION SETTINGS ===
   initSlideshowEntranceEffect();
@@ -1140,6 +1167,11 @@ const initSlideshow = () => {
   EVENTS.on("slideshowStateChanged", (newState) => {
     console.log(`DEBUG: Received slideshowStateChanged event: ${newState}`);
     updateSlideshow();
+
+    // Request fresh weather data when screensaver activates
+    if (newState) {
+      publishState("slideshow_weather_request", "update");
+    }
   });
 
   // Listen for generic slideshow setting updates from IPC
@@ -1226,6 +1258,9 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_clock_am_pm_spacing) savedCustomConfig.clockAmPmSpacing = ARGS.slideshow_clock_am_pm_spacing;
   if (ARGS.slideshow_clock_alignment) savedCustomConfig.clockAlignment = ARGS.slideshow_clock_alignment;
   if (ARGS.slideshow_date_alignment) savedCustomConfig.dateAlignment = ARGS.slideshow_date_alignment;
+  if (ARGS.slideshow_source_alignment) savedCustomConfig.sourceAlignment = ARGS.slideshow_source_alignment;
+  if (ARGS.slideshow_counter_alignment) savedCustomConfig.counterAlignment = ARGS.slideshow_counter_alignment;
+  if (ARGS.slideshow_metadata_alignment) savedCustomConfig.metadataAlignment = ARGS.slideshow_metadata_alignment;
   if (ARGS.slideshow_date_custom_font_size) savedCustomConfig.dateCustomFontSize = ARGS.slideshow_date_custom_font_size;
   if (ARGS.slideshow_source_custom_font_size) savedCustomConfig.sourceCustomFontSize = ARGS.slideshow_source_custom_font_size;
   if (ARGS.slideshow_counter_custom_font_size) savedCustomConfig.counterCustomFontSize = ARGS.slideshow_counter_custom_font_size;
@@ -1316,6 +1351,29 @@ const loadAndApplySavedSlideshowConfig = () => {
   // ALWAYS start with editor mode disabled on restart
   savedCustomConfig.editorMode = false;
   if (ARGS.editor_long_press_duration) savedCustomConfig.editorLongPressDuration = parseInt(ARGS.editor_long_press_duration);
+
+  // Load weather element settings
+  if (ARGS.slideshow_show_weather !== undefined) savedCustomConfig.showWeather = ARGS.slideshow_show_weather === "ON" || ARGS.slideshow_show_weather === true;
+  if (ARGS.slideshow_weather_position) savedCustomConfig.weatherPosition = ARGS.slideshow_weather_position;
+  if (ARGS.slideshow_weather_custom_font_size) savedCustomConfig.weatherCustomFontSize = ARGS.slideshow_weather_custom_font_size;
+  if (ARGS.slideshow_weather_color) savedCustomConfig.weatherColor = ARGS.slideshow_weather_color;
+  if (ARGS.slideshow_weather_alignment) savedCustomConfig.weatherAlignment = ARGS.slideshow_weather_alignment;
+  if (ARGS.slideshow_weather_background) savedCustomConfig.weatherBackground = ARGS.slideshow_weather_background;
+  if (ARGS.slideshow_weather_background_color) savedCustomConfig.weatherBackgroundColor = ARGS.slideshow_weather_background_color;
+  if (ARGS.slideshow_weather_opacity) savedCustomConfig.weatherOpacity = ARGS.slideshow_weather_opacity;
+  if (ARGS.slideshow_weather_background_opacity) savedCustomConfig.weatherBackgroundOpacity = ARGS.slideshow_weather_background_opacity;
+  if (ARGS.slideshow_weather_border_radius) savedCustomConfig.weatherBorderRadius = ARGS.slideshow_weather_border_radius;
+  if (ARGS.slideshow_weather_padding) savedCustomConfig.weatherPadding = ARGS.slideshow_weather_padding;
+  if (ARGS.slideshow_weather_shadow) savedCustomConfig.weatherShadow = ARGS.slideshow_weather_shadow;
+  if (ARGS.slideshow_weather_custom_x) savedCustomConfig.weatherCustomX = ARGS.slideshow_weather_custom_x;
+  if (ARGS.slideshow_weather_custom_y) savedCustomConfig.weatherCustomY = ARGS.slideshow_weather_custom_y;
+  if (ARGS.slideshow_weather_entity_id) savedCustomConfig.weatherEntityId = ARGS.slideshow_weather_entity_id;
+  if (ARGS.slideshow_weather_unit) savedCustomConfig.weatherUnit = ARGS.slideshow_weather_unit;
+  if (ARGS.slideshow_weather_display_mode) savedCustomConfig.weatherDisplayMode = ARGS.slideshow_weather_display_mode;
+  if (ARGS.slideshow_weather_animated_icons !== undefined) savedCustomConfig.weatherAnimatedIcons = ARGS.slideshow_weather_animated_icons === "ON" || ARGS.slideshow_weather_animated_icons === true;
+  if (ARGS.slideshow_weather_icon_size) savedCustomConfig.weatherIconSize = ARGS.slideshow_weather_icon_size;
+  if (ARGS.slideshow_weather_layout) savedCustomConfig.weatherLayout = ARGS.slideshow_weather_layout;
+  if (ARGS.slideshow_weather_vertical_align) savedCustomConfig.weatherVerticalAlign = ARGS.slideshow_weather_vertical_align;
 
   // Load display brightness and auto-dim settings
   if (ARGS.display_brightness) savedCustomConfig.brightness = parseInt(ARGS.display_brightness);
@@ -2703,6 +2761,15 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_date_alignment":
         slideshow.updateConfig({ dateAlignment: value });
         break;
+      case "slideshow_source_alignment":
+        slideshow.updateConfig({ sourceAlignment: value });
+        break;
+      case "slideshow_counter_alignment":
+        slideshow.updateConfig({ counterAlignment: value });
+        break;
+      case "slideshow_metadata_alignment":
+        slideshow.updateConfig({ metadataAlignment: value });
+        break;
       case "slideshow_clock_background_opacity":
         slideshow.updateConfig({ clockBackgroundOpacity: parseInt(value) });
         break;
@@ -2943,6 +3010,77 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_metadata_background_opacity":
         slideshow.updateConfig({ metadataBackgroundOpacity: parseInt(value) });
         break;
+      // Weather element settings
+      case "slideshow_show_weather":
+        slideshow.updateConfig({ showWeather: value === "ON" });
+        break;
+      case "slideshow_weather_position":
+        slideshow.updateConfig({ weatherPosition: value });
+        break;
+      case "slideshow_weather_custom_font_size":
+        slideshow.updateConfig({ weatherCustomFontSize: value });
+        break;
+      case "slideshow_weather_color":
+        slideshow.updateConfig({ weatherColor: value });
+        break;
+      case "slideshow_weather_alignment":
+        slideshow.updateConfig({ weatherAlignment: value });
+        break;
+      case "slideshow_weather_background":
+        slideshow.updateConfig({ weatherBackground: value });
+        break;
+      case "slideshow_weather_background_color":
+        slideshow.updateConfig({ weatherBackgroundColor: value });
+        break;
+      case "slideshow_weather_opacity":
+        slideshow.updateConfig({ weatherOpacity: value });
+        break;
+      case "slideshow_weather_background_opacity":
+        slideshow.updateConfig({ weatherBackgroundOpacity: parseInt(value) });
+        break;
+      case "slideshow_weather_border_radius":
+        slideshow.updateConfig({ weatherBorderRadius: value });
+        break;
+      case "slideshow_weather_padding":
+        slideshow.updateConfig({ weatherPadding: value });
+        break;
+      case "slideshow_weather_shadow":
+        slideshow.updateConfig({ weatherShadow: value });
+        break;
+      case "slideshow_weather_custom_x":
+        slideshow.updateConfig({ weatherCustomX: value });
+        break;
+      case "slideshow_weather_custom_y":
+        slideshow.updateConfig({ weatherCustomY: value });
+        break;
+      case "slideshow_weather_entity_id":
+        slideshow.updateConfig({ weatherEntityId: value });
+        break;
+      case "slideshow_weather_unit":
+        slideshow.updateConfig({ weatherUnit: value });
+        break;
+      case "slideshow_weather_display_mode":
+        slideshow.updateConfig({ weatherDisplayMode: value });
+        break;
+      case "slideshow_weather_animated_icons":
+        slideshow.updateConfig({ weatherAnimatedIcons: value === "ON" || value === true });
+        break;
+      case "slideshow_weather_data":
+        try {
+          slideshow.updateConfig({ weatherData: typeof value === 'string' ? JSON.parse(value) : value });
+        } catch(e) {
+          slideshow.updateConfig({ weatherData: value });
+        }
+        break;
+      case "slideshow_weather_icon_size":
+        slideshow.updateConfig({ weatherIconSize: value });
+        break;
+      case "slideshow_weather_layout":
+        slideshow.updateConfig({ weatherLayout: value });
+        break;
+      case "slideshow_weather_vertical_align":
+        slideshow.updateConfig({ weatherVerticalAlign: value });
+        break;
       // Display brightness and auto-dim settings
       case "display_brightness":
         slideshow.updateConfig({ brightness: parseInt(value) });
@@ -3048,6 +3186,9 @@ const updateSlideshow = async () => {
   publishState("slideshow_date_custom_font_size", status.config.dateCustomFontSize || ARGS.slideshow_date_custom_font_size || "");
   publishState("slideshow_date_background_opacity", parseInt(status.config.dateBackgroundOpacity || ARGS.slideshow_date_background_opacity || 70));
   publishState("slideshow_date_alignment", status.config.dateAlignment || ARGS.slideshow_date_alignment || "left");
+  publishState("slideshow_source_alignment", status.config.sourceAlignment || ARGS.slideshow_source_alignment || "left");
+  publishState("slideshow_counter_alignment", status.config.counterAlignment || ARGS.slideshow_counter_alignment || "left");
+  publishState("slideshow_metadata_alignment", status.config.metadataAlignment || ARGS.slideshow_metadata_alignment || "left");
   publishState("slideshow_date_background_color", status.config.dateBackgroundColor || ARGS.slideshow_date_background_color || "");
 
   // Source indicator settings - use runtime values as primary, ARGS as fallback
@@ -3099,6 +3240,29 @@ const updateSlideshow = async () => {
   publishState("slideshow_metadata_background", status.config.metadataBackground || ARGS.slideshow_metadata_background || "dark");
   publishState("slideshow_metadata_color", status.config.metadataColor || ARGS.slideshow_metadata_color || "#ffffff");
   publishState("slideshow_metadata_background_color", status.config.metadataBackgroundColor || ARGS.slideshow_metadata_background_color || "");
+
+  // Weather element states
+  publishState("slideshow_show_weather", status.config.showWeather !== false ? "ON" : "OFF");
+  publishState("slideshow_weather_position", status.config.weatherPosition || ARGS.slideshow_weather_position || "top-right");
+  publishState("slideshow_weather_custom_font_size", status.config.weatherCustomFontSize || ARGS.slideshow_weather_custom_font_size || "");
+  publishState("slideshow_weather_color", status.config.weatherColor || ARGS.slideshow_weather_color || "#ffffff");
+  publishState("slideshow_weather_alignment", status.config.weatherAlignment || ARGS.slideshow_weather_alignment || "left");
+  publishState("slideshow_weather_background", status.config.weatherBackground || ARGS.slideshow_weather_background || "dark");
+  publishState("slideshow_weather_background_color", status.config.weatherBackgroundColor || ARGS.slideshow_weather_background_color || "");
+  publishState("slideshow_weather_opacity", convertOpacityToMqtt(status.config.weatherOpacity || ARGS.slideshow_weather_opacity));
+  publishState("slideshow_weather_background_opacity", parseInt(status.config.weatherBackgroundOpacity || ARGS.slideshow_weather_background_opacity || 70));
+  publishState("slideshow_weather_border_radius", status.config.weatherBorderRadius || ARGS.slideshow_weather_border_radius || "");
+  publishState("slideshow_weather_padding", status.config.weatherPadding || ARGS.slideshow_weather_padding || "");
+  publishState("slideshow_weather_shadow", status.config.weatherShadow || ARGS.slideshow_weather_shadow || "");
+  publishState("slideshow_weather_custom_x", status.config.weatherCustomX || ARGS.slideshow_weather_custom_x || "");
+  publishState("slideshow_weather_custom_y", status.config.weatherCustomY || ARGS.slideshow_weather_custom_y || "");
+  publishState("slideshow_weather_entity_id", status.config.weatherEntityId || ARGS.slideshow_weather_entity_id || "");
+  publishState("slideshow_weather_unit", status.config.weatherUnit || ARGS.slideshow_weather_unit || "celsius");
+  publishState("slideshow_weather_display_mode", status.config.weatherDisplayMode || ARGS.slideshow_weather_display_mode || "minimal");
+  publishState("slideshow_weather_animated_icons", status.config.weatherAnimatedIcons !== false ? "ON" : "OFF");
+  publishState("slideshow_weather_icon_size", status.config.weatherIconSize || ARGS.slideshow_weather_icon_size || "");
+  publishState("slideshow_weather_layout", status.config.weatherLayout || ARGS.slideshow_weather_layout || "icon-left");
+  publishState("slideshow_weather_vertical_align", status.config.weatherVerticalAlign || ARGS.slideshow_weather_vertical_align || "center");
 
   // Phase 2: Advanced Background Options (Border Radius, Padding, Shadows)
   // Clock advanced styling
@@ -3871,6 +4035,78 @@ const initSlideshowDateAlignment = () => {
         console.log("Set Slideshow Date Alignment:", dateAlignment);
         updateSlideshowSetting("slideshow_date_alignment", dateAlignment);
         slideshow.updateConfig({ dateAlignment });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initSlideshowSourceAlignment = () => {
+  const root = `${INTEGRATION.root}/slideshow_source_alignment`;
+  const config = {
+    name: "Slideshow Source Text Alignment",
+    unique_id: `${INTEGRATION.node}_slideshow_source_alignment`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-left",
+    options: ["left", "center", "right"],
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const sourceAlignment = message.toString();
+        console.log("Set Slideshow Source Alignment:", sourceAlignment);
+        updateSlideshowSetting("slideshow_source_alignment", sourceAlignment);
+        slideshow.updateConfig({ sourceAlignment });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initSlideshowCounterAlignment = () => {
+  const root = `${INTEGRATION.root}/slideshow_counter_alignment`;
+  const config = {
+    name: "Slideshow Counter Text Alignment",
+    unique_id: `${INTEGRATION.node}_slideshow_counter_alignment`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-left",
+    options: ["left", "center", "right"],
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const counterAlignment = message.toString();
+        console.log("Set Slideshow Counter Alignment:", counterAlignment);
+        updateSlideshowSetting("slideshow_counter_alignment", counterAlignment);
+        slideshow.updateConfig({ counterAlignment });
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initSlideshowMetadataAlignment = () => {
+  const root = `${INTEGRATION.root}/slideshow_metadata_alignment`;
+  const config = {
+    name: "Slideshow Metadata Text Alignment",
+    unique_id: `${INTEGRATION.node}_slideshow_metadata_alignment`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:format-align-left",
+    options: ["left", "center", "right"],
+    device: INTEGRATION.device,
+  };
+
+  publishConfig("select", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const metadataAlignment = message.toString();
+        console.log("Set Slideshow Metadata Alignment:", metadataAlignment);
+        updateSlideshowSetting("slideshow_metadata_alignment", metadataAlignment);
+        slideshow.updateConfig({ metadataAlignment });
       }
     })
     .subscribe(config.command_topic);
@@ -4989,6 +5225,140 @@ const initDisplayAutoDimLevel = () => {
 /**
  * Initializes the preset editor mode toggle.
  */
+// === WEATHER ELEMENT INIT FUNCTIONS ===
+
+const initSlideshowShowWeather = () => {
+  const root = `${INTEGRATION.root}/slideshow_show_weather`;
+  const config = { name: "Slideshow Show Weather", unique_id: `${INTEGRATION.node}_slideshow_show_weather`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:weather-sunny", device: INTEGRATION.device };
+  publishConfig("switch", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_show_weather", v); slideshow.updateConfig({ showWeather: v === "ON" }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherPosition = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_position`;
+  const config = { name: "Slideshow Weather Position", unique_id: `${INTEGRATION.node}_slideshow_weather_position`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:arrow-all", options: ["top-left","top-center","top-right","left","center","right","bottom-left","bottom-center","bottom-right","custom"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_position", v); slideshow.updateConfig({ weatherPosition: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherCustomFontSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_custom_font_size`;
+  const config = { name: "Slideshow Weather Custom Font Size", unique_id: `${INTEGRATION.node}_slideshow_weather_custom_font_size`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:format-size", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_custom_font_size", v); slideshow.updateConfig({ weatherCustomFontSize: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_color`;
+  const config = { name: "Slideshow Weather Color", unique_id: `${INTEGRATION.node}_slideshow_weather_color`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:palette", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_color", v); slideshow.updateConfig({ weatherColor: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherAlignment = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_alignment`;
+  const config = { name: "Slideshow Weather Alignment", unique_id: `${INTEGRATION.node}_slideshow_weather_alignment`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:format-align-left", options: ["left","center","right"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_alignment", v); slideshow.updateConfig({ weatherAlignment: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherBackground = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_background`;
+  const config = { name: "Slideshow Weather Background", unique_id: `${INTEGRATION.node}_slideshow_weather_background`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:card-outline", options: ["dark","light","blue","green","red","purple","none"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_background", v); slideshow.updateConfig({ weatherBackground: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherBackgroundColor = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_background_color`;
+  const config = { name: "Slideshow Weather Background Color", unique_id: `${INTEGRATION.node}_slideshow_weather_background_color`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:palette-outline", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_background_color", v); slideshow.updateConfig({ weatherBackgroundColor: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_opacity`;
+  const config = { name: "Slideshow Weather Opacity", unique_id: `${INTEGRATION.node}_slideshow_weather_opacity`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:opacity", min: 0.1, max: 1.0, step: 0.1, device: INTEGRATION.device };
+  publishConfig("number", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = parseFloat(message.toString()); updateSlideshowSetting("slideshow_weather_opacity", v); slideshow.updateConfig({ weatherOpacity: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherBackgroundOpacity = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_background_opacity`;
+  const config = { name: "Slideshow Weather Background Opacity", unique_id: `${INTEGRATION.node}_slideshow_weather_background_opacity`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:circle-opacity", min: 0, max: 100, step: 5, unit_of_measurement: "%", device: INTEGRATION.device };
+  publishConfig("number", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = parseInt(message.toString()); updateSlideshowSetting("slideshow_weather_background_opacity", v); slideshow.updateConfig({ weatherBackgroundOpacity: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherBorderRadius = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_border_radius`;
+  const config = { name: "Slideshow Weather Border Radius", unique_id: `${INTEGRATION.node}_slideshow_weather_border_radius`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:rounded-corner", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_border_radius", v); slideshow.updateConfig({ weatherBorderRadius: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherPadding = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_padding`;
+  const config = { name: "Slideshow Weather Padding", unique_id: `${INTEGRATION.node}_slideshow_weather_padding`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:padding", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_padding", v); slideshow.updateConfig({ weatherPadding: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherShadow = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_shadow`;
+  const config = { name: "Slideshow Weather Shadow", unique_id: `${INTEGRATION.node}_slideshow_weather_shadow`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:box-shadow", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_shadow", v); slideshow.updateConfig({ weatherShadow: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherCustomX = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_custom_x`;
+  const config = { name: "Slideshow Weather Custom X", unique_id: `${INTEGRATION.node}_slideshow_weather_custom_x`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:axis-x-arrow", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_custom_x", v); slideshow.updateConfig({ weatherCustomX: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherCustomY = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_custom_y`;
+  const config = { name: "Slideshow Weather Custom Y", unique_id: `${INTEGRATION.node}_slideshow_weather_custom_y`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:axis-y-arrow", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_custom_y", v); slideshow.updateConfig({ weatherCustomY: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherEntityId = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_entity_id`;
+  const config = { name: "Slideshow Weather Entity ID", unique_id: `${INTEGRATION.node}_slideshow_weather_entity_id`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:weather-sunny", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_entity_id", v); slideshow.updateConfig({ weatherEntityId: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherUnit = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_unit`;
+  const config = { name: "Slideshow Weather Unit", unique_id: `${INTEGRATION.node}_slideshow_weather_unit`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:thermometer", options: ["celsius","fahrenheit"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_unit", v); slideshow.updateConfig({ weatherUnit: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherDisplayMode = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_display_mode`;
+  const config = { name: "Slideshow Weather Display Mode", unique_id: `${INTEGRATION.node}_slideshow_weather_display_mode`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:view-compact", options: ["minimal","standard","detailed"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_display_mode", v); slideshow.updateConfig({ weatherDisplayMode: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherAnimatedIcons = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_animated_icons`;
+  const config = { name: "Slideshow Weather Animated Icons", unique_id: `${INTEGRATION.node}_slideshow_weather_animated_icons`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:animation-play", device: INTEGRATION.device };
+  publishConfig("switch", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_animated_icons", v); slideshow.updateConfig({ weatherAnimatedIcons: v === "ON" }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherData = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_data`;
+  const config = { name: "Slideshow Weather Data", unique_id: `${INTEGRATION.node}_slideshow_weather_data`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:cloud-download", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_data", v); try { slideshow.updateConfig({ weatherData: JSON.parse(v) }); } catch(e) { slideshow.updateConfig({ weatherData: v }); } } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherIconSize = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_icon_size`;
+  const config = { name: "Slideshow Weather Icon Size", unique_id: `${INTEGRATION.node}_slideshow_weather_icon_size`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:resize", device: INTEGRATION.device };
+  publishConfig("text", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_icon_size", v); slideshow.updateConfig({ weatherIconSize: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherLayout = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_layout`;
+  const config = { name: "Slideshow Weather Layout", unique_id: `${INTEGRATION.node}_slideshow_weather_layout`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:page-layout-body", options: ["icon-left","icon-right","icon-top","icon-bottom"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_layout", v); slideshow.updateConfig({ weatherLayout: v }); } }).subscribe(config.command_topic);
+};
+
+const initSlideshowWeatherVerticalAlign = () => {
+  const root = `${INTEGRATION.root}/slideshow_weather_vertical_align`;
+  const config = { name: "Slideshow Weather Vertical Align", unique_id: `${INTEGRATION.node}_slideshow_weather_vertical_align`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:format-vertical-align-center", options: ["top","center","bottom"], device: INTEGRATION.device };
+  publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_vertical_align", v); slideshow.updateConfig({ weatherVerticalAlign: v }); } }).subscribe(config.command_topic);
+};
+
 const initPresetEditorMode = () => {
   const root = `${INTEGRATION.root}/preset_editor_mode`;
   const config = {

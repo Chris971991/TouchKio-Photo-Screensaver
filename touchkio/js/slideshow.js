@@ -112,6 +112,14 @@ global.SLIDESHOW = global.SLIDESHOW || {
     fallbackTimeout: 5000, // 5 seconds
     preferredSource: 'google', // 'google', 'local', 'auto'
     editorMode: false,
+    // Weather element
+    showWeather: true,
+    weatherPosition: 'top-right',
+    weatherUnit: 'celsius',
+    weatherDisplayMode: 'minimal',
+    weatherAnimatedIcons: true,
+    weatherOpacity: 0.8,
+    weatherData: null,
   },
 };
 
