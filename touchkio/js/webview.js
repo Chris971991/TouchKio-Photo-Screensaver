@@ -880,10 +880,8 @@ const keyboardEvents = async () => {
       view.webContents.sendInputEvent({ type: "keyDown", keyCode: "Return" });
       view.webContents.sendInputEvent({ type: "keyUp", keyCode: "Return" });
     } else if (data.char) {
-      // Send full key event sequence for compatibility with web components and iframes
-      view.webContents.sendInputEvent({ type: "keyDown", keyCode: data.char });
+      // Send character input event
       view.webContents.sendInputEvent({ type: "char", keyCode: data.char, text: data.char });
-      view.webContents.sendInputEvent({ type: "keyUp", keyCode: data.char });
     }
   });
 
