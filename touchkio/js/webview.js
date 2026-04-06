@@ -151,6 +151,22 @@ const init = async () => {
   WEBVIEW.keyboardVisible = false;
   WEBVIEW.keyboardHeight = 280;
 
+  // Init notification toast overlay
+  WEBVIEW.notificationView = new WebContentsView({
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+  WEBVIEW.notificationView.setBackgroundColor("#00000000");
+  WEBVIEW.window.contentView.addChildView(WEBVIEW.notificationView);
+  WEBVIEW.notificationView.webContents.loadFile(path.join(APP.path, "html", "notification-toast.html"));
+  WEBVIEW.notificationView.setBounds({ x: -9999, y: 0, width: 1, height: 1 }); // Start off-screen
+  WEBVIEW.notificationPosition = 'top-right';
+  WEBVIEW.notificationAnimation = 'slide-right';
+  WEBVIEW.notificationMaxVisible = 3;
+
   // Init doorbell camera overlay
   WEBVIEW.doorbellView = new WebContentsView({
     webPreferences: {
@@ -166,6 +182,21 @@ const init = async () => {
 
   // Register global events
   EVENTS.on("reloadView", reloadView);
+
+  // Keep notification view on top when slideshow state changes (preserve current bounds)
+  EVENTS.on("slideshowStateChanged", () => {
+    if (WEBVIEW.notificationView) {
+      setTimeout(() => {
+        const currentBounds = WEBVIEW.notificationView.getBounds();
+        // Only re-add if it's currently on-screen (has toasts showing)
+        if (currentBounds.x >= 0) {
+          try { WEBVIEW.window.contentView.removeChildView(WEBVIEW.notificationView); } catch(e) {}
+          WEBVIEW.window.contentView.addChildView(WEBVIEW.notificationView);
+          WEBVIEW.notificationView.setBounds(currentBounds);
+        }
+      }, 100);
+    }
+  });
   EVENTS.on("updateView", updateView);
   EVENTS.on("updateDisplay", () => {
     const status = hardware.getDisplayStatus();
@@ -521,6 +552,8 @@ const resizeView = () => {
     });
   }
 
+  // Notification view bounds managed by notification-view-state IPC — don't override here
+
   // Update sidebar trigger (left edge) — re-add last to stay on top
   if (WEBVIEW.sidebarTrigger) {
     try {
@@ -705,11 +738,79 @@ const hideDoorbellCamera = () => {
   console.log("Doorbell camera overlay dismissed");
 };
 
+// === NOTIFICATION SYSTEM ===
+
+const showNotification = (data) => {
+  if (!WEBVIEW.notificationView || !WEBVIEW.notificationView.webContents) return;
+  console.log("Showing notification:", data.id || 'unnamed', data.title);
+  WEBVIEW.notificationView.webContents.send('notification-show', data);
+};
+
+const dismissNotification = (data) => {
+  if (!WEBVIEW.notificationView || !WEBVIEW.notificationView.webContents) return;
+  console.log("Dismissing notification:", typeof data === 'string' ? data : data.id);
+  WEBVIEW.notificationView.webContents.send('notification-dismiss', data);
+};
+
+const updateNotificationSettings = (settings) => {
+  if (!WEBVIEW.notificationView || !WEBVIEW.notificationView.webContents) return;
+  if (settings.position) WEBVIEW.notificationPosition = settings.position;
+  if (settings.animation) WEBVIEW.notificationAnimation = settings.animation;
+  if (settings.maxVisible) WEBVIEW.notificationMaxVisible = settings.maxVisible;
+  WEBVIEW.notificationView.webContents.send('notification-settings', settings);
+};
+
+global.WEBVIEW_NOTIFICATIONS = { show: showNotification, dismiss: dismissNotification, updateSettings: updateNotificationSettings };
+
 // Expose doorbell functions globally for integration.js access
 global.WEBVIEW_DOORBELL = { show: showDoorbellCamera, hide: hideDoorbellCamera };
 
 const sidebarEvents = async () => {
   const { ipcMain } = require("electron");
+
+  // Show/hide notification view based on active toast count
+  ipcMain.on("notification-view-state", (event, data) => {
+    if (!data.visible) {
+      // Toast was dismissed — set grace period to prevent screensaver exit
+      if (global.SLIDESHOW) {
+        global.SLIDESHOW.activityGracePeriod = true;
+        setTimeout(() => { global.SLIDESHOW.activityGracePeriod = false; }, 800);
+      }
+    }
+    if (WEBVIEW.notificationView) {
+      if (data.visible && data.height) {
+        // Size view to exactly the toast area
+        try { WEBVIEW.window.contentView.removeChildView(WEBVIEW.notificationView); } catch(e) {}
+        WEBVIEW.window.contentView.addChildView(WEBVIEW.notificationView);
+        const screen = WEBVIEW.window.getBounds();
+        const pos = WEBVIEW.notificationPosition || 'top-right';
+        const w = 420;
+        const h = data.height;
+        const x = pos.includes('right') ? screen.width - w : 0;
+        const y = pos.includes('bottom') ? screen.height - h : 0;
+        WEBVIEW.notificationView.setBounds({ x, y, width: w, height: h });
+      } else if (!data.visible) {
+        WEBVIEW.notificationView.setBounds({ x: -9999, y: 0, width: 1, height: 1 });
+      }
+    }
+  });
+
+  // Notification view does NOT forward clicks as user activity
+  // The screensaver is dismissed by touching outside the notification area
+  // Since the notification view only covers the screen when toasts are active,
+  // and moves off-screen when empty, this is handled automatically
+
+  // Handle notification action button clicks — publish back to MQTT
+  ipcMain.on("notification-action", (event, data) => {
+    console.log("Notification action:", data.id, data.action);
+    // Publish action to MQTT for HA to handle
+    if (global.INTEGRATION_MQTT_PUBLISH) {
+      const topic = `${global.INTEGRATION_ROOT || 'touchkio/rpi_BC5B9F'}/notification_action/state`;
+      global.INTEGRATION_MQTT_PUBLISH(topic, JSON.stringify(data));
+    } else {
+      console.error("MQTT publish not available for notification action");
+    }
+  });
 
   ipcMain.on("doorbell-dismiss", () => {
     hideDoorbellCamera();

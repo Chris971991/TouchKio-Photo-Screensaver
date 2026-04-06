@@ -1,0 +1,313 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      ::-webkit-scrollbar { display: none; }
+      body {
+        background: transparent;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        pointer-events: none;
+      }
+      .toast-container {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 20px;
+        max-height: 100vh;
+        overflow: hidden;
+      }
+      .toast-container.pos-top-right { top: 0; left: 0; right: 0; }
+      .toast-container.pos-top-left { top: 0; left: 0; right: 0; }
+      .toast-container.pos-bottom-right { bottom: 0; left: 0; right: 0; flex-direction: column-reverse; }
+      .toast-container.pos-bottom-left { bottom: 0; left: 0; right: 0; flex-direction: column-reverse; }
+
+      .toast {
+        pointer-events: auto;
+        width: 380px;
+        background: rgba(25, 25, 30, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        cursor: default;
+        transform: translateX(0);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Slide animations */
+      .toast.slide-right-enter { transform: translateX(420px); opacity: 0; }
+      .toast.slide-left-enter { transform: translateX(-420px); opacity: 0; }
+      .toast.slide-up-enter { transform: translateY(-100px); opacity: 0; }
+      .toast.slide-down-enter { transform: translateY(100px); opacity: 0; }
+      .toast.fade-enter { opacity: 0; }
+      .toast.visible { transform: translateX(0) translateY(0); opacity: 1; }
+      .toast.dismissing { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
+
+      .toast-accent {
+        height: 3px;
+        width: 100%;
+      }
+      .toast-content {
+        padding: 14px 16px 10px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .toast-icon {
+        font-size: 28px;
+        line-height: 1;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .toast-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .toast-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4px;
+      }
+      .toast-title {
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      .toast-close {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+        flex-shrink: 0;
+        pointer-events: auto;
+        transition: color 0.15s;
+      }
+      .toast-close:hover { color: rgba(255, 255, 255, 0.8); }
+      .toast-close { touch-action: manipulation; }
+      .toast-message {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .toast-actions {
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px 14px;
+        flex-wrap: wrap;
+      }
+      .toast-action-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        pointer-events: auto;
+        transition: filter 0.15s, transform 0.1s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        touch-action: manipulation;
+      }
+      .toast-action-btn:active {
+        transform: scale(0.96);
+        filter: brightness(0.85);
+      }
+      .toast-action-btn.primary {
+        background: rgba(74, 144, 226, 0.9);
+      }
+      .toast-action-btn.secondary {
+        background: rgba(80, 80, 90, 0.8);
+      }
+      .toast-timer {
+        height: 3px;
+        background: rgba(255, 255, 255, 0.15);
+        transition: width linear;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toast-container pos-top-right" id="toastContainer"></div>
+
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      const toasts = new Map();
+      let position = 'top-right';
+      let animation = 'slide-right';
+      let maxVisible = 3;
+
+      const container = document.getElementById('toastContainer');
+
+      function updatePosition() {
+        container.className = `toast-container pos-${position}`;
+      }
+
+      function createToast(data) {
+        const id = data.id || Date.now().toString();
+
+        // Remove existing toast with same ID (update)
+        if (toasts.has(id)) {
+          dismissToast(id, true);
+        }
+
+        // Enforce max visible
+        while (toasts.size >= maxVisible) {
+          const oldest = toasts.keys().next().value;
+          dismissToast(oldest, true);
+        }
+
+        const color = data.color || '#4A90E2';
+        const el = document.createElement('div');
+        el.className = `toast ${animation}-enter`;
+        el.setAttribute('data-id', id);
+
+        let actionsHtml = '';
+        if (data.actions && data.actions.length > 0) {
+          actionsHtml = '<div class="toast-actions">' +
+            data.actions.map((a, i) =>
+              `<button class="toast-action-btn ${i === 0 ? 'primary' : 'secondary'}" data-action="${a.action}" style="${i === 0 ? 'background:' + color : ''}">${a.label}</button>`
+            ).join('') +
+          '</div>';
+        }
+
+        let timerHtml = '';
+        if (data.timeout && data.timeout > 0) {
+          timerHtml = `<div class="toast-timer" id="timer-${id}" style="width:100%"></div>`;
+        }
+
+        el.innerHTML =
+          `<div class="toast-accent" style="background:${color}"></div>` +
+          `<div class="toast-content">` +
+            `<div class="toast-icon">${data.icon || '🔔'}</div>` +
+            `<div class="toast-body">` +
+              `<div class="toast-header">` +
+                `<div class="toast-title">${data.title || 'Notification'}</div>` +
+                `<div class="toast-close" data-dismiss="${id}">✕</div>` +
+              `</div>` +
+              `<div class="toast-message">${data.message || ''}</div>` +
+            `</div>` +
+          `</div>` +
+          actionsHtml +
+          timerHtml;
+
+        container.appendChild(el);
+
+        // Animate in
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.classList.remove(`${animation}-enter`);
+            el.classList.add('visible');
+          });
+        });
+
+        // Close button
+        el.querySelector('.toast-close').addEventListener('click', (e) => {
+          e.stopPropagation();
+          dismissToast(id);
+        });
+
+        // Action buttons
+        el.querySelectorAll('.toast-action-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = btn.getAttribute('data-action');
+            ipcRenderer.send('notification-action', { id, action });
+            dismissToast(id);
+          });
+        });
+
+        // Auto-dismiss timer
+        let timer = null;
+        if (data.timeout && data.timeout > 0) {
+          const timerBar = document.getElementById(`timer-${id}`);
+          if (timerBar) {
+            timerBar.style.transition = `width ${data.timeout * 1000}ms linear`;
+            requestAnimationFrame(() => { timerBar.style.width = '0%'; });
+          }
+          timer = setTimeout(() => dismissToast(id), data.timeout * 1000);
+        }
+
+        toasts.set(id, { el, timer, data });
+
+        // Tell main process to resize view to fit toasts (wait for layout + animation)
+        setTimeout(() => updateViewBounds(), 350);
+      }
+
+      function dismissToast(id, instant = false) {
+        const toast = toasts.get(id);
+        if (!toast) return;
+
+        if (toast.timer) clearTimeout(toast.timer);
+
+        if (instant) {
+          toast.el.remove();
+        } else {
+          toast.el.classList.add('dismissing');
+          setTimeout(() => toast.el.remove(), 200);
+        }
+
+        toasts.delete(id);
+
+        // Update view bounds or hide if empty (wait for dismiss animation)
+        setTimeout(() => updateViewBounds(), 300);
+      }
+
+      function dismissAll() {
+        for (const [id] of toasts) {
+          dismissToast(id, true);
+        }
+      }
+
+      // IPC handlers
+      ipcRenderer.on('notification-show', (event, data) => {
+        createToast(data);
+      });
+
+      ipcRenderer.on('notification-dismiss', (event, data) => {
+        if (data === 'all' || data.id === 'all') {
+          dismissAll();
+        } else if (data.id) {
+          dismissToast(data.id);
+        }
+      });
+
+      ipcRenderer.on('notification-settings', (event, settings) => {
+        if (settings.position) { position = settings.position; updatePosition(); }
+        if (settings.animation) { animation = settings.animation; }
+        if (settings.maxVisible) { maxVisible = settings.maxVisible; }
+      });
+
+      function updateViewBounds() {
+        if (toasts.size === 0) {
+          ipcRenderer.send('notification-view-state', { visible: false });
+          return;
+        }
+        // Measure total height of all toasts + padding
+        const containerRect = container.getBoundingClientRect();
+        const height = Math.ceil(containerRect.height) + 10;
+        ipcRenderer.send('notification-view-state', { visible: true, height: height });
+      }
+
+      // Prevent mousedown from propagating (don't steal focus from other views)
+      document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.toast')) {
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
+</html>
