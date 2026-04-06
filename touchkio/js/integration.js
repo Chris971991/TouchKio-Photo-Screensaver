@@ -1135,6 +1135,10 @@ const initSlideshow = () => {
   initSlideshowWeatherLayout();
   initSlideshowWeatherVerticalAlign();
 
+  // === DOORBELL ALERT ===
+  initDoorbellAlert();
+  initDoorbellTimeout();
+
   // === ANIMATION SETTINGS ===
   initSlideshowEntranceEffect();
   initAnimationSpeed();
@@ -1374,6 +1378,9 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_weather_icon_size) savedCustomConfig.weatherIconSize = ARGS.slideshow_weather_icon_size;
   if (ARGS.slideshow_weather_layout) savedCustomConfig.weatherLayout = ARGS.slideshow_weather_layout;
   if (ARGS.slideshow_weather_vertical_align) savedCustomConfig.weatherVerticalAlign = ARGS.slideshow_weather_vertical_align;
+
+  // Load doorbell settings
+  if (ARGS.doorbell_timeout) savedCustomConfig.doorbellTimeout = parseInt(ARGS.doorbell_timeout);
 
   // Load display brightness and auto-dim settings
   if (ARGS.display_brightness) savedCustomConfig.brightness = parseInt(ARGS.display_brightness);
@@ -3081,6 +3088,13 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       case "slideshow_weather_vertical_align":
         slideshow.updateConfig({ weatherVerticalAlign: value });
         break;
+      // Doorbell settings
+      case "doorbell_alert":
+        // Handled directly in initDoorbellAlert via WEBVIEW_DOORBELL.show()
+        break;
+      case "doorbell_timeout":
+        slideshow.updateConfig({ doorbellTimeout: parseInt(value) || 30 });
+        break;
       // Display brightness and auto-dim settings
       case "display_brightness":
         slideshow.updateConfig({ brightness: parseInt(value) });
@@ -3263,6 +3277,9 @@ const updateSlideshow = async () => {
   publishState("slideshow_weather_icon_size", status.config.weatherIconSize || ARGS.slideshow_weather_icon_size || "");
   publishState("slideshow_weather_layout", status.config.weatherLayout || ARGS.slideshow_weather_layout || "icon-left");
   publishState("slideshow_weather_vertical_align", status.config.weatherVerticalAlign || ARGS.slideshow_weather_vertical_align || "center");
+
+  // Doorbell settings
+  publishState("doorbell_timeout", status.config.doorbellTimeout || ARGS.doorbell_timeout || 30);
 
   // Phase 2: Advanced Background Options (Border Radius, Padding, Shadows)
   // Clock advanced styling
@@ -5357,6 +5374,63 @@ const initSlideshowWeatherVerticalAlign = () => {
   const root = `${INTEGRATION.root}/slideshow_weather_vertical_align`;
   const config = { name: "Slideshow Weather Vertical Align", unique_id: `${INTEGRATION.node}_slideshow_weather_vertical_align`, command_topic: `${root}/set`, state_topic: `${root}/state`, icon: "mdi:format-vertical-align-center", options: ["top","center","bottom"], device: INTEGRATION.device };
   publishConfig("select", config).on("message", (topic, message) => { if (topic === config.command_topic) { const v = message.toString(); updateSlideshowSetting("slideshow_weather_vertical_align", v); slideshow.updateConfig({ weatherVerticalAlign: v }); } }).subscribe(config.command_topic);
+};
+
+// === DOORBELL ALERT ===
+
+const initDoorbellAlert = () => {
+  const root = `${INTEGRATION.root}/doorbell_alert`;
+  const config = {
+    name: "Doorbell Alert",
+    unique_id: `${INTEGRATION.node}_doorbell_alert`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:doorbell-video",
+    device: INTEGRATION.device,
+  };
+  publishConfig("text", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const alertData = message.toString();
+        console.log("Doorbell alert received:", alertData);
+        try {
+          const data = JSON.parse(alertData);
+          // Hide screensaver so Browser Mod popup shows on the HA dashboard
+          console.log("Doorbell alert - hiding screensaver for camera popup");
+          EVENTS.emit("userActivity");
+        } catch(e) {
+          console.error("Invalid doorbell alert JSON:", e.message);
+        }
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initDoorbellTimeout = () => {
+  const root = `${INTEGRATION.root}/doorbell_timeout`;
+  const config = {
+    name: "Doorbell Display Timeout",
+    unique_id: `${INTEGRATION.node}_doorbell_timeout`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:timer",
+    min: 5,
+    max: 120,
+    step: 5,
+    unit_of_measurement: "s",
+    device: INTEGRATION.device,
+  };
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const timeout = parseInt(message.toString());
+        console.log("Set Doorbell Timeout:", timeout, "seconds");
+        updateSlideshowSetting("doorbell_timeout", timeout);
+        slideshow.updateConfig({ doorbellTimeout: timeout });
+        publishState(config.state_topic, timeout.toString());
+      }
+    })
+    .subscribe(config.command_topic);
 };
 
 const initPresetEditorMode = () => {

@@ -151,6 +151,19 @@ const init = async () => {
   WEBVIEW.keyboardVisible = false;
   WEBVIEW.keyboardHeight = 280;
 
+  // Init doorbell camera overlay
+  WEBVIEW.doorbellView = new WebContentsView({
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+  WEBVIEW.doorbellView.setBackgroundColor("#000000FF");
+  WEBVIEW.doorbellView.setVisible(false);
+  WEBVIEW.window.contentView.addChildView(WEBVIEW.doorbellView);
+  WEBVIEW.doorbellActive = false;
+  WEBVIEW.doorbellTimer = null;
+
   // Register global events
   EVENTS.on("reloadView", reloadView);
   EVENTS.on("updateView", updateView);
@@ -585,8 +598,131 @@ const windowEvents = async () => {
 /**
  * Register sidebar trigger events.
  */
+/**
+ * Show doorbell camera overlay on top of everything.
+ */
+const showDoorbellCamera = (data) => {
+  if (!WEBVIEW.doorbellView) return;
+  const bounds = WEBVIEW.window.getBounds();
+
+  const haUrl = data.ha_url || 'http://192.168.50.45:8123';
+  const entityId = data.entity_id || 'camera.front_door_doorbell';
+  const title = data.title || 'Front Door';
+  const timeout = data.timeout || 30;
+
+  // Load a simple HTML page with the camera stream directly into the view
+  // This shares the HA session because the view uses the default session
+  const html = `
+    <html><head><style>
+      *{margin:0;padding:0}body{background:#000;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:-apple-system,sans-serif;color:#fff;cursor:pointer}
+      .hdr{position:absolute;top:0;left:0;right:0;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);z-index:1}
+      .title{display:flex;align-items:center;gap:12px;font-size:1.4rem;font-weight:600}
+      .bell{font-size:2rem;animation:ring .5s ease-in-out 3}
+      @keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(15deg)}75%{transform:rotate(-15deg)}}
+      .dismiss{color:rgba(255,255,255,.7);font-size:.9rem}
+      img{max-width:95vw;max-height:85vh;border-radius:12px;object-fit:contain}
+      .timer{position:absolute;bottom:0;left:0;height:4px;background:rgba(74,144,226,.8);width:100%;animation:shrink ${timeout}s linear forwards}
+      @keyframes shrink{from{width:100%}to{width:0%}}
+    </style></head><body>
+      <div class="hdr"><div class="title"><span class="bell">🔔</span>${title}</div><div class="dismiss">Tap anywhere to dismiss</div></div>
+      <img src="${haUrl}/api/camera_proxy_stream/${entityId}">
+      <div class="timer"></div>
+    </body></html>`;
+
+  // Position fullscreen and bring to top
+  try { WEBVIEW.window.contentView.removeChildView(WEBVIEW.doorbellView); } catch(e) {}
+  WEBVIEW.window.contentView.addChildView(WEBVIEW.doorbellView);
+  WEBVIEW.doorbellView.setBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height });
+  WEBVIEW.doorbellView.setVisible(true);
+  WEBVIEW.doorbellActive = true;
+
+  // Load the HA page — this will be authenticated because we share the default session
+  // Then inject JS to trigger the camera's more-info dialog fullscreen
+  WEBVIEW.doorbellView.webContents.loadURL(`${haUrl}/lovelace/0`);
+  WEBVIEW.doorbellView.webContents.once('dom-ready', () => {
+    // Inject CSS to make it dark while HA loads
+    WEBVIEW.doorbellView.webContents.insertCSS('body { background: #000 !important; }');
+  });
+
+  // Wait for HA to fully load, then trigger the camera more-info dialog
+  const injectCamera = () => {
+    WEBVIEW.doorbellView.webContents.executeJavaScript(`
+      (function() {
+        try {
+          // Fire a HA event to open the camera's more-info dialog
+          var ha = document.querySelector('home-assistant');
+          if (!ha) return 'no ha';
+          var event = new Event('hass-more-info', { bubbles: true, composed: true });
+          event.detail = { entityId: '${entityId}' };
+          ha.dispatchEvent(event);
+
+          // Also inject overlay header
+          setTimeout(function() {
+            var hdr = document.createElement('div');
+            hdr.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:15px 25px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);z-index:99999;font-family:-apple-system,sans-serif;color:#fff';
+            hdr.innerHTML = '<div style="display:flex;align-items:center;gap:12px;font-size:1.3rem;font-weight:600"><span style="font-size:1.8rem">🔔</span>${title}</div><div style="color:rgba(255,255,255,.7);font-size:.85rem">Tap anywhere to dismiss</div>';
+            document.body.appendChild(hdr);
+
+            var timerBar = document.createElement('div');
+            timerBar.style.cssText = 'position:fixed;bottom:0;left:0;height:4px;background:rgba(74,144,226,.8);width:100%;z-index:99999;animation:doorbell-shrink ${timeout}s linear forwards';
+            var style = document.createElement('style');
+            style.textContent = '@keyframes doorbell-shrink{from{width:100%}to{width:0%}}';
+            document.head.appendChild(style);
+            document.body.appendChild(timerBar);
+          }, 500);
+
+          return 'injected';
+        } catch(e) { return 'error: ' + e.message; }
+      })();
+    `).then(r => console.log('Doorbell camera inject result:', r)).catch(() => {});
+  };
+
+  // Try multiple times as HA takes a moment to load
+  setTimeout(injectCamera, 2000);
+  setTimeout(injectCamera, 4000);
+
+  // Wake display
+  EVENTS.emit("userActivity");
+
+  // Auto-dismiss timer
+  if (WEBVIEW.doorbellTimer) clearTimeout(WEBVIEW.doorbellTimer);
+  WEBVIEW.doorbellTimer = setTimeout(() => {
+    hideDoorbellCamera();
+  }, timeout * 1000);
+
+  console.log("Doorbell camera overlay shown:", entityId);
+};
+
+const hideDoorbellCamera = () => {
+  if (!WEBVIEW.doorbellView) return;
+  WEBVIEW.doorbellView.setVisible(false);
+  WEBVIEW.doorbellView.webContents.loadURL('about:blank'); // Stop the stream
+  WEBVIEW.doorbellActive = false;
+  if (WEBVIEW.doorbellTimer) {
+    clearTimeout(WEBVIEW.doorbellTimer);
+    WEBVIEW.doorbellTimer = null;
+  }
+  console.log("Doorbell camera overlay dismissed");
+};
+
+// Expose doorbell functions globally for integration.js access
+global.WEBVIEW_DOORBELL = { show: showDoorbellCamera, hide: hideDoorbellCamera };
+
 const sidebarEvents = async () => {
   const { ipcMain } = require("electron");
+
+  ipcMain.on("doorbell-dismiss", () => {
+    hideDoorbellCamera();
+  });
+
+  // Dismiss doorbell on any click/tap on the doorbell view
+  if (WEBVIEW.doorbellView) {
+    WEBVIEW.doorbellView.webContents.on("before-mouse-event", (e, mouse) => {
+      if (mouse.type === "mouseDown" && WEBVIEW.doorbellActive) {
+        hideDoorbellCamera();
+      }
+    });
+  }
 
   ipcMain.on("sidebar-toggle", () => {
     console.log("Sidebar toggle IPC received");

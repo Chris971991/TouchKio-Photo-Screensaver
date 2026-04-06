@@ -467,6 +467,74 @@
         .weather-animated.weather-windy .weather-icon { animation: weather-sway 2s ease-in-out infinite; }
         .weather-animated.weather-snowy .weather-icon { animation: weather-bounce 2.5s ease-in-out infinite; }
 
+        /* Doorbell camera overlay */
+        .doorbell-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .doorbell-overlay.active {
+            display: flex;
+        }
+        .doorbell-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            z-index: 1;
+        }
+        .doorbell-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .doorbell-icon {
+            font-size: 2rem;
+            animation: doorbell-ring 0.5s ease-in-out 3;
+        }
+        @keyframes doorbell-ring {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+        .doorbell-dismiss {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .doorbell-timer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: rgba(74, 144, 226, 0.8);
+            transition: width linear;
+        }
+        .doorbell-camera {
+            max-width: 95vw;
+            max-height: 85vh;
+            border-radius: 12px;
+            box-shadow: 0 0 60px rgba(0,0,0,0.5);
+            object-fit: contain;
+        }
+
         /* Background classes for clock and date */
         .clock.background-dark, .date.background-dark { background: rgba(0, 0, 0, 0.7) !important; color: white; }
         .clock.background-light, .date.background-light { background: rgba(255, 255, 255, 0.8) !important; color: #333; }
@@ -1064,6 +1132,19 @@
         <div class="clock pos-bottom-right size-large background-dark" id="clock">00:00</div>
         <div class="date pos-bottom-left size-medium background-dark" id="date">Loading...</div>
 
+        <!-- Doorbell camera overlay - appears on top of everything -->
+        <div class="doorbell-overlay" id="doorbellOverlay">
+            <div class="doorbell-header">
+                <div class="doorbell-title">
+                    <span class="doorbell-icon">🔔</span>
+                    <span id="doorbellTitle">Front Door</span>
+                </div>
+                <div class="doorbell-dismiss">Tap anywhere to dismiss</div>
+            </div>
+            <iframe class="doorbell-camera" id="doorbellCamera" src="" style="border:none; width:90vw; height:80vh;" allow="autoplay"></iframe>
+            <div class="doorbell-timer" id="doorbellTimer"></div>
+        </div>
+
         <div class="loading-indicator" id="loadingIndicator">
             <div class="spinner"></div>
         </div>
@@ -1196,6 +1277,74 @@
                     sourceIcon.style.display = 'none';
                 }
             }
+        }
+
+        // Doorbell camera overlay
+        let doorbellDismissTimer = null;
+        let doorbellTimerAnimation = null;
+
+        function showDoorbellOverlay(data) {
+            const overlay = document.getElementById('doorbellOverlay');
+            const camera = document.getElementById('doorbellCamera');
+            const title = document.getElementById('doorbellTitle');
+            const timer = document.getElementById('doorbellTimer');
+            if (!overlay || !camera) return;
+
+            // Load camera - use HA URL directly (kiosk is already authenticated)
+            const haUrl = data.ha_url || 'http://192.168.50.45:8123';
+            const entityId = data.entity_id || '';
+            if (entityId) {
+                camera.src = `${haUrl}/api/camera_proxy_stream/${entityId}`;
+            } else if (data.camera_url) {
+                camera.src = data.camera_url;
+            }
+            title.textContent = data.title || 'Front Door';
+
+            // Show overlay
+            overlay.classList.add('active');
+
+            // Start auto-dismiss timer
+            const timeout = (data.timeout || config.doorbellTimeout || 30) * 1000;
+            timer.style.width = '100%';
+            timer.style.transition = `width ${timeout}ms linear`;
+
+            // Force reflow then start animation
+            timer.offsetHeight;
+            timer.style.width = '0%';
+
+            if (doorbellDismissTimer) clearTimeout(doorbellDismissTimer);
+            doorbellDismissTimer = setTimeout(() => {
+                dismissDoorbellOverlay();
+            }, timeout);
+
+            // Dismiss on tap
+            overlay.onclick = () => dismissDoorbellOverlay();
+
+            // Wake display brightness without hiding screensaver
+            ipcRenderer.send('set-display-brightness', config.brightness || 100);
+
+            console.log('Doorbell overlay shown:', data.title, 'timeout:', timeout / 1000, 's');
+        }
+
+        function dismissDoorbellOverlay() {
+            const overlay = document.getElementById('doorbellOverlay');
+            const camera = document.getElementById('doorbellCamera');
+            const timer = document.getElementById('doorbellTimer');
+            if (!overlay) return;
+
+            overlay.classList.remove('active');
+            if (camera) camera.src = '';
+            if (timer) {
+                timer.style.transition = 'none';
+                timer.style.width = '0%';
+            }
+
+            if (doorbellDismissTimer) {
+                clearTimeout(doorbellDismissTimer);
+                doorbellDismissTimer = null;
+            }
+
+            console.log('Doorbell overlay dismissed');
         }
 
         function updatePhotoCounter(current, total) {
@@ -6177,6 +6326,18 @@
             // Debug box removed - no longer needed
 
             if (data.config) {
+                // Check for doorbell alert
+                if (data.config.doorbellAlert) {
+                    try {
+                        const alertData = typeof data.config.doorbellAlert === 'string' ? JSON.parse(data.config.doorbellAlert) : data.config.doorbellAlert;
+                        showDoorbellOverlay(alertData);
+                        // Clear alert from config so it can trigger again
+                        data.config.doorbellAlert = null;
+                    } catch(e) {
+                        console.error('Invalid doorbell alert data:', e);
+                    }
+                }
+
                 config = data.config;
 
                 // Update long press duration if provided in initial config
@@ -7709,6 +7870,16 @@
                 applyMetadata();
                 if (currentIndex !== -1 && photos[currentIndex]) {
                     updateMetadataContent(photos[currentIndex]);
+                }
+            }
+
+            // Show doorbell overlay if alert received
+            if (newConfig.doorbellAlert) {
+                try {
+                    const alertData = typeof newConfig.doorbellAlert === 'string' ? JSON.parse(newConfig.doorbellAlert) : newConfig.doorbellAlert;
+                    showDoorbellOverlay(alertData);
+                } catch(e) {
+                    console.error('Invalid doorbell alert data:', e);
                 }
             }
 

@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      ::-webkit-scrollbar { display: none; }
+      body {
+        background: #000;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: white;
+        cursor: pointer;
+      }
+      .header {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        padding: 20px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        z-index: 1;
+      }
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+      .bell {
+        font-size: 2rem;
+        animation: ring 0.5s ease-in-out 3;
+      }
+      @keyframes ring {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(15deg); }
+        75% { transform: rotate(-15deg); }
+      }
+      .dismiss { color: rgba(255,255,255,0.7); font-size: 0.9rem; }
+      .camera {
+        max-width: 95vw;
+        max-height: 85vh;
+        border-radius: 12px;
+        object-fit: contain;
+      }
+      .timer-bar {
+        position: absolute;
+        bottom: 0; left: 0;
+        height: 4px;
+        background: rgba(74, 144, 226, 0.8);
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="title">
+        <span class="bell">🔔</span>
+        <span id="title">Front Door</span>
+      </div>
+      <div class="dismiss">Tap anywhere to dismiss</div>
+    </div>
+    <img class="camera" id="camera" src="">
+    <div class="timer-bar" id="timer"></div>
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      ipcRenderer.on("doorbell-show", (event, data) => {
+        const camera = document.getElementById("camera");
+        const title = document.getElementById("title");
+        const timer = document.getElementById("timer");
+
+        title.textContent = data.title || "Front Door";
+        camera.src = data.stream_url || "";
+
+        // Start timer bar animation
+        const timeout = (data.timeout || 30) * 1000;
+        timer.style.transition = "none";
+        timer.style.width = "100%";
+        timer.offsetHeight;
+        timer.style.transition = `width ${timeout}ms linear`;
+        timer.style.width = "0%";
+      });
+
+      ipcRenderer.on("doorbell-hide", () => {
+        document.getElementById("camera").src = "";
+      });
+
+      // Tap anywhere to dismiss
+      document.body.addEventListener("click", () => {
+        ipcRenderer.send("doorbell-dismiss");
+      });
+
+      // Prevent mousedown from stealing focus
+      document.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+      });
+    </script>
+  </body>
+</html>
