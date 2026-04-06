@@ -3615,24 +3615,12 @@
 
                 console.log('Applying display controls:', { brightness, longPress, enabled, timeout, level });
 
-                // Send MQTT commands directly via backend publish
-                const mqtt = require('mqtt');
-                const client = mqtt.connect('mqtt://192.168.50.45:1883', {
-                    username: 'mqtt_user',
-                    password: 'mqtt_password'
-                });
-
-                client.on('connect', () => {
-                    client.publish('touchkio/rpi_BC5B9F/display_brightness/set', brightness.toString());
-                    client.publish('touchkio/rpi_BC5B9F/editor_long_press_duration/set', longPress.toString());
-                    client.publish('touchkio/rpi_BC5B9F/display_autodim_enabled/set', enabled.toString());
-                    client.publish('touchkio/rpi_BC5B9F/display_autodim_timeout/set', timeout.toString());
-                    client.publish('touchkio/rpi_BC5B9F/display_autodim_level/set', level.toString());
-
-                    setTimeout(() => {
-                        client.end();
-                    }, 500);
-                });
+                // Send settings via IPC to main process
+                ipcRenderer.send('update-slideshow-setting', { key: 'display_brightness', value: brightness });
+                ipcRenderer.send('update-slideshow-setting', { key: 'editor_long_press_duration', value: longPress });
+                ipcRenderer.send('update-slideshow-setting', { key: 'display_autodim_enabled', value: enabled.toString() });
+                ipcRenderer.send('update-slideshow-setting', { key: 'display_autodim_timeout', value: timeout });
+                ipcRenderer.send('update-slideshow-setting', { key: 'display_autodim_level', value: level });
 
                 dialog.remove();
             });
@@ -6165,55 +6153,12 @@
 
         // Aggressive event capture for VNC and remote clicks
         // Auto-dim timer management
-        let autoDimTimer = null;
-        let isDimmed = false;
+        // Auto-dim is handled in the main process (slideshow.js) for global coverage
+        // These are kept as no-ops for any remaining references
+        const startAutoDimTimer = () => {};
+        const dimDisplay = () => {};
+        const restoreBrightness = () => {};
         let normalBrightness = 50;
-
-        const startAutoDimTimer = () => {
-            if (autoDimTimer) {
-                clearTimeout(autoDimTimer);
-            }
-
-            const autoDimEnabled = config.autoDimEnabled !== undefined ? config.autoDimEnabled : false;
-            const autoDimTimeout = config.autoDimTimeout || 0;
-
-            if (autoDimEnabled && autoDimTimeout > 0) {
-                const timeoutMs = autoDimTimeout * 60 * 1000; // Convert minutes to milliseconds
-                autoDimTimer = setTimeout(() => {
-                    dimDisplay();
-                }, timeoutMs);
-                console.log('Auto-dim timer started:', autoDimTimeout, 'minutes');
-            }
-        };
-
-        const dimDisplay = () => {
-            if (isDimmed) return;
-
-            const autoDimLevel = config.autoDimLevel !== undefined ? config.autoDimLevel : 10;
-            console.log('Auto-dimming display to', autoDimLevel, '%');
-
-            isDimmed = true;
-            const { exec } = require('child_process');
-            exec(`sudo ddcutil setvcp 10 ${autoDimLevel}`, (error) => {
-                if (error) {
-                    console.error('Error dimming display:', error);
-                }
-            });
-        };
-
-        const restoreBrightness = () => {
-            if (!isDimmed) return;
-
-            console.log('Restoring display brightness to', normalBrightness, '%');
-            isDimmed = false;
-
-            const { exec } = require('child_process');
-            exec(`sudo ddcutil setvcp 10 ${normalBrightness}`, (error) => {
-                if (error) {
-                    console.error('Error restoring brightness:', error);
-                }
-            });
-        };
 
         const triggerUserActivity = () => {
             if (window.activityDetectionEnabled && !touchActive) {
@@ -6221,11 +6166,7 @@
                 ipcRenderer.send('slideshow-user-activity');
             }
 
-            // Restore brightness if dimmed and restart auto-dim timer
-            if (isDimmed) {
-                restoreBrightness();
-            }
-            startAutoDimTimer();
+            // Auto-dim brightness restore is handled in main process via userActivity event
         };
 
         // Delayed activity trigger - waits to see if it's a long press first
@@ -7121,16 +7062,7 @@
             }
 
             // Update auto-dim settings if provided
-            if (newConfig.autoDimEnabled !== undefined || newConfig.autoDimTimeout !== undefined || newConfig.autoDimLevel !== undefined) {
-                console.log('Updated auto-dim settings - enabled:', newConfig.autoDimEnabled, 'timeout:', newConfig.autoDimTimeout, 'min, level:', newConfig.autoDimLevel, '%');
-                startAutoDimTimer();
-            }
-
-            // Update normal brightness if brightness changes
-            if (newConfig.brightness !== undefined) {
-                normalBrightness = parseInt(newConfig.brightness);
-                console.log('Updated normal brightness to:', normalBrightness, '%');
-            }
+            // Auto-dim and brightness are handled in the main process (slideshow.js)
 
             // Re-apply source indicator styling if any source option changed
             if (currentIndex !== -1 && (newConfig.sourcePosition || newConfig.sourceBackground ||

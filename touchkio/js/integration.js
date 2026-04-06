@@ -1155,6 +1155,9 @@ const initSlideshow = () => {
       // Publish state to MQTT
       const root = `${INTEGRATION.root}/preset_editor_mode`;
       publishState(`${root}/state`, value);
+    } else {
+      // All other settings: persist to ARGS and sync to runtime config
+      updateSlideshowSetting(key, value);
     }
   });
 };
@@ -1313,6 +1316,12 @@ const loadAndApplySavedSlideshowConfig = () => {
   // ALWAYS start with editor mode disabled on restart
   savedCustomConfig.editorMode = false;
   if (ARGS.editor_long_press_duration) savedCustomConfig.editorLongPressDuration = parseInt(ARGS.editor_long_press_duration);
+
+  // Load display brightness and auto-dim settings
+  if (ARGS.display_brightness) savedCustomConfig.brightness = parseInt(ARGS.display_brightness);
+  if (ARGS.display_autodim_enabled !== undefined) savedCustomConfig.autoDimEnabled = ARGS.display_autodim_enabled === "true";
+  if (ARGS.display_autodim_timeout) savedCustomConfig.autoDimTimeout = parseInt(ARGS.display_autodim_timeout);
+  if (ARGS.display_autodim_level) savedCustomConfig.autoDimLevel = parseInt(ARGS.display_autodim_level);
 
   if (Object.keys(savedCustomConfig).length > 0) {
     console.log("Applying saved custom config to slideshow:", savedCustomConfig);
@@ -2933,6 +2942,19 @@ const updateSlideshowRuntimeConfig = (key, value) => {
       // Metadata background opacity
       case "slideshow_metadata_background_opacity":
         slideshow.updateConfig({ metadataBackgroundOpacity: parseInt(value) });
+        break;
+      // Display brightness and auto-dim settings
+      case "display_brightness":
+        slideshow.updateConfig({ brightness: parseInt(value) });
+        break;
+      case "display_autodim_enabled":
+        slideshow.updateConfig({ autoDimEnabled: value === "true" || value === true });
+        break;
+      case "display_autodim_timeout":
+        slideshow.updateConfig({ autoDimTimeout: parseInt(value) });
+        break;
+      case "display_autodim_level":
+        slideshow.updateConfig({ autoDimLevel: parseInt(value) });
         break;
     }
     console.log(`Synced ${key} to slideshow runtime config:`, value);
@@ -4806,21 +4828,11 @@ const initDisplayBrightness = () => {
     .on("message", (topic, message) => {
       console.log("Display Brightness MQTT message received! Topic:", topic, "Message:", message.toString());
       if (topic === config.command_topic) {
-        const brightness = parseInt(message.toString());
+        const brightness = Math.max(0, Math.min(100, parseInt(message.toString()) || 50));
         console.log("Set Display Brightness:", brightness, "%");
-
-        // Use ddcutil to set brightness
-        const { exec } = require("child_process");
-        exec(`sudo ddcutil setvcp 10 ${brightness}`, (error, stdout, stderr) => {
-          if (error) {
-            console.error("Error setting brightness:", error);
-            return;
-          }
-          console.log("Display brightness set to", brightness, "%");
-          updateSlideshowSetting("display_brightness", brightness);
-          slideshow.updateConfig({ brightness: brightness });
-          publishState(config.state_topic, brightness.toString());
-        });
+        updateSlideshowSetting("display_brightness", brightness);
+        slideshow.updateConfig({ brightness: brightness });
+        publishState(config.state_topic, brightness.toString());
       }
     })
     .subscribe(config.command_topic, (err) => {
@@ -4933,7 +4945,7 @@ const initDisplayAutoDimTimeout = () => {
   publishConfig("number", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
-        const timeout = parseInt(message.toString());
+        const timeout = Math.max(0, Math.min(60, parseInt(message.toString()) || 0));
         console.log("Set Display Auto-Dim Timeout:", timeout, "minutes");
         updateSlideshowSetting("display_autodim_timeout", timeout);
         slideshow.updateConfig({ autoDimTimeout: timeout });
@@ -4964,7 +4976,7 @@ const initDisplayAutoDimLevel = () => {
   publishConfig("number", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
-        const level = parseInt(message.toString());
+        const level = Math.max(0, Math.min(100, parseInt(message.toString()) || 10));
         console.log("Set Display Auto-Dim Level:", level, "%");
         updateSlideshowSetting("display_autodim_level", level);
         slideshow.updateConfig({ autoDimLevel: level });

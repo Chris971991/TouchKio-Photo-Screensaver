@@ -19,6 +19,9 @@ global.SLIDESHOW = global.SLIDESHOW || {
   idleTimer: null,
   lastActivity: new Date(),
   activityGracePeriod: false,
+  autoDimTimer: null,
+  isDimmed: false,
+  normalBrightness: 50,
   preloadedNext: null,
 
   // Google Photos lazy loading
@@ -628,7 +631,13 @@ const initSlideshowView = async () => {
         }
       }
 
-      // Only process activity if slideshow is actually visible and not in grace period
+      // Restore brightness if dimmed (don't emit full userActivity to avoid double-hiding)
+      if (SLIDESHOW.isDimmed) {
+        restoreDisplayBrightness();
+      }
+      startAutoDimTimer();
+
+      // Only process slideshow hiding if actually visible and not in grace period
       if (SLIDESHOW.active && !SLIDESHOW.activityGracePeriod && !hideInProgress) {
         console.log("User activity detected in slideshow");
         hideInProgress = true;
@@ -706,6 +715,10 @@ const initSlideshowView = async () => {
       }
     });
 
+    ipcMain.on("set-display-brightness", (event, brightness) => {
+      setDisplayBrightness(brightness);
+    });
+
     ipcMain.on("editor-mode-disable", (event) => {
       console.log("Received editor mode disable request via IPC");
 
@@ -723,6 +736,9 @@ const initSlideshowView = async () => {
       } else {
         console.warn("Integration not available for editor mode disable");
       }
+
+      // Restart auto-dim timer after editor mode exit
+      startAutoDimTimer();
     });
 
     ipcMain.on("update-slideshow-setting", (event, data) => {
@@ -1897,9 +1913,73 @@ const startPreloadManager = () => {
   console.log("Preload manager started");
 };
 
+// === AUTO-DIM SYSTEM (runs globally, not just during screensaver) ===
+
+let brightnessDebounceTimer = null;
+let lastBrightnessSet = null;
+
+const setDisplayBrightness = (brightness) => {
+  const level = Math.max(0, Math.min(100, parseInt(brightness) || 50));
+
+  // Skip if already at this level
+  if (lastBrightnessSet === level) return;
+
+  // Debounce ddcutil calls (DDC-CI is slow ~1-2s per call)
+  if (brightnessDebounceTimer) {
+    clearTimeout(brightnessDebounceTimer);
+  }
+
+  brightnessDebounceTimer = setTimeout(() => {
+    const { exec } = require('child_process');
+    console.log(`Setting display brightness to ${level}%`);
+    lastBrightnessSet = level;
+    exec(`sudo ddcutil setvcp 10 ${level}`, (error) => {
+      if (error) {
+        console.error("Brightness error:", error.message);
+        lastBrightnessSet = null; // Allow retry on failure
+      }
+    });
+  }, 300); // 300ms debounce
+};
+
+const startAutoDimTimer = () => {
+  if (SLIDESHOW.autoDimTimer) {
+    global.timerController.clearTimer(SLIDESHOW.autoDimTimer);
+    SLIDESHOW.autoDimTimer = null;
+  }
+
+  const autoDimEnabled = SLIDESHOW.config.autoDimEnabled === true;
+  const autoDimTimeout = parseInt(SLIDESHOW.config.autoDimTimeout) || 0;
+
+  if (autoDimEnabled && autoDimTimeout > 0) {
+    const timeoutMs = autoDimTimeout * 60 * 1000;
+    SLIDESHOW.autoDimTimer = global.timerController.scheduleTimeout(() => {
+      if (SLIDESHOW.isDimmed) return;
+      const autoDimLevel = parseInt(SLIDESHOW.config.autoDimLevel) || 10;
+      console.log(`Auto-dimming display to ${autoDimLevel}%`);
+      SLIDESHOW.isDimmed = true;
+      setDisplayBrightness(autoDimLevel);
+    }, timeoutMs, 'auto_dim_timer');
+    console.log(`Auto-dim timer started: ${autoDimTimeout} minutes`);
+  }
+};
+
+const restoreDisplayBrightness = () => {
+  if (!SLIDESHOW.isDimmed) return;
+  console.log(`Restoring display brightness to ${SLIDESHOW.normalBrightness}%`);
+  SLIDESHOW.isDimmed = false;
+  setDisplayBrightness(SLIDESHOW.normalBrightness);
+};
+
 const setupIdleDetection = () => {
   EVENTS.on("userActivity", () => {
     SLIDESHOW.lastActivity = new Date();
+
+    // Restore brightness on ANY user activity (global, not just screensaver)
+    if (SLIDESHOW.isDimmed) {
+      restoreDisplayBrightness();
+    }
+    startAutoDimTimer();
 
     if (SLIDESHOW.active) {
       hideSlideshowOverlay(); // Pause slideshow instead of stopping it completely
@@ -1909,6 +1989,7 @@ const setupIdleDetection = () => {
   });
 
   resetIdleTimer();
+  startAutoDimTimer(); // Start auto-dim on init
 };
 
 const resetIdleTimer = () => {
@@ -2356,6 +2437,17 @@ const updateConfig = (newConfig) => {
   }
 
   resetIdleTimer();
+
+  // Handle brightness and auto-dim config changes
+  if (newConfig.brightness !== undefined) {
+    SLIDESHOW.normalBrightness = parseInt(newConfig.brightness);
+    if (!SLIDESHOW.isDimmed) {
+      setDisplayBrightness(SLIDESHOW.normalBrightness);
+    }
+  }
+  if (newConfig.autoDimEnabled !== undefined || newConfig.autoDimTimeout !== undefined || newConfig.autoDimLevel !== undefined) {
+    startAutoDimTimer();
+  }
 
   // Send config update to view if it exists
   if (SLIDESHOW.view && SLIDESHOW.view.webContents) {
