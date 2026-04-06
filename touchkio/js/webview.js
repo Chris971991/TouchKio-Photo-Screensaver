@@ -880,8 +880,10 @@ const keyboardEvents = async () => {
       view.webContents.sendInputEvent({ type: "keyDown", keyCode: "Return" });
       view.webContents.sendInputEvent({ type: "keyUp", keyCode: "Return" });
     } else if (data.char) {
-      // Send character
-      view.webContents.sendInputEvent({ type: "char", keyCode: data.char });
+      // Send full key event sequence for compatibility with web components and iframes
+      view.webContents.sendInputEvent({ type: "keyDown", keyCode: data.char });
+      view.webContents.sendInputEvent({ type: "char", keyCode: data.char, text: data.char });
+      view.webContents.sendInputEvent({ type: "keyUp", keyCode: data.char });
     }
   });
 
@@ -1040,17 +1042,37 @@ const viewEvents = async () => {
               (function() {
                 function isTextInput(el) {
                   if (!el || !el.tagName) return false;
-                  const tagName = el.tagName.toLowerCase();
-                  const type = (el.type || '').toLowerCase();
-                  if (tagName === 'input' && !['hidden','checkbox','radio','button','submit','range','color','file'].includes(type)) return true;
+                  var tagName = el.tagName.toLowerCase();
+                  var type = (el.type || '').toLowerCase();
+                  if (tagName === 'input' && ['hidden','checkbox','radio','button','submit','range','color','file'].indexOf(type) === -1) return true;
                   if (tagName === 'textarea') return true;
                   if (el.isContentEditable) return true;
+                  if (tagName.indexOf('textfield') !== -1 || tagName.indexOf('search-input') !== -1 || tagName.indexOf('text-area') !== -1) return true;
+                  var role = el.getAttribute && el.getAttribute('role');
+                  if (role === 'textbox' || role === 'searchbox' || role === 'combobox') return true;
+                  if (el.shadowRoot) {
+                    var innerInput = el.shadowRoot.querySelector('input, textarea');
+                    if (innerInput) return true;
+                  }
                   return false;
                 }
                 function getDeepActiveElement() {
-                  let active = document.activeElement;
-                  while (active && active.shadowRoot && active.shadowRoot.activeElement) {
-                    active = active.shadowRoot.activeElement;
+                  var active = document.activeElement;
+                  while (active) {
+                    if (active.shadowRoot && active.shadowRoot.activeElement) {
+                      active = active.shadowRoot.activeElement;
+                    } else if (active.tagName === 'IFRAME') {
+                      try {
+                        var iframeActive = active.contentDocument && active.contentDocument.activeElement;
+                        if (iframeActive) {
+                          active = iframeActive;
+                        } else {
+                          break;
+                        }
+                      } catch(e) { break; }
+                    } else {
+                      break;
+                    }
                   }
                   return active;
                 }
