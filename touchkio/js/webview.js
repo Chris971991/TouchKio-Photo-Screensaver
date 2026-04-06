@@ -44,6 +44,8 @@ const init = async () => {
   WEBVIEW.viewUrls = urls;
   WEBVIEW.viewZoom = zoom;
   WEBVIEW.viewTheme = theme;
+  WEBVIEW.sidebarOpen = false;
+  WEBVIEW.sidebarAutoHideTimer = null;
   WEBVIEW.pagerEnabled = widget;
   WEBVIEW.widgetTheme = theme;
   WEBVIEW.widgetEnabled = widget;
@@ -86,6 +88,18 @@ const init = async () => {
       view.webContents.loadURL(url);
     });
   });
+
+  // Init global sidebar trigger (left edge)
+  WEBVIEW.sidebarTrigger = new WebContentsView({
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+  WEBVIEW.sidebarTrigger.setBackgroundColor("#00000000");
+  WEBVIEW.window.contentView.addChildView(WEBVIEW.sidebarTrigger);
+  WEBVIEW.sidebarTrigger.webContents.loadFile(path.join(APP.path, "html", "sidebar.html"));
 
   // Init global pager
   WEBVIEW.pager = new WebContentsView({
@@ -149,6 +163,7 @@ const init = async () => {
 
   // Register local events
   await windowEvents();
+  await sidebarEvents();
   await widgetEvents();
   await navigationEvents();
   await keyboardEvents();
@@ -357,6 +372,7 @@ const historyForward = () => {
  */
 const previousView = () => {
   if (WEBVIEW.viewActive > 1) WEBVIEW.viewActive--;
+  if (WEBVIEW.sidebarOpen) toggleHASidebar(true);
   updateView();
 };
 
@@ -365,6 +381,7 @@ const previousView = () => {
  */
 const nextView = () => {
   if (WEBVIEW.viewActive < WEBVIEW.views.length - 1) WEBVIEW.viewActive++;
+  if (WEBVIEW.sidebarOpen) toggleHASidebar(true);
   updateView();
 };
 
@@ -490,6 +507,23 @@ const resizeView = () => {
       height: WEBVIEW.keyboardHeight,
     });
   }
+
+  // Update sidebar trigger (left edge) — re-add last to stay on top
+  if (WEBVIEW.sidebarTrigger) {
+    try {
+      WEBVIEW.window.contentView.removeChildView(WEBVIEW.sidebarTrigger);
+    } catch (e) {}
+    WEBVIEW.window.contentView.addChildView(WEBVIEW.sidebarTrigger);
+    // Hide trigger when sidebar is open OR when slideshow is active
+    const slideshowActive = global.SLIDESHOW && global.SLIDESHOW.active && global.SLIDESHOW.visible;
+    const hideTrigger = WEBVIEW.sidebarOpen || slideshowActive;
+    WEBVIEW.sidebarTrigger.setBounds({
+      x: hideTrigger ? -20 : 0,
+      y: 0,
+      width: 20,
+      height: window.height,
+    });
+  }
 };
 
 /**
@@ -548,6 +582,19 @@ const windowEvents = async () => {
 /**
  * Register widget events and handler.
  */
+/**
+ * Register sidebar trigger events.
+ */
+const sidebarEvents = async () => {
+  const { ipcMain } = require("electron");
+
+  ipcMain.on("sidebar-toggle", () => {
+    console.log("Sidebar toggle IPC received");
+    EVENTS.emit("userActivity");
+    toggleHASidebar();
+  });
+};
+
 const widgetEvents = async () => {
   if (!WEBVIEW.widgetEnabled) {
     return;
@@ -846,6 +893,82 @@ const keyboardEvents = async () => {
 /**
  * Register view events and handler.
  */
+/**
+ * Toggle the HA sidebar via JavaScript injection.
+ */
+const resetSidebarAutoHide = () => {
+  if (WEBVIEW.sidebarAutoHideTimer) clearTimeout(WEBVIEW.sidebarAutoHideTimer);
+  if (WEBVIEW.sidebarOpen) {
+    WEBVIEW.sidebarAutoHideTimer = setTimeout(() => {
+      toggleHASidebar(true);
+    }, 15000);
+  }
+};
+
+const toggleHASidebar = (forceClose = false) => {
+  const view = WEBVIEW.views[WEBVIEW.viewActive];
+  if (!view || !view.webContents) return;
+
+  if (forceClose) {
+    WEBVIEW.sidebarOpen = false;
+  } else {
+    WEBVIEW.sidebarOpen = !WEBVIEW.sidebarOpen;
+  }
+
+  const show = WEBVIEW.sidebarOpen;
+  view.webContents.executeJavaScript(`
+    (function() {
+      try {
+        var ha = document.querySelector('home-assistant');
+        if (!ha || !ha.shadowRoot) return;
+        var main = ha.shadowRoot.querySelector('home-assistant-main');
+        if (!main || !main.shadowRoot) return;
+        var drawer = main.shadowRoot.querySelector('ha-drawer');
+        if (!drawer) return;
+        var style = main.shadowRoot.getElementById('touchkio-sidebar-css');
+        if (${show}) {
+          if (style) style.remove();
+          drawer.open = true;
+          // Force sidebar to overlay on top of content with full interactivity
+          var showStyle = main.shadowRoot.getElementById('touchkio-sidebar-show-css');
+          if (!showStyle) {
+            showStyle = document.createElement('style');
+            showStyle.id = 'touchkio-sidebar-show-css';
+            showStyle.textContent = '.mdc-drawer { position: fixed !important; z-index: 9999 !important; height: 100% !important; } ha-sidebar { pointer-events: auto !important; }';
+            main.shadowRoot.appendChild(showStyle);
+          }
+        } else {
+          // Remove show overlay CSS
+          var showStyle = main.shadowRoot.getElementById('touchkio-sidebar-show-css');
+          if (showStyle) showStyle.remove();
+          drawer.open = false;
+          if (!style) {
+            style = document.createElement('style');
+            style.id = 'touchkio-sidebar-css';
+            style.textContent = 'ha-sidebar { display: none !important; } .mdc-drawer { width: 0 !important; min-width: 0 !important; padding: 0 !important; overflow: hidden !important; } .mdc-drawer-app-content { margin-left: 0 !important; } :host { --mdc-drawer-width: 0px !important; }';
+            main.shadowRoot.appendChild(style);
+          }
+        }
+      } catch(e) {}
+    })();
+  `).catch(() => {});
+
+  // Move trigger view out of the way when sidebar is open, restore when closed
+  if (WEBVIEW.sidebarTrigger) {
+    const window = WEBVIEW.window.getBounds();
+    if (WEBVIEW.sidebarOpen) {
+      // Move off-screen so it doesn't block sidebar clicks
+      WEBVIEW.sidebarTrigger.setBounds({ x: -20, y: 0, width: 20, height: window.height });
+    } else {
+      // Restore to left edge
+      WEBVIEW.sidebarTrigger.setBounds({ x: 0, y: 0, width: 20, height: window.height });
+    }
+  }
+
+  // Auto-hide after 15 seconds of no interaction
+  resetSidebarAutoHide();
+};
+
 const viewEvents = async () => {
   const ready = [];
   WEBVIEW.views.forEach((view, i) => {
@@ -865,6 +988,30 @@ const viewEvents = async () => {
     // Update webview layout
     view.webContents.on("dom-ready", () => {
       view.webContents.insertCSS("::-webkit-scrollbar { display: none; }");
+
+      // Hide HA sidebar on page load
+      view.webContents.executeJavaScript(`
+        (function() {
+          try {
+            var waitForHA = setInterval(function() {
+              var ha = document.querySelector('home-assistant');
+              if (!ha || !ha.shadowRoot) return;
+              var main = ha.shadowRoot.querySelector('home-assistant-main');
+              if (!main || !main.shadowRoot) return;
+              var drawer = main.shadowRoot.querySelector('ha-drawer');
+              if (!drawer) return;
+              drawer.open = false;
+              var style = document.createElement('style');
+              style.id = 'touchkio-sidebar-css';
+              style.textContent = 'ha-sidebar { display: none !important; } .mdc-drawer { width: 0 !important; min-width: 0 !important; padding: 0 !important; overflow: hidden !important; } .mdc-drawer-app-content { margin-left: 0 !important; } :host { --mdc-drawer-width: 0px !important; }';
+              main.shadowRoot.appendChild(style);
+              clearInterval(waitForHA);
+            }, 500);
+            setTimeout(function() { clearInterval(waitForHA); }, 10000);
+          } catch(e) {}
+        })();
+      `).catch(() => {});
+
       if (ready.length < WEBVIEW.views.length) {
         view.webContents.setZoomFactor(WEBVIEW.viewZoom);
         ready.push(i);
@@ -984,6 +1131,17 @@ const viewEvents = async () => {
         case "mouseDown":
           switch (mouse.button) {
             case "left":
+              // Sidebar is open: tap outside closes, tap inside resets timer
+              if (WEBVIEW.sidebarOpen) {
+                if (mouse.globalX > 256) {
+                  console.log("Tap outside sidebar - closing");
+                  toggleHASidebar(true);
+                } else {
+                  // Tapping within sidebar area — reset auto-hide timer
+                  resetSidebarAutoHide();
+                }
+              }
+
               // Check if display was off - handle wake sequence specially
               const displayWasOff = hardware.getDisplayStatus() === "OFF" ||
                                     WEBVIEW.tracker.display.off > WEBVIEW.tracker.display.on;

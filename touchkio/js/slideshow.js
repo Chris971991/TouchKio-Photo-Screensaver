@@ -2157,6 +2157,10 @@ const showSlideshow = async () => {
     firstPhoto = SLIDESHOW.photos[SLIDESHOW.currentIndex];
   }
 
+  if (!SLIDESHOW.view || !SLIDESHOW.view.webContents || SLIDESHOW.view.webContents.isDestroyed()) {
+    return;
+  }
+
   if (firstPhoto) {
     SLIDESHOW.view.webContents.send("show-photo", {
       index: firstPhoto.index || SLIDESHOW.currentIndex,

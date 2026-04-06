@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      ::-webkit-scrollbar {
+        display: none;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        cursor: none;
+        overflow: hidden;
+      }
+      html, body {
+        width: 100vw;
+        height: 100vh;
+        background: transparent;
+        overflow: hidden;
+      }
+      button {
+        width: 100vw;
+        height: 100vh;
+        border: none;
+        background-color: transparent;
+        outline: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="sidebar-toggle"></button>
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      document.getElementById("sidebar-toggle").addEventListener("click", () => {
+        ipcRenderer.send("sidebar-toggle");
+      });
+    </script>
+  </body>
+</html>
