@@ -20,6 +20,11 @@ app.commandLine.appendSwitch("enable-gpu-compositing");
 app.commandLine.appendSwitch("enable-oop-rasterization");
 app.commandLine.appendSwitch("canvas-oop-rasterization");
 
+// Touch responsiveness optimizations
+app.commandLine.appendSwitch("touch-events", "enabled");
+app.commandLine.appendSwitch("disable-touch-drag-drop");
+app.commandLine.appendSwitch("touch-selection-strategy", "direction");
+
 // GPU memory and buffer optimizations for Pi5
 app.commandLine.appendSwitch("enable-native-gpu-memory-buffers");
 app.commandLine.appendSwitch("force-gpu-mem-available-mb", "256");

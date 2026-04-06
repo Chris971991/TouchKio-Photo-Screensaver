@@ -94,10 +94,7 @@ Environment="DISPLAY=:0"
 Environment="WAYLAND_DISPLAY=wayland-1"
 Environment="XAUTHORITY=/home/%u/.Xauthority"
 Environment="XDG_RUNTIME_DIR=/run/user/%U"
-Nice=-5
 CPUWeight=800
-IOSchedulingClass=best-effort
-IOSchedulingPriority=0
 ExecStartPre=/bin/bash -c 'until pgrep -x Xorg || pgrep -x Xwayland || pgrep -x labwc || pgrep -x weston || pgrep -x wayfire; do sleep 2; done'
 ExecStartPre=/bin/bash -c 'pkill -f touchkio || true'
 ExecStart=/usr/bin/touchkio
