@@ -17,6 +17,36 @@ app.commandLine.appendSwitch("num-raster-threads", "4");
 app.commandLine.appendSwitch("enable-accelerated-2d-canvas");
 app.commandLine.appendSwitch("disable-software-rasterizer");
 app.commandLine.appendSwitch("enable-gpu-compositing");
+app.commandLine.appendSwitch("enable-oop-rasterization");
+app.commandLine.appendSwitch("canvas-oop-rasterization");
+
+// GPU memory and buffer optimizations for Pi5
+app.commandLine.appendSwitch("enable-native-gpu-memory-buffers");
+app.commandLine.appendSwitch("force-gpu-mem-available-mb", "256");
+app.commandLine.appendSwitch("gpu-rasterization-msaa-sample-count", "0");
+app.commandLine.appendSwitch("force-color-profile", "srgb");
+
+// Process and rendering efficiency
+app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+app.commandLine.appendSwitch("disable-hang-monitor");
+app.commandLine.appendSwitch("disable-gpu-driver-bug-workarounds");
+
+// Memory and performance optimizations for long-running kiosk
+app.commandLine.appendSwitch("js-flags", "--max-old-space-size=512");
+app.commandLine.appendSwitch("disable-extensions");
+app.commandLine.appendSwitch("disable-component-update");
+app.commandLine.appendSwitch("disable-background-networking");
+app.commandLine.appendSwitch("disable-default-apps");
+app.commandLine.appendSwitch("disable-translate");
+app.commandLine.appendSwitch("disable-sync");
+app.commandLine.appendSwitch("disable-breakpad");
+app.commandLine.appendSwitch("disable-client-side-phishing-detection");
+app.commandLine.appendSwitch("disable-domain-reliability");
+app.commandLine.appendSwitch("metrics-recording-only");
+app.commandLine.appendSwitch("no-first-run");
+app.commandLine.appendSwitch("disable-prompt-on-repost");
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 global.APP = global.APP || {};
 global.ARGS = global.ARGS || {};

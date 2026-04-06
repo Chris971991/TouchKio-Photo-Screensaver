@@ -606,6 +606,11 @@ const initSlideshowView = async () => {
         contextIsolation: false,
         transparent: true,
         backgroundThrottling: false,
+        spellcheck: false,
+        webgl: false,
+        webaudio: false,
+        v8CacheOptions: "bypassHeatCheck",
+        enablePreferredSizeMode: false,
       },
     });
 

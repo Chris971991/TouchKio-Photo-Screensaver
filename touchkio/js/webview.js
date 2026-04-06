@@ -69,8 +69,13 @@ const init = async () => {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        backgroundThrottling: false,
+        backgroundThrottling: true,
         enableBlinkFeatures: "CSSOMSmoothScroll",
+        v8CacheOptions: "bypassHeatCheck",
+        spellcheck: false,
+        webgl: false,
+        webaudio: false,
+        enablePreferredSizeMode: false,
       },
     });
     view.setVisible(i === 0);
