@@ -39,6 +39,7 @@ const init = async () => {
   INTEGRATION.discovery = discovery;
   INTEGRATION.node = `rpi_${deviceId}`;
   INTEGRATION.root = `${APP.name}/${INTEGRATION.node}`;
+  global.INTEGRATION_ROOT = INTEGRATION.root;
   INTEGRATION.device = {
     name: `${APP.title} ${deviceName}`,
     model: model,
@@ -1141,6 +1142,8 @@ const initSlideshow = () => {
   initNotificationPosition();
   initNotificationAnimation();
   initNotificationMaxVisible();
+  initNotificationDefaultTimeout();
+  initNotificationAction();
 
   // === DOORBELL ALERT ===
   initDoorbellAlert();
@@ -1386,13 +1389,26 @@ const loadAndApplySavedSlideshowConfig = () => {
   if (ARGS.slideshow_weather_layout) savedCustomConfig.weatherLayout = ARGS.slideshow_weather_layout;
   if (ARGS.slideshow_weather_vertical_align) savedCustomConfig.weatherVerticalAlign = ARGS.slideshow_weather_vertical_align;
 
-  // Load notification settings
-  if (ARGS.notification_position && global.WEBVIEW_NOTIFICATIONS) {
-    global.WEBVIEW_NOTIFICATIONS.updateSettings({
-      position: ARGS.notification_position,
-      animation: ARGS.notification_animation || 'slide-right',
-      maxVisible: parseInt(ARGS.notification_max_visible) || 3
-    });
+  // Load notification settings (retry if webview not ready yet)
+  const applyNotificationSettings = () => {
+    if (global.WEBVIEW_NOTIFICATIONS) {
+      global.WEBVIEW_NOTIFICATIONS.updateSettings({
+        position: ARGS.notification_position || 'top-right',
+        animation: ARGS.notification_animation || 'slide-right',
+        maxVisible: parseInt(ARGS.notification_max_visible) || 3,
+        defaultTimeout: isNaN(parseInt(ARGS.notification_default_timeout)) ? 10 : parseInt(ARGS.notification_default_timeout)
+      });
+      return true;
+    }
+    return false;
+  };
+  if (ARGS.notification_position || ARGS.notification_animation || ARGS.notification_max_visible) {
+    if (!applyNotificationSettings()) {
+      const retryInterval = setInterval(() => {
+        if (applyNotificationSettings()) clearInterval(retryInterval);
+      }, 500);
+      setTimeout(() => clearInterval(retryInterval), 10000);
+    }
   }
 
   // Load doorbell settings
@@ -3301,6 +3317,7 @@ const updateSlideshow = async () => {
   publishState("notification_position", ARGS.notification_position || "top-right");
   publishState("notification_animation", ARGS.notification_animation || "slide-right");
   publishState("notification_max_visible", ARGS.notification_max_visible || 3);
+  publishState("notification_default_timeout", ARGS.notification_default_timeout != null ? ARGS.notification_default_timeout : 10);
 
   // Phase 2: Advanced Background Options (Border Radius, Padding, Shadows)
   // Clock advanced styling
@@ -5416,6 +5433,12 @@ const initNotificationAlert = () => {
       if (topic === config.command_topic) {
         try {
           const data = JSON.parse(message.toString());
+          // Apply default timeout if not specified per-notification
+          if (data.timeout === undefined || data.timeout === null) {
+            const raw = parseInt(ARGS.notification_default_timeout);
+            const defaultTimeout = isNaN(raw) ? 10 : raw;
+            if (defaultTimeout > 0) data.timeout = defaultTimeout;
+          }
           console.log("Notification received:", data.id || 'unnamed', data.title);
           if (global.WEBVIEW_NOTIFICATIONS && global.WEBVIEW_NOTIFICATIONS.show) {
             global.WEBVIEW_NOTIFICATIONS.show(data);
@@ -5470,9 +5493,11 @@ const initNotificationPosition = () => {
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
         const pos = message.toString();
+        const validPositions = ["top-left", "top-right", "bottom-left", "bottom-right"];
+        if (!validPositions.includes(pos)) { console.log("Invalid notification position:", pos); return; }
         updateSlideshowSetting("notification_position", pos);
         if (global.WEBVIEW_NOTIFICATIONS) global.WEBVIEW_NOTIFICATIONS.updateSettings({ position: pos });
-        publishState(config.state_topic, pos);
+        publishState("notification_position", pos);
       }
     })
     .subscribe(config.command_topic);
@@ -5493,9 +5518,11 @@ const initNotificationAnimation = () => {
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
         const anim = message.toString();
+        const validAnimations = ["slide-left", "slide-right", "slide-up", "slide-down", "fade"];
+        if (!validAnimations.includes(anim)) { console.log("Invalid notification animation:", anim); return; }
         updateSlideshowSetting("notification_animation", anim);
         if (global.WEBVIEW_NOTIFICATIONS) global.WEBVIEW_NOTIFICATIONS.updateSettings({ animation: anim });
-        publishState(config.state_topic, anim);
+        publishState("notification_animation", anim);
       }
     })
     .subscribe(config.command_topic);
@@ -5515,17 +5542,52 @@ const initNotificationMaxVisible = () => {
   publishConfig("number", config)
     .on("message", (topic, message) => {
       if (topic === config.command_topic) {
-        const num = parseInt(message.toString()) || 3;
+        const num = Math.max(1, Math.min(5, parseInt(message.toString()) || 3));
         updateSlideshowSetting("notification_max_visible", num);
         if (global.WEBVIEW_NOTIFICATIONS) global.WEBVIEW_NOTIFICATIONS.updateSettings({ maxVisible: num });
-        publishState(config.state_topic, num.toString());
+        publishState("notification_max_visible", num.toString());
       }
     })
     .subscribe(config.command_topic);
 };
 
+const initNotificationDefaultTimeout = () => {
+  const root = `${INTEGRATION.root}/notification_default_timeout`;
+  const config = {
+    name: "Notification Default Timeout",
+    unique_id: `${INTEGRATION.node}_notification_default_timeout`,
+    command_topic: `${root}/set`,
+    state_topic: `${root}/state`,
+    icon: "mdi:timer-outline",
+    min: 0, max: 60, step: 1,
+    unit_of_measurement: "s",
+    device: INTEGRATION.device,
+  };
+  publishConfig("number", config)
+    .on("message", (topic, message) => {
+      if (topic === config.command_topic) {
+        const num = Math.max(0, Math.min(60, parseInt(message.toString()) || 0));
+        updateSlideshowSetting("notification_default_timeout", num);
+        if (global.WEBVIEW_NOTIFICATIONS) global.WEBVIEW_NOTIFICATIONS.updateSettings({ defaultTimeout: num });
+        publishState("notification_default_timeout", num.toString());
+      }
+    })
+    .subscribe(config.command_topic);
+};
+
+const initNotificationAction = () => {
+  const root = `${INTEGRATION.root}/notification_action`;
+  const config = {
+    name: "Notification Action",
+    unique_id: `${INTEGRATION.node}_notification_action`,
+    state_topic: `${root}/state`,
+    icon: "mdi:gesture-tap-button",
+    device: INTEGRATION.device,
+  };
+  publishConfig("sensor", config);
+};
+
 // Expose MQTT publish for notification action callbacks from webview.js
-global.INTEGRATION_ROOT = INTEGRATION.root;
 global.INTEGRATION_MQTT_PUBLISH = (topic, payload) => {
   if (INTEGRATION.client && INTEGRATION.client.connected) {
     INTEGRATION.client.publish(topic, payload, { qos: 1, retain: false });

@@ -18,13 +18,11 @@
         flex-direction: column;
         gap: 10px;
         padding: 20px;
-        max-height: 100vh;
-        overflow: hidden;
       }
-      .toast-container.pos-top-right { top: 0; left: 0; right: 0; }
-      .toast-container.pos-top-left { top: 0; left: 0; right: 0; }
-      .toast-container.pos-bottom-right { bottom: 0; left: 0; right: 0; flex-direction: column-reverse; }
-      .toast-container.pos-bottom-left { bottom: 0; left: 0; right: 0; flex-direction: column-reverse; }
+      .toast-container.pos-top-right { top: 0; left: 0; right: 0; align-items: flex-end; }
+      .toast-container.pos-top-left { top: 0; left: 0; right: 0; align-items: flex-start; }
+      .toast-container.pos-bottom-right { bottom: 0; left: 0; right: 0; flex-direction: column-reverse; align-items: flex-end; }
+      .toast-container.pos-bottom-left { bottom: 0; left: 0; right: 0; flex-direction: column-reverse; align-items: flex-start; }
 
       .toast {
         pointer-events: auto;
@@ -143,7 +141,17 @@
     <div class="toast-container pos-top-right" id="toastContainer"></div>
 
     <script>
-      const { ipcRenderer } = require("electron");
+      // IPC bridge — works with both contextIsolation (preload) and nodeIntegration
+      const api = window.notificationAPI || (() => {
+        const { ipcRenderer } = require("electron");
+        return {
+          onShow: (cb) => ipcRenderer.on("notification-show", (e, data) => cb(data)),
+          onDismiss: (cb) => ipcRenderer.on("notification-dismiss", (e, data) => cb(data)),
+          onSettings: (cb) => ipcRenderer.on("notification-settings", (e, s) => cb(s)),
+          sendViewState: (data) => ipcRenderer.send("notification-view-state", data),
+          sendAction: (data) => ipcRenderer.send("notification-action", data),
+        };
+      })();
 
       const toasts = new Map();
       let position = 'top-right';
@@ -152,12 +160,33 @@
 
       const container = document.getElementById('toastContainer');
 
+      // Sanitize strings to prevent XSS when inserting into DOM
+      function sanitizeText(str) {
+        if (str == null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+      }
+
+      // Validate and sanitize CSS color values
+      function sanitizeColor(color) {
+        if (!color || typeof color !== 'string') return '#4A90E2';
+        // Allow hex, rgb, rgba, hsl, hsla, and named colors only
+        if (/^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]{1,20})$/.test(color.trim())) {
+          return color.trim();
+        }
+        return '#4A90E2';
+      }
+
       function updatePosition() {
         container.className = `toast-container pos-${position}`;
       }
 
       function createToast(data) {
-        const id = data.id || Date.now().toString();
+        // Validate data is an object
+        if (!data || typeof data !== 'object') return;
+
+        const id = String(data.id || Date.now());
 
         // Remove existing toast with same ID (update)
         if (toasts.has(id)) {
@@ -170,35 +199,41 @@
           dismissToast(oldest, true);
         }
 
-        const color = data.color || '#4A90E2';
+        const color = sanitizeColor(data.color);
+        const safeTitle = sanitizeText(data.title) || 'Notification';
+        const safeMessage = sanitizeText(data.message);
+        const safeIcon = sanitizeText(data.icon) || '&#x1F514;';
+        const safeId = sanitizeText(id);
+        const timeout = typeof data.timeout === 'number' ? data.timeout : parseFloat(data.timeout);
+
         const el = document.createElement('div');
         el.className = `toast ${animation}-enter`;
-        el.setAttribute('data-id', id);
+        el.setAttribute('data-id', safeId);
 
         let actionsHtml = '';
-        if (data.actions && data.actions.length > 0) {
+        if (Array.isArray(data.actions) && data.actions.length > 0) {
           actionsHtml = '<div class="toast-actions">' +
-            data.actions.map((a, i) =>
-              `<button class="toast-action-btn ${i === 0 ? 'primary' : 'secondary'}" data-action="${a.action}" style="${i === 0 ? 'background:' + color : ''}">${a.label}</button>`
+            data.actions.filter(a => a && typeof a === 'object').map((a, i) =>
+              `<button class="toast-action-btn ${i === 0 ? 'primary' : 'secondary'}" data-action="${sanitizeText(a.action)}" style="${i === 0 ? 'background:' + color : ''}">${sanitizeText(a.label)}</button>`
             ).join('') +
           '</div>';
         }
 
         let timerHtml = '';
-        if (data.timeout && data.timeout > 0) {
-          timerHtml = `<div class="toast-timer" id="timer-${id}" style="width:100%"></div>`;
+        if (timeout > 0 && isFinite(timeout)) {
+          timerHtml = `<div class="toast-timer" id="timer-${safeId}" style="width:100%"></div>`;
         }
 
         el.innerHTML =
           `<div class="toast-accent" style="background:${color}"></div>` +
           `<div class="toast-content">` +
-            `<div class="toast-icon">${data.icon || '🔔'}</div>` +
+            `<div class="toast-icon">${safeIcon}</div>` +
             `<div class="toast-body">` +
               `<div class="toast-header">` +
-                `<div class="toast-title">${data.title || 'Notification'}</div>` +
-                `<div class="toast-close" data-dismiss="${id}">✕</div>` +
+                `<div class="toast-title">${safeTitle}</div>` +
+                `<div class="toast-close" data-dismiss="${safeId}">&#x2715;</div>` +
               `</div>` +
-              `<div class="toast-message">${data.message || ''}</div>` +
+              `<div class="toast-message">${safeMessage}</div>` +
             `</div>` +
           `</div>` +
           actionsHtml +
@@ -225,20 +260,20 @@
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const action = btn.getAttribute('data-action');
-            ipcRenderer.send('notification-action', { id, action });
+            api.sendAction({ id, action });
             dismissToast(id);
           });
         });
 
         // Auto-dismiss timer
         let timer = null;
-        if (data.timeout && data.timeout > 0) {
-          const timerBar = document.getElementById(`timer-${id}`);
+        if (timeout > 0 && isFinite(timeout)) {
+          const timerBar = el.querySelector('.toast-timer');
           if (timerBar) {
-            timerBar.style.transition = `width ${data.timeout * 1000}ms linear`;
+            timerBar.style.transition = `width ${timeout * 1000}ms linear`;
             requestAnimationFrame(() => { timerBar.style.width = '0%'; });
           }
-          timer = setTimeout(() => dismissToast(id), data.timeout * 1000);
+          timer = setTimeout(() => dismissToast(id), timeout * 1000);
         }
 
         toasts.set(id, { el, timer, data });
@@ -272,20 +307,20 @@
         }
       }
 
-      // IPC handlers
-      ipcRenderer.on('notification-show', (event, data) => {
+      // IPC handlers via preload bridge
+      api.onShow((data) => {
         createToast(data);
       });
 
-      ipcRenderer.on('notification-dismiss', (event, data) => {
-        if (data === 'all' || data.id === 'all') {
+      api.onDismiss((data) => {
+        if (data === 'all' || (data && data.id === 'all')) {
           dismissAll();
-        } else if (data.id) {
+        } else if (data && data.id) {
           dismissToast(data.id);
         }
       });
 
-      ipcRenderer.on('notification-settings', (event, settings) => {
+      api.onSettings((settings) => {
         if (settings.position) { position = settings.position; updatePosition(); }
         if (settings.animation) { animation = settings.animation; }
         if (settings.maxVisible) { maxVisible = settings.maxVisible; }
@@ -293,13 +328,12 @@
 
       function updateViewBounds() {
         if (toasts.size === 0) {
-          ipcRenderer.send('notification-view-state', { visible: false });
+          api.sendViewState({ visible: false });
           return;
         }
-        // Measure total height of all toasts + padding
-        const containerRect = container.getBoundingClientRect();
-        const height = Math.ceil(containerRect.height) + 10;
-        ipcRenderer.send('notification-view-state', { visible: true, height: height });
+        // Use scrollHeight to get full content height including overflow
+        const height = container.scrollHeight + 10;
+        api.sendViewState({ visible: true, height: height });
       }
 
       // Prevent mousedown from propagating (don't steal focus from other views)

@@ -743,6 +743,18 @@ const hideDoorbellCamera = () => {
 const showNotification = (data) => {
   if (!WEBVIEW.notificationView || !WEBVIEW.notificationView.webContents) return;
   console.log("Showing notification:", data.id || 'unnamed', data.title);
+  // Position view on-screen — use current height if already showing, otherwise generous initial height
+  const currentBounds = WEBVIEW.notificationView.getBounds();
+  const alreadyVisible = currentBounds.x >= 0;
+  const screen = WEBVIEW.window.getBounds();
+  const pos = WEBVIEW.notificationPosition || 'top-right';
+  const w = 420;
+  const h = alreadyVisible ? Math.max(currentBounds.height, 300) : 300;
+  const x = pos.includes('right') ? screen.width - w : 0;
+  const y = pos.includes('bottom') ? screen.height - h : 0;
+  try { WEBVIEW.window.contentView.removeChildView(WEBVIEW.notificationView); } catch(e) {}
+  WEBVIEW.window.contentView.addChildView(WEBVIEW.notificationView);
+  WEBVIEW.notificationView.setBounds({ x, y, width: w, height: h });
   WEBVIEW.notificationView.webContents.send('notification-show', data);
 };
 
@@ -758,6 +770,18 @@ const updateNotificationSettings = (settings) => {
   if (settings.animation) WEBVIEW.notificationAnimation = settings.animation;
   if (settings.maxVisible) WEBVIEW.notificationMaxVisible = settings.maxVisible;
   WEBVIEW.notificationView.webContents.send('notification-settings', settings);
+  // Reposition view bounds immediately if toasts are currently showing
+  if (settings.position) {
+    const currentBounds = WEBVIEW.notificationView.getBounds();
+    if (currentBounds.x >= 0) {
+      const screen = WEBVIEW.window.getBounds();
+      const w = currentBounds.width;
+      const h = currentBounds.height;
+      const x = settings.position.includes('right') ? screen.width - w : 0;
+      const y = settings.position.includes('bottom') ? screen.height - h : 0;
+      WEBVIEW.notificationView.setBounds({ x, y, width: w, height: h });
+    }
+  }
 };
 
 global.WEBVIEW_NOTIFICATIONS = { show: showNotification, dismiss: dismissNotification, updateSettings: updateNotificationSettings };
@@ -804,11 +828,11 @@ const sidebarEvents = async () => {
   ipcMain.on("notification-action", (event, data) => {
     console.log("Notification action:", data.id, data.action);
     // Publish action to MQTT for HA to handle
-    if (global.INTEGRATION_MQTT_PUBLISH) {
-      const topic = `${global.INTEGRATION_ROOT || 'touchkio/rpi_BC5B9F'}/notification_action/state`;
+    if (global.INTEGRATION_MQTT_PUBLISH && global.INTEGRATION_ROOT) {
+      const topic = `${global.INTEGRATION_ROOT}/notification_action/state`;
       global.INTEGRATION_MQTT_PUBLISH(topic, JSON.stringify(data));
     } else {
-      console.error("MQTT publish not available for notification action");
+      console.error("MQTT publish not available for notification action:", !global.INTEGRATION_ROOT ? "INTEGRATION_ROOT not set" : "MQTT client not ready");
     }
   });
 
